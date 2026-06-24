@@ -51,6 +51,7 @@ if ($status) {
 }
 
 Write-Host "Pushing $Branch to arlitwoa/reporting-hub ..."
-git push $authRemote "HEAD:${Branch}" -u
+git push $authRemote "HEAD:${Branch}"
 git remote set-url origin $Remote
+git branch --set-upstream-to=origin/$Branch $Branch 2>$null
 Write-Host "Done."
