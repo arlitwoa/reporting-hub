@@ -1,8 +1,7 @@
 # Push reporting-hub to GitHub (arlitwoa) using a TWoA PAT.
-# Requires: TWOA_GITHUB_PAT env var with repo (Contents: Read and write) on arlitwoa/reporting-hub
+# Requires: TWOA_GITHUB_PAT user env var (run scripts/setup_twoa_github_pat.ps1 once)
 #
 # Usage:
-#   $env:TWOA_GITHUB_PAT = "<paste token once>"
 #   .\scripts\push_to_github.ps1
 #   .\scripts\push_to_github.ps1 -CommitMessage "Initial reporting-hub slice"
 
@@ -31,7 +30,7 @@ Then in PowerShell:
   .\scripts\push_to_github.ps1
 
 To persist for your user profile (optional):
-  [Environment]::SetUserEnvironmentVariable('TWOA_GITHUB_PAT', '<token>', 'User')
+  [Environment]::SetEnvironmentVariable('TWOA_GITHUB_PAT', '<token>', 'User')
 "@
 }
 

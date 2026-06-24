@@ -80,13 +80,14 @@ On the TWoA GitHub account that can access `arlitwoa/reporting-hub`:
 ```powershell
 cd C:\development\reporting-hub
 
-# One session
-$env:TWOA_GITHUB_PAT = "<paste token>"
+# One-time: save PAT to Windows user profile (prompts securely)
+powershell -ExecutionPolicy Bypass -File .\scripts\setup_twoa_github_pat.ps1
+# Restart Cursor after this
 
-# Or persist for your Windows user (optional)
-# [Environment]::SetUserEnvironmentVariable("TWOA_GITHUB_PAT", "<token>", "User")
+# Or one session only:
+# $env:TWOA_GITHUB_PAT = "<paste token>"
 
-.\scripts\push_to_github.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\push_to_github.ps1
 ```
 
 The script commits staged files if needed, pushes to `main`, and does **not** store the token in `.git/config` (only used for the push URL).
