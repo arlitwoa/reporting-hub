@@ -13,15 +13,11 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
-_EPCE1346 = _REPO_ROOT / "scripts" / "epce1346"
-if str(_EPCE1346) not in sys.path:
-    sys.path.insert(0, str(_EPCE1346))
 
 from artifact.atlassian import AtlassianAdapter  # noqa: E402
 
 from extensions.twoa_programme.quarter_scope import planned_scope_jqls  # noqa: E402
 from extensions.twoa_programme.quarterly_reporting import load_quarterly_reporting_config  # noqa: E402
-from scripts.epce1346.sizing_scope import SCOPE_NOTE, apply_scope  # noqa: E402
 from scripts.quarterly.common import CONFIG_PATH, out_path  # noqa: E402
 from scripts.quarterly.jira_burn import (  # noqa: E402
     count_unpointed_stories_bugs_by_lane,
@@ -29,6 +25,7 @@ from scripts.quarterly.jira_burn import (  # noqa: E402
     sum_story_points_by_exclusive_lane,
     sum_story_points_in_scope,
 )
+from scripts.quarterly.sizing_scope import SCOPE_NOTE, apply_scope  # noqa: E402
 
 
 def fetch_initiative_goal(
