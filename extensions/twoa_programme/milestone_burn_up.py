@@ -138,7 +138,7 @@ main.report {
 }
 .milestone-burn-intro {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.667fr);
   gap: 0;
   align-items: stretch;
   margin: 0;
@@ -159,14 +159,15 @@ main.report {
 }
 .milestone-description-card {
   border-radius: 4px 0 0 0;
+  border-right: none;
+}
+.milestone-notes-card {
+  border-left: 1px solid var(--border, #dfe1e6);
+  border-right: none;
 }
 .milestone-summary-card {
   border-radius: 0 4px 0 0;
-  border-left-width: 3px;
-  border-left-color: var(--border-strong, #c1c7d0);
-}
-.milestone-notes-card {
-  border-left-width: 0;
+  border-left: 1px solid var(--border, #dfe1e6);
 }
 .milestone-description-label,
 .milestone-earned-label,
@@ -267,10 +268,10 @@ main.report {
   .milestone-notes-card {
     border-radius: 0;
     border-top-width: 0;
+    border-right: 1px solid var(--border, #dfe1e6);
   }
   .milestone-summary-card {
     border-radius: 0;
-    border-left-width: 1px;
     border-top-width: 0;
   }
 }
