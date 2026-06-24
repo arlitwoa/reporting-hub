@@ -1,0 +1,166 @@
+{
+  "projectKey": "EPCE",
+  "issueTypes": {
+    "Initiative": {
+      "baseType": null,
+      "bucket": "orchestrate",
+      "writable": false,
+      "parentTypes": []
+    },
+    "Epic": {
+      "baseType": "Epic",
+      "bucket": "orchestrate",
+      "writable": false,
+      "parentTypes": ["Initiative"]
+    },
+    "Story": {
+      "baseType": "Story",
+      "bucket": "scope",
+      "writable": true,
+      "parentTypes": ["Epic"]
+    },
+    "Bug": {
+      "baseType": "Bug",
+      "bucket": "scope",
+      "writable": true,
+      "parentTypes": ["Epic"]
+    },
+    "Task": {
+      "baseType": "Task",
+      "bucket": "scope",
+      "writable": false,
+      "parentTypes": ["Epic", "Story"]
+    },
+    "Spike": {
+      "baseType": null,
+      "bucket": "scope",
+      "writable": false,
+      "parentTypes": ["Epic"]
+    },
+    "Testlet": {
+      "baseType": null,
+      "bucket": "tests",
+      "writable": true,
+      "parentTypes": ["Story"]
+    },
+    "Buglet": {
+      "baseType": null,
+      "bucket": "bugs",
+      "writable": true,
+      "parentTypes": ["Story"]
+    },
+    "Test Phase": {
+      "baseType": null,
+      "bucket": "tests",
+      "writable": false,
+      "parentTypes": ["Epic"]
+    },
+    "Test": {
+      "baseType": null,
+      "bucket": "tests",
+      "writable": false,
+      "parentTypes": ["Test Phase"]
+    },
+    "Development": {
+      "baseType": null,
+      "bucket": "scope",
+      "writable": false,
+      "parentTypes": ["Story"]
+    },
+    "Sub-task": {
+      "baseType": "Subtask",
+      "bucket": "scope",
+      "writable": false,
+      "parentTypes": ["Story", "Task", "Bug"]
+    },
+    "Incident": {
+      "baseType": null,
+      "bucket": "scope",
+      "writable": false,
+      "parentTypes": []
+    },
+    "Service Request": {
+      "baseType": null,
+      "bucket": "scope",
+      "writable": false,
+      "parentTypes": []
+    }
+  },
+  "fieldAliases": {
+    "Story Points": "customfield_10026",
+    "Story": "customfield_10577",
+    "Acceptance Criteria": "customfield_10377",
+    "Background": "customfield_10378",
+    "T-Shirt Size": "customfield_11234",
+    "Test Description": "customfield_11564",
+    "Test Steps": "customfield_10113",
+    "Expected Behaviour": "customfield_10115",
+    "Actual Behaviour": "customfield_10116",
+    "Steps to Reproduce": "customfield_10114",
+    "Environment": "customfield_10408",
+    "Functional Area": "customfield_11399",
+    "Test Types": "customfield_10145",
+    "Bug Description": "customfield_11498",
+    "Severity": "customfield_11499",
+    "Hygiene Score": "customfield_13468",
+    "Hygiene Detail": "customfield_13469",
+    "Hygiene RAG": "customfield_13470",
+    "Drop from Sprint Health": "customfield_13537",
+    "Product Owner": "customfield_10216",
+    "Developer": "customfield_10214",
+    "Tester": "customfield_10217",
+    "Business Analyst": "customfield_10218",
+    "CR Reason": "customfield_12358",
+    "CR Rollout Plan": "customfield_12359",
+    "CR Backout Plan": "customfield_12360",
+    "CR Backout Plan Alt": "customfield_12361",
+    "CR Impact": "customfield_10938",
+    "CR Change Type": "customfield_12497",
+    "CR Programme": "customfield_12462",
+    "CR Company": "customfield_12498",
+    "FreshService CR URL": "customfield_11630",
+    "Delivery Squad": "customfield_11102",
+    "Milestone | Dev Done": "customfield_11631",
+    "EPCE Platform": "customfield_10079"
+  },
+  "statusMap": {
+    "Open": "Dream",
+    "To Do": "Dream",
+    "In Discovery": "Discover",
+    "Investigating": "Discover",
+    "Triage": "Discover",
+    "Awaiting Refinement": "Design",
+    "Designated": "Design",
+    "In Design": "Design",
+    "Awaiting Development": "Develop",
+    "Awaiting Reply": "Develop",
+    "Doing": "Develop",
+    "Doing Next": "Develop",
+    "In Development": "Develop",
+    "Pending": "Develop",
+    "Repair in progress": "Develop",
+    "Awaiting Test Development": "Deliver",
+    "Awaiting Testing": "Deliver",
+    "DAT": "Develop",
+    "Failed": "Deliver",
+    "Failed Retest": "Deliver",
+    "In Test Development": "Deliver",
+    "In Testing": "Deliver",
+    "TST": "Deliver",
+    "Awaiting Delivery": "Demonstrate",
+    "Awaiting PRD": "Demonstrate",
+    "Demonstrate": "Demonstrate",
+    "Reviewing": "Demonstrate",
+    "Awaiting Deployment": "Deploy",
+    "Awaiting Merge": "Deploy",
+    "Awaiting STG": "Deploy",
+    "STG": "Deploy",
+    "Automate": "Drive",
+    "Closed": "Drive",
+    "Done": "Drive",
+    "Not Required": "Drive",
+    "Passed": "Drive",
+    "Rejected": "Drive",
+    "Resolved": "Drive"
+  }
+}

@@ -1,0 +1,170 @@
+{
+  "version": 1,
+  "roles": {
+    "viewer": {
+      "allowJiraWrites": false,
+      "allowConfluenceWrites": false,
+      "allowHygieneWrites": false,
+      "allowStoryContextWrites": false,
+      "allowWrites": false,
+      "allowPRMerge": false,
+      "allowBranchDelete": false,
+      "allowGlossaryLocalWrites": false,
+      "allowTranslateExecute": false,
+      "allowTestExecution": false,
+      "allowWorkflowActions": false,
+      "allowSalesforceWrites": false,
+      "allowProduction": false
+    },
+    "developer": {
+      "allowJiraWrites": false,
+      "allowConfluenceWrites": false,
+      "allowHygieneWrites": false,
+      "allowStoryContextWrites": true,
+      "allowWrites": false,
+      "allowPRMerge": false,
+      "allowBranchDelete": false,
+      "allowGlossaryLocalWrites": false,
+      "allowTranslateExecute": false,
+      "allowTestExecution": false,
+      "allowWorkflowActions": false,
+      "allowSalesforceWrites": false,
+      "allowProduction": false
+    },
+    "analyst": {
+      "allowJiraWrites": false,
+      "allowConfluenceWrites": true,
+      "allowHygieneWrites": false,
+      "allowStoryContextWrites": true,
+      "allowWrites": false,
+      "allowPRMerge": false,
+      "allowBranchDelete": false,
+      "allowGlossaryLocalWrites": false,
+      "allowTranslateExecute": false,
+      "allowTestExecution": false,
+      "allowWorkflowActions": false,
+      "allowSalesforceWrites": false,
+      "allowProduction": false
+    },
+    "delivery": {
+      "allowJiraWrites": true,
+      "allowConfluenceWrites": false,
+      "allowHygieneWrites": false,
+      "allowStoryContextWrites": false,
+      "allowWrites": false,
+      "allowPRMerge": false,
+      "allowBranchDelete": false,
+      "allowGlossaryLocalWrites": false,
+      "allowTranslateExecute": false,
+      "allowTestExecution": false,
+      "allowWorkflowActions": false,
+      "allowSalesforceWrites": false,
+      "allowProduction": false
+    },
+    "test-lead": {
+      "allowJiraWrites": true,
+      "allowConfluenceWrites": true,
+      "allowHygieneWrites": true,
+      "allowStoryContextWrites": false,
+      "allowWrites": false,
+      "allowPRMerge": false,
+      "allowBranchDelete": false,
+      "allowGlossaryLocalWrites": false,
+      "allowTranslateExecute": false,
+      "allowTestExecution": true,
+      "allowWorkflowActions": false,
+      "allowSalesforceWrites": false,
+      "allowProduction": false
+    },
+    "admin": {
+      "allowJiraWrites": true,
+      "allowConfluenceWrites": true,
+      "allowHygieneWrites": true,
+      "allowStoryContextWrites": true,
+      "allowWrites": true,
+      "allowPRMerge": true,
+      "allowBranchDelete": true,
+      "allowGlossaryLocalWrites": true,
+      "allowTranslateExecute": true,
+      "allowTestExecution": true,
+      "allowWorkflowActions": true,
+      "allowAutomationRuleReads": true,
+      "allowAutomationRuleWrites": true,
+      "allowGlobalAutomationRules": true,
+      "allowSalesforceWrites": true,
+      "allowProduction": false
+    }
+  },
+  "assignments": {
+    "brett.alley@twoa.ac.nz": "admin",
+    "ajit.kuttikatte@twoa.ac.nz": "test-lead",
+    "levinson.aruja@twoa.ac.nz": "test-lead",
+    "daniel.mladek@twoa.ac.nz": "test-lead"
+  },
+  "permissionModel": {
+    "atlassian": {
+      "jira": {
+        "scope": "project-level (EPCE)",
+        "projectRoles": [
+          "project-role-admin",
+          "project-role-squaddie",
+          "project-role-product",
+          "project-role-sprint-management",
+          "project-role-release",
+          "project-role-delete",
+          "project-role-read-only",
+          "Administrators"
+        ],
+        "note": "Users are assigned to site groups; groups are mapped to project roles. Refresh live: GET /rest/api/3/project/EPCE/role and GET /rest/api/3/user?accountId={id}&expand=groups."
+      },
+      "confluence": {
+        "scope": "space-level (EPCE, DTRAIN, SMART)",
+        "keyGroups": [
+          "confluence-admins-twoa",
+          "confluence-group-epce-admins",
+          "confluence-group-dtrain-admins",
+          "confluence-group-squaddie-epce",
+          "confluence-group-read-only",
+          "confluence-users-twoa"
+        ],
+        "note": "Space access is group-based. Group names encode scope and level (-admins, -squaddie, -read-only). Retrieve via user group expand: GET /rest/api/3/user?accountId={id}&expand=groups."
+      }
+    },
+    "ado": {
+      "scope": "project-level (twoa / Salesforce)",
+      "note": "Not yet queried. Check via ADO REST: GET https://dev.azure.com/twoa/_apis/graph/groups."
+    },
+    "salesforce": {
+      "scope": "org-level (twoa-tst, twoa-stg, twoa-prd)",
+      "note": "Not yet queried. Check via SOQL: SELECT Name, Profile.Name FROM User WHERE IsActive=true AND Email IN (...)."
+    }
+  },
+  "systemRoles": {
+    "_derivedFrom": "Atlassian API live query 2026-05-27; ADO and Salesforce not yet queried",
+    "brett.alley@twoa.ac.nz": {
+      "jira": "project-role-admin + project-role-squaddie in EPCE (via jira-group-admin-epce, jira-group-squaddie-epce); site-wide admin via jira-admins-twoa",
+      "confluence": "site-wide admin (confluence-admins-twoa); space admin on EPCE (confluence-group-epce-admins) and DTRAIN (confluence-group-dtrain-admins); SMART via site-wide admin only (no dedicated SMART admin group exists)",
+      "ado": "?",
+      "salesforce": "?"
+    },
+    "ajit.kuttikatte@twoa.ac.nz": {
+      "jira": "project-role-squaddie + project-role-read-only in EPCE (via jira-group-squaddie-epce, jira-group-read-only, jira-group-test-team)",
+      "confluence": "edit in EPCE, DTRAIN, and SMART (confluence-group-squaddie-epce covers all three approved spaces); read-only on other spaces (confluence-group-read-only)",
+      "ado": "?",
+      "salesforce": "?"
+    },
+    "levinson.aruja@twoa.ac.nz": {
+      "jira": "project-role-squaddie + project-role-read-only in EPCE (via jira-group-squaddie-epce, jira-group-read-only)",
+      "confluence": "edit in EPCE, DTRAIN, and SMART (confluence-group-squaddie-epce covers all three approved spaces); read-only on other spaces (confluence-group-read-only)",
+      "ado": "?",
+      "salesforce": "?"
+    },
+    "daniel.mladek@twoa.ac.nz": {
+      "jira": "project-role-squaddie + project-role-read-only in EPCE (via jira-group-squaddie-epce, jira-group-read-only)",
+      "confluence": "edit in EPCE, DTRAIN, and SMART (confluence-group-squaddie-epce covers all three approved spaces); read-only on other spaces (confluence-group-read-only)",
+      "ado": "?",
+      "salesforce": "?"
+    }
+  },
+  "notes": "Central role assignments for TWoA consumer. Change roles via pull request — local profile allow* flags are ignored when roleEnforcement is enabled. The artifact role model is an additional policy layer above the native system permissions — those remain the last line of defence. See permissionModel for each system's access tiers and systemRoles for per-user native assignments."
+}

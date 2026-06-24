@@ -1,0 +1,46 @@
+{
+  "initiativeKey": "EPCE-3897",
+  "hubKey": "PDE-3825",
+  "hubSummary": "EPC | 2026 Q2 Milestones",
+  "hubIssueType": "Milestone Level One",
+  "milestoneCount": 3,
+  "generatedAt": "2026-06-11T12:00:00+00:00",
+  "milestones": [
+    {
+      "key": "PDE-3834",
+      "label": "ED Cloud Data within Fabric",
+      "summary": "ED Cloud Data within Fabric",
+      "description": "Enable all Ed Cloud data in Fabric.",
+      "dueDate": "2026-06-11",
+      "status": "In Progress",
+      "issueType": "Milestone Level Zero",
+      "scopeEpics": [{"key": "EPCE-422", "summary": "Agree and Implement - Integration EC with MS Fabric", "issueType": "Epic"}],
+      "scopeRollup": {"childCount": 5, "storyPoints": 21.0, "earnedStoryPoints": 8.0, "unpointedCount": 1},
+      "scopeIssueKeys": ["EPCE-1001", "EPCE-1002"]
+    },
+    {
+      "key": "PDE-3836",
+      "label": "Curriculum Lifecycle",
+      "summary": "Curriculum Lifecycle",
+      "description": "Curriculum lifecycle built out.",
+      "dueDate": "2026-07-06",
+      "status": "To Do",
+      "issueType": "Milestone Level Zero",
+      "scopeEpics": [],
+      "scopeRollup": {"childCount": 0, "storyPoints": 0.0, "earnedStoryPoints": 0.0, "unpointedCount": 0},
+      "scopeIssueKeys": []
+    },
+    {
+      "key": "PDE-3839",
+      "label": "Semester A App Open - 24th August 2026",
+      "summary": "Semester A App Open - 24th August 2026",
+      "description": "Support Semester A 2027 application timeline.",
+      "dueDate": "2026-08-20",
+      "status": "In Progress",
+      "issueType": "Milestone Level Zero",
+      "scopeEpics": [],
+      "scopeRollup": {"childCount": 0, "storyPoints": 0.0, "earnedStoryPoints": 0.0, "unpointedCount": 0},
+      "scopeIssueKeys": []
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "name": "Primary Atlassian (TWoA)",
+  "service": "atlassian",
+  "credentialKey": "client-atlassian",
+  "credentialProvider": "local",
+  "approvedJiraProjects": [
+    "EPCE"
+  ],
+  "approvedConfluenceSpaces": [
+    "EPCE",
+    "DTRAIN",
+    "SMART"
+  ],
+  "defaultIssueLimit": 100,
+  "defaultPageLimit": 10,
+  "roleEnforcement": true,
+  "programmeExtension": "twoa_programme",
+  "allowJiraWrites": false,
+  "allowConfluenceWrites": false,
+  "allowHygieneWrites": false,
+  "allowStoryContextWrites": false,
+  "approvedWritableIssueTypes": [
+    "Testlet",
+    "Buglet",
+    "Bug",
+    "Story"
+  ],
+  "approvedHygieneIssueTypes": [
+    "Story",
+    "Bug",
+    "Buglet",
+    "Testlet"
+  ],
+  "issueTypeMap": {
+    "Testlet": ["Story"],
+    "Buglet": ["Story"],
+    "Bug": ["Epic"]
+  },
+  "jiraGetIssueExtraAliasFields": [
+    "Acceptance Criteria"
+  ],
+  "fieldAliases": {},
+  "confluenceAnchors": {
+    "EPCE": {
+      "homepageId": "646644576",
+      "canonicalKey": "EAPCE",
+      "description": "Enrolment and Pastoral Care Home"
+    },
+    "DTRAIN": {
+      "homepageId": "647463091",
+      "canonicalKey": "DDAD",
+      "description": "DTrain Home"
+    },
+    "SMART": {
+      "homepageId": "507150597",
+      "canonicalKey": "SMART",
+      "description": "Simplified Modular Abstract Release Train"
+    }
+  },
+  "notes": "MCP default profile name (atlassian) for TWoA consumer. Same binding as twoa-programme.template.json. Permissions come from config/role-registry.json when roleEnforcement is enabled."
+}

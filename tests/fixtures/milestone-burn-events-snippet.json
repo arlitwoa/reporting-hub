@@ -1,0 +1,29 @@
+{
+  "global": {
+    "events": [
+      {
+        "key": "EPCE-1001",
+        "story_points": 5.0,
+        "credit_at": "2026-04-10T12:00:00+00:00",
+        "credit_date": "2026-04-10",
+        "status_at_credit": "Done"
+      },
+      {
+        "key": "EPCE-1002",
+        "story_points": 8.0,
+        "credit_at": "2026-05-01T12:00:00+00:00",
+        "credit_date": "2026-05-01",
+        "status_at_credit": "PRD",
+        "status_now": "PRD"
+      },
+      {
+        "key": "EPCE-1003",
+        "story_points": 3.0,
+        "credit_at": "2026-05-15T12:00:00+00:00",
+        "credit_date": "2026-05-15",
+        "status_at_credit": "In Testing",
+        "status_now": "In Testing"
+      }
+    ]
+  }
+}

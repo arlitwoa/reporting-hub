@@ -1,0 +1,89 @@
+{
+  "sourceFile": "config/quarterly/seeds/release-plan-metadata.json",
+  "sheet": "Release Plan",
+  "sprintRow": 3,
+  "dateRow": 2,
+  "calendarStartsAt": "2026-05-25",
+  "quarterStart": "2026-04-01",
+  "quarterEnd": "2026-08-20",
+  "sprints": [
+    {
+      "name": "Sprint 21",
+      "sprintNumber": 21,
+      "startDate": "2026-04-01",
+      "endDate": "2026-04-12",
+      "projected": true
+    },
+    {
+      "name": "Sprint 22",
+      "sprintNumber": 22,
+      "startDate": "2026-04-13",
+      "endDate": "2026-04-26",
+      "projected": true
+    },
+    {
+      "name": "Sprint 23",
+      "sprintNumber": 23,
+      "startDate": "2026-04-27",
+      "endDate": "2026-05-10",
+      "projected": true
+    },
+    {
+      "name": "Sprint 24",
+      "sprintNumber": 24,
+      "startDate": "2026-05-11",
+      "endDate": "2026-05-24",
+      "projected": true
+    },
+    {
+      "name": "Sprint 25",
+      "sprintNumber": 25,
+      "startDate": "2026-05-25",
+      "endDate": "2026-06-07",
+      "projected": false
+    },
+    {
+      "name": "Sprint 26",
+      "sprintNumber": 26,
+      "startDate": "2026-06-08",
+      "endDate": "2026-06-21",
+      "projected": false
+    },
+    {
+      "name": "Sprint 27",
+      "sprintNumber": 27,
+      "startDate": "2026-06-22",
+      "endDate": "2026-07-05",
+      "projected": false
+    },
+    {
+      "name": "Sprint 28",
+      "sprintNumber": 28,
+      "startDate": "2026-07-06",
+      "endDate": "2026-07-19",
+      "projected": false
+    },
+    {
+      "name": "Sprint 29",
+      "sprintNumber": 29,
+      "startDate": "2026-07-20",
+      "endDate": "2026-08-02",
+      "projected": false
+    },
+    {
+      "name": "Sprint 30",
+      "sprintNumber": 30,
+      "startDate": "2026-08-03",
+      "endDate": "2026-08-16",
+      "projected": false
+    },
+    {
+      "name": "Sprint 31",
+      "sprintNumber": 31,
+      "startDate": "2026-08-17",
+      "endDate": "2026-08-20",
+      "projected": false
+    }
+  ],
+  "extended": true
+}

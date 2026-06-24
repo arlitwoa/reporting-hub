@@ -1,0 +1,169 @@
+{
+  "projectKey": "EPCE",
+  "scopeIssueTypes": ["Story", "Bug"],
+  "deliverMilestoneFilterId": 10142,
+  "deliverMilestoneFilterLabel": "smart-milestone-deliver",
+  "blockedFlaggedJql": "\"Flagged[Checkboxes]\" = Impediment",
+  "week1DeployShare": 0.10,
+  "scopeBaselineGreenMax": 0.90,
+  "scopeBaselineAmberMax": 1.15,
+  "week1SpillCap": 0.35,
+  "developmentDoneStatuses": ["Awaiting Delivery", "Awaiting Testing"],
+  "developmentDoneForecastWeight": 0.75,
+  "dropFromSprintHealthField": "Drop from Sprint Health",
+  "defaultReleaseFixVersion": "20260528-engine",
+  "confluence": {
+    "spaceKey": "DTRAIN",
+    "sprintHealth": {
+      "parentPageId": "1421705257",
+      "hubTitle": "Sprint Health | Deliver",
+      "squadPageTitlePattern": "Current Sprint | {label}"
+    },
+    "devDoneRisk": {
+      "parentPageId": "515506267",
+      "pageTitle": "Current Engine | Dev Done Risk"
+    }
+  },
+  "githubPages": {
+    "githubUser": "arlitwoa",
+    "repoName": "reporting-hub",
+    "sprintHealth": {
+      "publishDir": "docs/sprint-health",
+      "sitePath": "sprint-health",
+      "notes": "One index.html per squad; overwritten each refresh. Landing page lists squads."
+    },
+    "devDoneRisk": {
+      "publishDir": "docs/dev-done-risk",
+      "indexFile": "index.html",
+      "sitePath": "dev-done-risk",
+      "notes": "In-cycle engine from smart-engine-in-cycle; stable URL overwrites each refresh."
+    }
+  },
+  "devDoneRisk": {
+    "engineProjectKey": "PDE",
+    "engineIssueType": "Engine",
+    "engineInCycleFilter": "smart-engine-in-cycle",
+    "scopeInCycleFilter": "smart-epc-in-cycle",
+    "scopeFilterId": "14115",
+    "scopeLabel": "smart-epc-in-cycle (Stories & Bugs)",
+    "engineBoardId": 35,
+    "largeSpThreshold": 15,
+    "gateStatuses": [
+      "Awaiting Testing",
+      "In Testing",
+      "STG",
+      "TST",
+      "Awaiting STG",
+      "Awaiting Merge",
+      "Awaiting Deployment",
+      "Awaiting Delivery",
+      "Demonstrate",
+      "Done",
+      "Passed",
+      "Resolved",
+      "Closed",
+      "Not Required",
+      "Rejected"
+    ],
+    "criticalStatuses": [
+      "To Do",
+      "Triage",
+      "Awaiting Refinement",
+      "Investigating"
+    ],
+    "highStatuses": [
+      "In Development",
+      "Awaiting Development",
+      "Delivery Candidate"
+    ],
+    "mediumStatuses": ["In Design", "DAT"],
+    "failedStatuses": ["Failed", "Failed Retest"]
+  },
+  "extraDeployStatuses": ["PRD"],
+  "terminalStatusDefaults": ["done", "passed", "closed", "released", "deployed", "drive"],
+  "squads": {
+    "kakariki": {
+      "label": "Kākāriki",
+      "boardId": 893,
+      "boardName": "Kākāriki Krew Scrum | Delivery",
+      "namePrefixes": ["kākāriki", "kakariki"]
+    },
+    "kikorangi": {
+      "label": "Kikorangi",
+      "boardId": 992,
+      "boardName": "Kikorangi Tima Scrum | Delivery",
+      "namePrefixes": ["kikorangi"]
+    },
+    "waiporoporo": {
+      "label": "Waiporoporo",
+      "boardId": 1725,
+      "boardName": "Waiporoporo Scrum",
+      "namePrefixes": ["waiporoporo"]
+    }
+  },
+  "openBugletStatuses": [
+    "Failed",
+    "Failed Retest",
+    "Reopened",
+    "To Do",
+    "Triage",
+    "Investigating",
+    "Awaiting Refinement",
+    "In Design",
+    "DAT",
+    "Awaiting Development",
+    "In Development",
+    "Delivery Candidate",
+    "Awaiting Delivery",
+    "Awaiting Testing",
+    "In Testing"
+  ],
+  "riskyStatuses": ["Failed", "Failed Retest", "Reopened"],
+  "statusFallbackWeight": {
+    "To Do": 0.05,
+    "Triage": 0.05,
+    "Investigating": 0.05,
+    "Awaiting Refinement": 0.08,
+    "In Design": 0.08,
+    "DAT": 0.08,
+    "Delivery Candidate": 0.15,
+    "Awaiting Development": 0.12,
+    "In Development": 0.18,
+    "Awaiting Delivery": 0.75,
+    "Awaiting Testing": 0.75,
+    "In Testing": 0.50,
+    "Awaiting Deployment": 0.72,
+    "Awaiting Merge": 0.75,
+    "Awaiting STG": 0.82,
+    "STG": 0.88,
+    "TST": 0.88,
+    "Demonstrate": 0.90,
+    "Passed": 1.0,
+    "Done": 1.0
+  },
+  "statusWorkflowOrder": [
+    "To Do",
+    "Triage",
+    "Investigating",
+    "Awaiting Refinement",
+    "In Design",
+    "DAT",
+    "Delivery Candidate",
+    "Awaiting Development",
+    "In Development",
+    "Awaiting Delivery",
+    "Awaiting Testing",
+    "In Testing",
+    "Awaiting Deployment",
+    "Awaiting Merge",
+    "Awaiting STG",
+    "STG",
+    "TST",
+    "Demonstrate",
+    "Passed",
+    "Done",
+    "Closed",
+    "Rejected",
+    "Not Required"
+  ]
+}

@@ -1,0 +1,19 @@
+# Local profiles and credentials
+config/profiles/*.json
+!config/profiles/*.template.json
+config/credentials.local.json
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Pipeline artifacts (regenerated each refresh)
+output/
+scratch/
+
+# Editor
+.vscode/
+.cursor/

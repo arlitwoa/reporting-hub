@@ -1,0 +1,55 @@
+{
+  "initiativeKey": "EPCE-3897",
+  "hubKey": "PDE-3825",
+  "hubSummary": "EPC | 2026 Q2 Milestones",
+  "hubIssueType": "Milestone Level One",
+  "quarterFilter": "smart-current-quarter",
+  "dtrainPhases": ["Dream", "Discover", "Design", "Develop", "Deliver", "Demonstrate", "Deploy", "Drive"],
+  "segmentOrder": ["Dream", "Discover", "Design", "Develop", "Deliver", "Demonstrate", "Deploy", "Drive", "Unknown", "Unpointed"],
+  "milestoneCount": 2,
+  "generatedAt": "2026-06-11T12:00:00+00:00",
+  "milestones": [
+    {
+      "key": "PDE-3834",
+      "label": "ED Cloud Data within Fabric",
+      "summary": "ED Cloud Data within Fabric",
+      "dueDate": "2026-06-11",
+      "status": "In Progress",
+      "issueType": "Milestone Level Zero",
+      "scopeEpics": [{"key": "EPCE-422", "summary": "Fabric integration", "issueType": "Epic"}],
+      "scopeIssueKeys": ["EPCE-1001", "EPCE-1002", "EPCE-1003"],
+      "lanes": {
+        "educationCloud": {
+          "phases": {"Dream": 0.0, "Discover": 5.0, "Design": 3.0, "Develop": 8.0, "Deliver": 0.0, "Demonstrate": 0.0, "Deploy": 4.0, "Drive": 0.0, "Unknown": 0.0},
+          "unpointedCount": 1,
+          "storyPoints": 20.0,
+          "totalWeight": 21.0
+        },
+        "integration": {
+          "phases": {"Dream": 2.0, "Discover": 0.0, "Design": 0.0, "Develop": 6.0, "Deliver": 0.0, "Demonstrate": 0.0, "Deploy": 0.0, "Drive": 0.0, "Unknown": 0.0},
+          "unpointedCount": 0,
+          "storyPoints": 8.0,
+          "totalWeight": 8.0
+        },
+        "dataMigration": {"phases": {"Dream": 0.0, "Discover": 0.0, "Design": 0.0, "Develop": 0.0, "Deliver": 0.0, "Demonstrate": 0.0, "Deploy": 0.0, "Drive": 0.0, "Unknown": 0.0}, "unpointedCount": 0, "storyPoints": 0.0, "totalWeight": 0.0},
+        "unassigned": {"phases": {"Dream": 0.0, "Discover": 0.0, "Design": 0.0, "Develop": 0.0, "Deliver": 0.0, "Demonstrate": 0.0, "Deploy": 0.0, "Drive": 0.0, "Unknown": 0.0}, "unpointedCount": 0, "storyPoints": 0.0, "totalWeight": 0.0}
+      }
+    },
+    {
+      "key": "PDE-3836",
+      "label": "Curriculum Lifecycle",
+      "summary": "Curriculum Lifecycle",
+      "dueDate": "2026-07-06",
+      "status": "To Do",
+      "issueType": "Milestone Level Zero",
+      "scopeEpics": [],
+      "scopeIssueKeys": [],
+      "lanes": {
+        "educationCloud": {"phases": {"Dream": 0.0, "Discover": 0.0, "Design": 0.0, "Develop": 0.0, "Deliver": 0.0, "Demonstrate": 0.0, "Deploy": 0.0, "Drive": 0.0, "Unknown": 0.0}, "unpointedCount": 0, "storyPoints": 0.0, "totalWeight": 0.0},
+        "integration": {"phases": {"Dream": 0.0, "Discover": 0.0, "Design": 0.0, "Develop": 0.0, "Deliver": 0.0, "Demonstrate": 0.0, "Deploy": 0.0, "Drive": 0.0, "Unknown": 0.0}, "unpointedCount": 0, "storyPoints": 0.0, "totalWeight": 0.0},
+        "dataMigration": {"phases": {"Dream": 0.0, "Discover": 0.0, "Design": 0.0, "Develop": 0.0, "Deliver": 0.0, "Demonstrate": 0.0, "Deploy": 0.0, "Drive": 0.0, "Unknown": 0.0}, "unpointedCount": 0, "storyPoints": 0.0, "totalWeight": 0.0},
+        "unassigned": {"phases": {"Dream": 0.0, "Discover": 0.0, "Design": 0.0, "Develop": 0.0, "Deliver": 0.0, "Demonstrate": 0.0, "Deploy": 0.0, "Drive": 0.0, "Unknown": 0.0}, "unpointedCount": 0, "storyPoints": 0.0, "totalWeight": 0.0}
+      }
+    }
+  ]
+}

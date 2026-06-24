@@ -1,0 +1,70 @@
+{
+  "name": "TWoA EPCE Atlassian",
+  "service": "atlassian",
+  "credentialKey": "client-atlassian",
+  "credentialProvider": "local",
+  "approvedJiraProjects": [
+    "EPCE"
+  ],
+  "approvedConfluenceSpaces": [
+    "EPCE",
+    "DTRAIN",
+    "SMART"
+  ],
+  "defaultIssueLimit": 100,
+  "defaultPageLimit": 10,
+  "defaultAutomationRuleLimit": 50,
+  "roleEnforcement": true,
+  "allowAutomationRuleReads": false,
+  "allowAutomationRuleWrites": false,
+  "allowGlobalAutomationRules": false,
+  "approvedAutomationScopes": [
+    "EPCE",
+    "GLOBAL"
+  ],
+  "programmeExtension": "twoa_programme",
+  "allowJiraWrites": false,
+  "allowConfluenceWrites": false,
+  "allowHygieneWrites": false,
+  "allowStoryContextWrites": false,
+  "approvedWritableIssueTypes": [
+    "Testlet",
+    "Buglet",
+    "Bug",
+    "Story"
+  ],
+  "approvedHygieneIssueTypes": [
+    "Story",
+    "Bug",
+    "Buglet",
+    "Testlet"
+  ],
+  "issueTypeMap": {
+    "Testlet": ["Story"],
+    "Buglet": ["Story"],
+    "Bug": ["Epic"]
+  },
+  "jiraGetIssueExtraAliasFields": [
+    "Acceptance Criteria"
+  ],
+  "fieldAliases": {},
+  "confluenceAnchors": {
+    "EPCE": {
+      "homepageId": "646644576",
+      "canonicalKey": "EAPCE",
+      "description": "Enrolment and Pastoral Care Home"
+    },
+    "DTRAIN": {
+      "homepageId": "647463091",
+      "canonicalKey": "DDAD",
+      "description": "DTrain Home"
+    },
+    "SMART": {
+      "homepageId": "507150597",
+      "canonicalKey": "SMART",
+      "description": "Simplified Modular Abstract Release Train"
+    }
+  },
+  "cloudId": "",
+  "notes": "TWoA EPCE programme template. Copy to twoa-programme.json (git-ignored). fieldAliases can stay empty when programmeExtension is twoa_programme. Add Confluence space keys to approvedConfluenceSpaces as needed. Set write flags only after approval. For Jira Automation API: set cloudId (from https://twoa.atlassian.net/_edge/tenant_info) or leave empty to resolve lazily; enable allowAutomationRuleReads/Writes and allowGlobalAutomationRules for admin role holders via role-registry.json."
+}

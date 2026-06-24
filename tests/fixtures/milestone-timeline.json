@@ -1,0 +1,97 @@
+{
+  "initiativeKey": "EPCE-3897",
+  "hubKey": "PDE-3825",
+  "hubSummary": "EPC | 2026 Q2 Milestones",
+  "quarterStart": "2026-04-01",
+  "quarterEnd": "2026-08-20",
+  "milestoneCount": 2,
+  "generatedAt": "2026-06-11T12:00:00+00:00",
+  "milestones": [
+    {
+      "key": "PDE-3834",
+      "label": "ED Cloud Data within Fabric",
+      "summary": "ED Cloud Data within Fabric",
+      "status": "Doing",
+      "created": "2026-03-01",
+      "startDate": "2026-04-15",
+      "dueDate": "2026-06-11",
+      "endDate": "2026-06-11",
+      "startDateSource": "start_field",
+      "notes": "Fabric rollout depends on ED Cloud data lake readiness.",
+      "notesUpdatedAt": "2026-06-15T03:05:20.492000+00:00",
+      "scopeRollup": {
+        "phases": {
+          "Dream": 0,
+          "Discover": 0,
+          "Design": 8,
+          "Develop": 12,
+          "Deliver": 0,
+          "Demonstrate": 0,
+          "Deploy": 8,
+          "Drive": 0,
+          "Unknown": 0
+        },
+        "phaseIssueKeys": {
+          "Dream": [],
+          "Discover": [],
+          "Design": ["EPCE-6501"],
+          "Develop": ["EPCE-6502"],
+          "Deliver": [],
+          "Demonstrate": [],
+          "Deploy": ["EPCE-6503"],
+          "Drive": [],
+          "Unknown": []
+        },
+        "unpointedCount": 2,
+        "unpointedIssueKeys": ["EPCE-6504", "EPCE-6505"],
+        "storyPoints": 28,
+        "totalWeight": 30
+      },
+      "scopeEpics": [
+        {
+          "key": "EPCE-4001",
+          "summary": "Fabric data pipeline",
+          "rollup": {
+            "phases": {
+              "Dream": 0,
+              "Discover": 0,
+              "Design": 8,
+              "Develop": 12,
+              "Deliver": 0,
+              "Demonstrate": 0,
+              "Deploy": 8,
+              "Drive": 0,
+              "Unknown": 0
+            },
+            "phaseIssueKeys": {
+              "Dream": [],
+              "Discover": [],
+              "Design": ["EPCE-6501"],
+              "Develop": ["EPCE-6502"],
+              "Deliver": [],
+              "Demonstrate": [],
+              "Deploy": ["EPCE-6503"],
+              "Drive": [],
+              "Unknown": []
+            },
+            "unpointedCount": 1,
+            "unpointedIssueKeys": ["EPCE-6504"],
+            "storyPoints": 28,
+            "totalWeight": 29
+          }
+        }
+      ]
+    },
+    {
+      "key": "PDE-3836",
+      "label": "Curriculum Lifecycle",
+      "summary": "Curriculum Lifecycle",
+      "status": "To Do",
+      "created": "2026-04-01",
+      "startDate": "2026-04-01",
+      "dueDate": "2026-07-06",
+      "endDate": "2026-07-06",
+      "startDateSource": "created"
+    }
+  ]
+}

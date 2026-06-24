@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "storyKey": "EPCE-6745",
+  "quarter": {
+    "slug": "2026-Q2",
+    "label": "Q2 2026 delivery quarter (Apr–Aug)",
+    "startDate": "2026-04-01",
+    "endDate": "2026-08-20",
+    "initiativeKey": "EPCE-3897",
+    "currentQuarterFilter": "smart-current-quarter",
+    "quarterlyReportingFilter": "smart-quarterly-reporting"
+  },
+  "scope": {
+    "parentInitiative": "EPCE-3897",
+    "quarterFilter": "smart-current-quarter",
+    "unassignedFilter": "smart-quarterly-unassigned",
+    "overlapPolicy": "priority_exclusive",
+    "scopeIssueTypes": ["Story", "Bug", "Spike"],
+    "burnIssueTypes": ["Story", "Bug"],
+    "notes": "Global scope = smart-current-quarter (EPCE-3897). All quarterly JQL and sizing exclude status Rejected. Lane JQL generated exclusively (L3→L2→L1→unassigned). Jira hygiene filter smart-quarterly-unassigned = board-inverse within global."
+  },
+  "quarterGoal": {
+    "plannedStoryPoints": null,
+    "sizingSourceInitiative": "EPCE-3897",
+    "notes": "Goal = aggregated Story/Spike/Bug SP under initiative (same as Smartificer). Run scripts/quarterly/fetch_quarter_goal.py --write; loads quarter-goal.json at report time. plannedStoryPointsByScope sums SP in global quarter slices."
+  },
+  "lanes": {
+    "educationCloud": {
+      "label": "Lane 1 — Education Cloud (squad Scrum)",
+      "squads": ["kakariki", "kikorangi", "waiporoporo"],
+      "boardIds": [893, 992, 1725],
+      "doneDefinition": "deploy_plus",
+      "deployMilestoneFilter": "smart-milestone-deploy",
+      "sprintScopeNotes": "Sprint = commitment; fixVersion = delivery promise within quarter.",
+      "releaseScopeFilterPattern": "filter = smart-project-epce-stories AND \"Delivery Squad[Select List (multiple choices)]\" = \"{squad}\" AND fixVersion ~ \"{quarterFixVersionPattern}\"",
+      "excludeFromSprintHealth": [
+        "Change Types = data",
+        "AIS anchor items (Drop from Sprint Health where appropriate)"
+      ]
+    },
+    "integration": {
+      "label": "Lane 2 — Integration programme (EPCE Kanban)",
+      "boardId": 3032,
+      "boardUrl": "https://twoa.atlassian.net/jira/software/c/projects/EPCE/boards/3032",
+      "doneDefinition": "deploy_plus_cluster",
+      "velocityUnit": "fixVersion within delivery quarter",
+      "clusterDoneRule": "All tight-coupled members (same quarter fixVersion) reach Deploy+",
+      "vendorVelocityMetric": "AIS anchor Deploy+ tracked separately"
+    },
+    "dataMigration": {
+      "label": "Lane 3 — Data Migration (EPCE Kanban)",
+      "boardId": 2730,
+      "boardUrl": "https://twoa.atlassian.net/jira/software/c/projects/EPCE/boards/2730",
+      "workflowColumns": [
+        "To Do",
+        "In Design",
+        "DAT",
+        "TST",
+        "STG",
+        "Awaiting PRD",
+        "Done"
+      ],
+      "doneDefinition": "done_status_only",
+      "velocityCreditStatus": "Done",
+      "datPhase": "Develop"
+    },
+    "unassigned": {
+      "label": "Unassigned (in quarter scope, not on a lane board)",
+      "doneDefinition": "deploy_plus",
+      "notes": "Exclusive bucket after L3/L2/L1 priority. Jira filter smart-quarterly-unassigned uses board-inverse for hygiene."
+    }
+  },
+  "standup": {
+    "primaryView": "educationCloud",
+    "throwOutLanes": ["integration", "dataMigration"],
+    "engineBoardId": 35,
+    "engineBoardNote": "PDE board 35 — release-week use only, not daily standup"
+  },
+  "confluence": {
+    "spaceKey": "DTRAIN",
+    "parentPageId": "1457324070",
+    "pageTitle": "Current Quarter | EPC Delivery Dashboard"
+  },
+  "githubPages": {
+    "publishDir": "docs/quarter",
+    "indexFile": "index.html",
+    "sitePath": "quarter",
+    "githubUser": "arlitwoa",
+    "repoName": "reporting-hub",
+    "notes": "Static snapshot for GitHub Pages. Enable Settings → Pages → branch develop → folder /docs. Use a private repo for staff-only access."
+  },
+  "releasePlan": {
+    "workbookSheet": "Release Plan",
+    "sprintHeaderRow": 3,
+    "calendarDateRow": 2,
+    "notes": "Sprints from import_release_plan.py (EPC Release Planning.xlsx). Engine releases from PDE Engine fixVersion + Carriage Type; projected biweekly from last in-cycle."
+  },
+  "deliveryMilestones": {
+    "source": "jira",
+    "milestoneLinkType": "Milestone",
+    "inScopeFilterId": "15858",
+    "inScopeFilter": "smart-milestone-report",
+    "milestoneReportProject": "PDE",
+    "artifactFile": "delivery-milestones.json",
+    "notes": "Hub children under initiative Milestone link, narrowed by saved filter 15858 (smart-milestone-report). Fetch JQL: project = PDE AND parent = {hub} AND filter = smart-milestone-report. Chart window dates are parsed from that filter JQL when present."
+  },
+  "milestoneScopeChart": {
+    "artifactFile": "milestone-scope-chart.json",
+    "timelineArtifactFile": "milestone-timeline.json",
+    "htmlFile": "milestone-scope-chart.html",
+    "notes": "Timeline report: fetch_milestone_timeline.py then milestone_scope_report.py. Composition data (milestone-scope-chart.json) reserved for a later phase."
+  },
+  "burnTracking": {
+    "earnedAt": "deploy_phase",
+    "idealCurve": "linear_to_goal_target",
+    "goalTargetDate": "2026-07-31",
+    "compareAgainst": "quarterGoal.plannedStoryPoints",
+    "outputDir": "output/quarterly",
+    "notes": "goalTargetDate = when the linear goal line reaches 100% SP. Chart x-axis still runs to quarter.endDate. idealCurve linear_to_quarter_end ignores goalTargetDate."
+  },
+  "notes": "Scaffolding for EPCE-6745 three-lane model. Scope parent EPCE-3897; global filter smart-current-quarter; headline burn on global scope."
+}

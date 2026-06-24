@@ -1,0 +1,14 @@
+{
+  "fieldMaps": {
+    "twoa_programme": "extensions.twoa_programme.field_maps"
+  },
+  "hygiene": {
+    "twoa_programme": "extensions.twoa_programme.hygiene"
+  },
+  "deliveryHealth": {
+    "twoa_programme": "extensions.twoa_programme.delivery_health"
+  },
+  "quarterlyReporting": {
+    "twoa_programme": "extensions.twoa_programme.quarterly_reporting"
+  }
+}

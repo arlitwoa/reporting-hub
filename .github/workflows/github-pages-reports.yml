@@ -1,0 +1,75 @@
+name: Refresh GitHub Pages reports
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: github-pages-reports
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout reporting-hub
+        uses: actions/checkout@v4
+
+      - name: Checkout artifact core
+        uses: actions/checkout@v4
+        with:
+          repository: arlitwoa/artifact
+          ref: develop
+          token: ${{ secrets.ARTIFACT_CORE_PAT }}
+          path: artifact-core
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install packages
+        run: |
+          pip install -e artifact-core
+          pip install -e . --no-deps
+
+      - name: Run unit tests
+        env:
+          ARTIFACT_PROGRAMME_REGISTRY: ${{ github.workspace }}/config/programme-registry.json
+          ARTIFACT_PROFILES_DIR: ${{ github.workspace }}/config/profiles
+          ARTIFACT_ROLE_REGISTRY: ${{ github.workspace }}/config/role-registry.json
+        run: python -m unittest discover -s tests -v
+
+      - name: Prepare profiles and credentials
+        env:
+          ARTIFACT_CREDENTIALS_JSON: ${{ secrets.ARTIFACT_CREDENTIALS_JSON }}
+        run: |
+          mkdir -p config/profiles
+          cp config/profiles/atlassian.template.json config/profiles/atlassian.json
+          cp config/profiles/twoa-programme.template.json config/profiles/twoa-programme.json
+          printf '%s' "$ARTIFACT_CREDENTIALS_JSON" > /tmp/credentials.local.json
+
+      - name: Refresh report snapshots
+        env:
+          ARTIFACT_PROGRAMME_REGISTRY: ${{ github.workspace }}/config/programme-registry.json
+          ARTIFACT_PROFILES_DIR: ${{ github.workspace }}/config/profiles
+          ARTIFACT_ROLE_REGISTRY: ${{ github.workspace }}/config/role-registry.json
+          ARTIFACT_LOCAL_CREDENTIALS: /tmp/credentials.local.json
+          ARTIFACT_USER_EMAIL: ${{ secrets.ARTIFACT_USER_EMAIL }}
+        run: bash scripts/refresh_github_pages_reports.sh
+
+      - name: Commit and publish if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/index.html docs/quarter/index.html docs/quarter/milestone.html docs/sprint-health docs/dev-done-risk
+          if git diff --staged --quiet; then
+            echo "No report snapshot changes to publish."
+            exit 0
+          fi
+          git commit -m "Refresh GitHub Pages report snapshots [skip ci]"
+          git push
