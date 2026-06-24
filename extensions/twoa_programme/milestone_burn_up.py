@@ -138,18 +138,17 @@ main.report {
 }
 .milestone-burn-intro {
   display: grid;
-  grid-template-columns: minmax(200px, 25%) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
   gap: 0;
   align-items: stretch;
   margin: 0;
 }
-.milestone-burn-intro--solo {
-  grid-template-columns: minmax(220px, max-content);
-}
+.milestone-burn-intro .milestone-description-card,
 .milestone-burn-intro .milestone-summary-card,
 .milestone-burn-intro .milestone-notes-card {
   border-bottom: none;
 }
+.milestone-description-card,
 .milestone-summary-card,
 .milestone-notes-card {
   padding: 10px 12px;
@@ -158,13 +157,37 @@ main.report {
   font-size: 12px;
   line-height: 1.45;
 }
-.milestone-summary-card {
+.milestone-description-card {
   border-radius: 4px 0 0 0;
 }
-.milestone-notes-card {
+.milestone-summary-card {
   border-radius: 0 4px 0 0;
   border-left-width: 3px;
   border-left-color: var(--border-strong, #c1c7d0);
+}
+.milestone-notes-card {
+  border-left-width: 0;
+}
+.milestone-description-label,
+.milestone-earned-label,
+.milestone-notes-label {
+  margin: 0 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted, #5e6c84);
+}
+.milestone-description-body {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text, #172b4d);
+  white-space: pre-wrap;
+}
+.milestone-description-empty {
+  color: var(--muted, #5e6c84);
+  font-style: italic;
 }
 .milestone-stat-lead {
   margin: 0 0 8px;
@@ -217,14 +240,6 @@ main.report {
   line-height: 1.4;
   color: var(--muted, #5e6c84);
 }
-.milestone-notes-label {
-  margin: 0 0 6px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--muted, #5e6c84);
-}
 .milestone-notes-updated {
   font-weight: 500;
   text-transform: none;
@@ -237,15 +252,23 @@ main.report {
   color: var(--text, #172b4d);
   white-space: pre-wrap;
 }
+.milestone-notes-empty {
+  color: var(--muted, #5e6c84);
+  font-style: italic;
+}
 @media (max-width: 900px) {
   .milestone-burn-intro {
     grid-template-columns: 1fr;
     gap: 0;
   }
-  .milestone-summary-card {
+  .milestone-description-card {
     border-radius: 4px 4px 0 0;
   }
   .milestone-notes-card {
+    border-radius: 0;
+    border-top-width: 0;
+  }
+  .milestone-summary-card {
     border-radius: 0;
     border-left-width: 1px;
     border-top-width: 0;
@@ -414,6 +437,7 @@ def _milestone_burn_meta_html(
     )
     return (
         '<div class="milestone-summary-card">'
+        '<p class="milestone-earned-label">Earned detail</p>'
         f'<p class="milestone-stat-lead">{lead}</p>'
         f"{details_html}"
         f"{footnote}"
@@ -421,10 +445,22 @@ def _milestone_burn_meta_html(
     )
 
 
+def _milestone_description_html(milestone: dict[str, Any]) -> str:
+    description = str(milestone.get("description") or "").strip()
+    if description:
+        body = f'<p class="milestone-description-body">{html.escape(description)}</p>'
+    else:
+        body = '<p class="milestone-description-body milestone-description-empty">No description in Jira.</p>'
+    return (
+        '<div class="milestone-description-card">'
+        '<p class="milestone-description-label">Description</p>'
+        f"{body}"
+        "</div>"
+    )
+
+
 def _milestone_notes_html(milestone: dict[str, Any]) -> str:
     notes = str(milestone.get("notes") or "").strip()
-    if not notes:
-        return ""
     updated_suffix = format_milestone_notes_updated_label(milestone.get("notesUpdatedAt"))
     if updated_suffix:
         label_html = (
@@ -432,23 +468,30 @@ def _milestone_notes_html(milestone: dict[str, Any]) -> str:
         )
     else:
         label_html = "Notes"
+    if notes:
+        body = f'<p class="milestone-notes-body">{html.escape(notes)}</p>'
+    else:
+        body = '<p class="milestone-notes-body milestone-notes-empty">No notes in Jira.</p>'
     return (
         '<div class="milestone-notes-card">'
         f'<p class="milestone-notes-label">{label_html}</p>'
-        f'<p class="milestone-notes-body">{html.escape(notes)}</p>'
+        f"{body}"
         "</div>"
     )
 
 
-def _milestone_intro_html(meta_card: str, notes_html: str) -> str:
-    if notes_html:
-        return (
-            f'<div class="milestone-burn-intro">'
-            f"{meta_card}"
-            f"{notes_html}"
-            f"</div>"
-        )
-    return f'<div class="milestone-burn-intro milestone-burn-intro--solo">{meta_card}</div>'
+def _milestone_intro_html(
+    description_html: str,
+    notes_html: str,
+    meta_card: str,
+) -> str:
+    return (
+        f'<div class="milestone-burn-intro">'
+        f"{description_html}"
+        f"{notes_html}"
+        f"{meta_card}"
+        f"</div>"
+    )
 
 
 def _milestone_goal_pace_meta(
@@ -977,6 +1020,7 @@ def build_milestone_burn_payload(
             {
                 "key": milestone.get("key"),
                 "summary": milestone.get("summary") or milestone.get("label"),
+                "description": milestone.get("description") or "",
                 "notes": milestone.get("notes") or "",
                 "notesUpdatedAt": milestone.get("notesUpdatedAt"),
                 "startDate": milestone.get("startDate"),
@@ -1357,8 +1401,9 @@ def build_milestone_burn_up_section_html(
             chart_as_of=chart_as_of_day,
             quarter_start=quarter_start,
         )
+        description_html = _milestone_description_html(milestone)
         notes_html = _milestone_notes_html(milestone)
-        intro_html = _milestone_intro_html(meta, notes_html)
+        intro_html = _milestone_intro_html(description_html, notes_html, meta)
         blocks.append(
             f'<article class="milestone-burn-block">'
             f'<h2><a href="{browse_url}" target="_blank" rel="noopener">{title}</a></h2>'
@@ -1411,11 +1456,13 @@ def build_milestone_scope_report_html(
         milestone_timeline_key_html,
         milestone_timeline_svg,
     )
+    from extensions.twoa_programme.pde_engine_releases import in_cycle_releases_only
 
+    chart_releases = in_cycle_releases_only(releases)
     timeline_chart = milestone_timeline_svg(
         timeline_payload,
         sprint_bands=sprint_bands,
-        releases=releases,
+        releases=chart_releases,
         quarter_start=quarter_start,
         quarter_end=quarter_end,
     )
@@ -1426,7 +1473,7 @@ def build_milestone_scope_report_html(
     burn_section = build_milestone_burn_up_section_html(
         burn_payload,
         sprint_bands=sprint_bands,
-        releases=releases,
+        releases=chart_releases,
         quarter_start=quarter_start,
         quarter_end=quarter_end,
         chart_as_of=chart_as_of,
@@ -1450,7 +1497,7 @@ def build_milestone_scope_report_html(
       <h1>Milestone timeline</h1>
       <p class="footnote">{html.escape(timeline_footnote)}</p>
       <div class="chart-wrap chart-wrap-timeline chart-wrap-milestone">{timeline_chart}</div>
-      {milestone_timeline_key_html()}
+      {milestone_timeline_key_html(include_out_of_cycle_releases=False)}
     </section>
     {burn_section}
   </main>

@@ -117,6 +117,13 @@ def is_in_cycle_release(row: dict[str, Any]) -> bool:
     return row.get("carriageType") == IN_CYCLE_CARRIAGE
 
 
+def in_cycle_releases_only(releases: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    """Drop out-of-cycle and other non-cadence release markers from chart overlays."""
+    if not releases:
+        return []
+    return [row for row in releases if is_in_cycle_release(row)]
+
+
 def _carriage_value(raw: Any) -> str | None:
     if raw is None:
         return None

@@ -17,6 +17,7 @@ from extensions.twoa_programme.delivery_milestones import (
     milestone_hub_children_jql,
     milestone_linked_issues,
     milestone_notes_heading,
+    milestone_work_item_description,
     milestone_work_item_notes,
     notes_field_last_updated,
 )
@@ -355,6 +356,7 @@ def fetch_milestone_timeline(
             quarter_end=quarter_end,
         )
         status = (issue_fields.get("status") or {}).get("name") or ""
+        description = milestone_work_item_description(issue_fields)
         notes = milestone_work_item_notes(issue_fields, notes_field=notes_field)
         row: dict[str, Any] = {
             "key": key,
@@ -373,6 +375,8 @@ def fetch_milestone_timeline(
                 else "quarter_start"
             ),
         }
+        if description:
+            row["description"] = description
         if notes:
             row["notes"] = notes
 
@@ -759,7 +763,14 @@ def _append_milestone_block_frame(
     )
 
 
-def milestone_timeline_key_html() -> str:
+def milestone_timeline_key_html(*, include_out_of_cycle_releases: bool = True) -> str:
+    ooc_row = (
+        '<div class="chart-key-row">'
+        '<span class="legend-swatch release-out"></span> Out-of-cycle / other release (hover line)'
+        "</div>"
+        if include_out_of_cycle_releases
+        else ""
+    )
     return (
         '<div class="chart-key">'
         '<p class="chart-key-title"><strong>Key</strong></p>'
@@ -770,9 +781,7 @@ def milestone_timeline_key_html() -> str:
         '<div class="chart-key-row">'
         '<span class="legend-swatch release-in"></span> In-cycle engine release (hover line)'
         "</div>"
-        '<div class="chart-key-row">'
-        '<span class="legend-swatch release-out"></span> Out-of-cycle / other release (hover line)'
-        "</div>"
+        f"{ooc_row}"
         '<div class="chart-key-row">'
         '<span class="legend-swatch" style="background:#0052cc;opacity:0.85"></span> '
         "Milestone window (start to due date)"

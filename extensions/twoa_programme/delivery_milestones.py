@@ -85,6 +85,18 @@ def normalize_milestone_description(text: str) -> str:
     return "\n".join(cleaned).strip()
 
 
+def milestone_work_item_description(fields: dict[str, Any]) -> str:
+    """Plain text from a milestone work item Description field (ADF or string)."""
+    raw = fields.get("description")
+    if not raw:
+        return ""
+    if isinstance(raw, dict):
+        text = adf_text(raw)
+    else:
+        text = str(raw)
+    return normalize_milestone_description(text)
+
+
 def milestone_work_item_notes(
     fields: dict[str, Any],
     *,

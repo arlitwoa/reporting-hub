@@ -14,11 +14,13 @@ from extensions.twoa_programme.milestone_burn_up import (
     _milestone_ideal_earned_at,
     build_milestone_burn_payload,
     build_milestone_burn_up_section_html,
+    build_milestone_scope_report_html,
     burn_up_phase_stack_order,
     milestone_burn_phase_key_html,
     milestone_burn_up_plot_width,
     milestone_burn_up_svg,
 )
+from extensions.twoa_programme.pde_engine_releases import in_cycle_releases_only
 from extensions.twoa_programme.milestone_timeline import MILESTONE_TIMELINE_MAX_SVG_WIDTH
 from extensions.twoa_programme.quarterly_dashboard_constants import Y_AXIS_LEFT
 from extensions.twoa_programme.milestone_scope_history import phase_stack_order
@@ -215,6 +217,10 @@ class MilestoneBurnUpTests(unittest.TestCase):
         self.assertIn("Drive at the bottom", section)
         self.assertNotIn("darker bands", section)
         self.assertIn("milestone-summary-card", section)
+        self.assertIn("milestone-earned-label", section)
+        self.assertIn("Earned detail", section)
+        self.assertIn("milestone-description-card", section)
+        self.assertIn("Deliver ED Cloud data products", section)
         self.assertIn("milestone-stat-lead", section)
         self.assertIn("2026-06-11", section)
         self.assertIn("milestone-notes-card", section)
@@ -251,6 +257,46 @@ class MilestoneBurnUpTests(unittest.TestCase):
         )
         self.assertGreaterEqual(svg.count("<polygon"), 2)
         self.assertIn('stroke="none"', svg)
+
+    def test_in_cycle_releases_only_drops_ooc(self):
+        releases = [
+            {"releaseDate": "2026-05-28", "carriageType": "In Cycle", "name": "ic"},
+            {"releaseDate": "2026-04-22", "carriageType": "Out Of Cycle", "name": "ooc"},
+        ]
+        filtered = in_cycle_releases_only(releases)
+        self.assertEqual(len(filtered), 1)
+        self.assertEqual(filtered[0]["name"], "ic")
+
+    def test_burn_intro_card_order(self):
+        payload = build_milestone_burn_payload(self.timeline, self.deploy_burn)
+        section = build_milestone_burn_up_section_html(
+            payload,
+            quarter_start=date(2026, 4, 1),
+            quarter_end=date(2026, 8, 20),
+        )
+        desc_pos = section.index("milestone-description-card")
+        notes_pos = section.index("milestone-notes-card")
+        earned_pos = section.index("milestone-earned-label")
+        self.assertLess(desc_pos, notes_pos)
+        self.assertLess(notes_pos, earned_pos)
+
+    def test_milestone_report_omits_out_of_cycle_legend(self):
+        payload = build_milestone_burn_payload(self.timeline, self.deploy_burn)
+        releases = [
+            {"releaseDate": "2026-05-28", "carriageType": "In Cycle", "name": "ic"},
+            {"releaseDate": "2026-04-22", "carriageType": "Out Of Cycle", "name": "ooc"},
+        ]
+        html_doc = build_milestone_scope_report_html(
+            self.timeline,
+            payload,
+            generated_on="24 Jun 2026",
+            page_title="Milestone report",
+            releases=releases,
+            quarter_start=date(2026, 4, 1),
+            quarter_end=date(2026, 8, 20),
+        )
+        self.assertNotIn("Out-of-cycle / other release", html_doc)
+        self.assertIn("In-cycle engine release", html_doc)
 
 
 if __name__ == "__main__":

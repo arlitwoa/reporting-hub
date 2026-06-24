@@ -17,6 +17,7 @@
       "dueDate": "2026-06-11",
       "endDate": "2026-06-11",
       "startDateSource": "start_field",
+      "description": "Deliver ED Cloud data products into Microsoft Fabric for programme reporting.",
       "notes": "Fabric rollout depends on ED Cloud data lake readiness.",
       "notesUpdatedAt": "2026-06-15T03:05:20.492000+00:00",
       "scopeRollup": {
