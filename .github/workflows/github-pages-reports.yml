@@ -26,9 +26,13 @@ jobs:
 
       - name: Install packages
         env:
-          ARTIFACT_CORE_PAT: ${{ secrets.ARTIFACT_CORE_PAT }}
+          GH_TOKEN: ${{ secrets.ARTIFACT_CORE_PAT }}
         run: |
-          pip install "https://x-access-token:${ARTIFACT_CORE_PAT}@github.com/barlconz/artifact/releases/download/v0.2.1/barlconz_artifact_core-0.2.1-py3-none-any.whl"
+          gh release download v0.2.1 \
+            --repo barlconz/artifact \
+            --pattern "barlconz_artifact_core-0.2.1-py3-none-any.whl" \
+            --dir /tmp
+          pip install /tmp/barlconz_artifact_core-0.2.1-py3-none-any.whl
           pip install -e . --no-deps
 
       - name: Run unit tests

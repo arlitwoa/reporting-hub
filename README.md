@@ -28,8 +28,9 @@ pip install -e C:\development\reporting-hub
 **Option B — pinned wheel (matches CI):**
 
 ```powershell
-$env:GITHUB_TOKEN = "<PAT with repo read on barlconz/artifact>"
-pip install "https://x-access-token:$env:GITHUB_TOKEN@github.com/barlconz/artifact/releases/download/v0.2.1/barlconz_artifact_core-0.2.1-py3-none-any.whl"
+$env:GH_TOKEN = "<PAT with repo read on barlconz/artifact>"
+gh release download v0.2.1 --repo barlconz/artifact --pattern "barlconz_artifact_core-0.2.1-py3-none-any.whl" --dir $env:TEMP
+pip install "$env:TEMP\barlconz_artifact_core-0.2.1-py3-none-any.whl"
 pip install -e C:\development\reporting-hub
 ```
 
