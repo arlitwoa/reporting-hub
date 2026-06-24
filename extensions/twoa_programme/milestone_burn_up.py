@@ -463,16 +463,20 @@ def _milestone_description_html(milestone: dict[str, Any]) -> str:
 def _milestone_notes_html(milestone: dict[str, Any]) -> str:
     notes = str(milestone.get("notes") or "").strip()
     updated_suffix = format_milestone_notes_updated_label(milestone.get("notesUpdatedAt"))
+    label = "Current State"
     if updated_suffix:
         label_html = (
-            f'Notes <span class="milestone-notes-updated">· {html.escape(updated_suffix)}</span>'
+            f'{label} <span class="milestone-notes-updated">· {html.escape(updated_suffix)}</span>'
         )
     else:
-        label_html = "Notes"
+        label_html = label
     if notes:
         body = f'<p class="milestone-notes-body">{html.escape(notes)}</p>'
     else:
-        body = '<p class="milestone-notes-body milestone-notes-empty">No notes in Jira.</p>'
+        body = (
+            '<p class="milestone-notes-body milestone-notes-empty">'
+            "No current state in Jira.</p>"
+        )
     return (
         '<div class="milestone-notes-card">'
         f'<p class="milestone-notes-label">{label_html}</p>'

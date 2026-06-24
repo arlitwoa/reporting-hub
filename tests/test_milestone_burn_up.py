@@ -225,6 +225,7 @@ class MilestoneBurnUpTests(unittest.TestCase):
         self.assertIn("2026-06-11", section)
         self.assertIn("milestone-notes-card", section)
         self.assertIn("milestone-notes-updated", section)
+        self.assertIn("Current State", section)
         self.assertIn("updated 15 Jun 2026", section)
         self.assertIn("milestone-burn-intro", section)
         self.assertIn("Fabric rollout depends on ED Cloud data lake readiness.", section)
