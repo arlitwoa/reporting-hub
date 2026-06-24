@@ -9,7 +9,7 @@ description = "TWoA EPCE delivery reports — GitHub Pages snapshots on Artifact
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "artifact-core",
+  "barlconz-artifact-core>=0.2.1,<0.3.0",
 ]
 
 [tool.pytest.ini_options]

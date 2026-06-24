@@ -2,7 +2,7 @@
 
 TWoA EPCE **delivery report snapshots** for GitHub Pages: quarterly dashboard, milestone scope, Sprint Health, and Dev Done risk.
 
-Runs on [Artifact core](https://github.com/arlitwoa/artifact) with the TWoA programme extension from this repo. Published HTML lives under `docs/` on **TWoA GitHub** (`arlitwoa`), not the personal `barlconz` org.
+Runs on **`barlconz-artifact-core`** (Artifact core wheel from [barlconz/artifact](https://github.com/barlconz/artifact) GitHub Releases) with the TWoA programme extension from this repo. Published HTML lives under `docs/` on **TWoA GitHub** (`arlitwoa`).
 
 ## Live site
 
@@ -18,10 +18,18 @@ After Pages is enabled: **https://arlitwoa.github.io/reporting-hub/**
 
 ## Setup (local refresh)
 
-Install **Artifact core first**, then this repo (same venv):
+**Option A — editable core (development):**
 
 ```powershell
 pip install -e C:\development\artifact
+pip install -e C:\development\reporting-hub
+```
+
+**Option B — pinned wheel (matches CI):**
+
+```powershell
+$env:GITHUB_TOKEN = "<PAT with repo read on barlconz/artifact>"
+pip install "https://x-access-token:$env:GITHUB_TOKEN@github.com/barlconz/artifact/releases/download/v0.2.1/barlconz_artifact_core-0.2.1-py3-none-any.whl"
 pip install -e C:\development\reporting-hub
 ```
 
@@ -88,10 +96,10 @@ The script commits staged files if needed, pushes to `main`, and does **not** st
 | Secret | Purpose |
 |--------|---------|
 | `ARTIFACT_CREDENTIALS_JSON` | Atlassian credentials for Jira refresh |
-| `ARTIFACT_CORE_PAT` | Read access to `arlitwoa/artifact` (CI checkout of Artifact core) |
+| `ARTIFACT_CORE_PAT` | Read **repo** on `barlconz/artifact` (download release wheel) |
 | `ARTIFACT_USER_EMAIL` | Optional attribution |
 
-Report snapshot commits use the workflow **`GITHUB_TOKEN`** (same repo) — no PAT needed for push inside Actions.
+CI installs the **v0.2.1 release wheel** from `barlconz/artifact` — no git checkout.
 
 ## GitHub Actions
 
@@ -102,10 +110,10 @@ Workflow: `.github/workflows/github-pages-reports.yml` — hourly (UTC) or manua
 | Secret | Purpose |
 |--------|---------|
 | `ARTIFACT_CREDENTIALS_JSON` | Full contents of `credentials.local.json` (Atlassian) |
-| `ARTIFACT_CORE_PAT` | PAT with **read** on `arlitwoa/artifact` (checkout core in CI) |
+| `ARTIFACT_CORE_PAT` | PAT with **repo read** on `barlconz/artifact` (download release wheel) |
 | `ARTIFACT_USER_EMAIL` | Optional attribution for generated content |
 
-Push from the workflow uses the built-in **`GITHUB_TOKEN`** on `arlitwoa/reporting-hub` (no extra push PAT).
+Push from the workflow uses the built-in **`GITHUB_TOKEN`** on `arlitwoa/reporting-hub`.
 
 **GitHub Pages:** Settings → Pages → deploy from branch **`main`** → folder **`/docs`**.
 

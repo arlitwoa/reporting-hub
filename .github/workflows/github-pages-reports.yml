@@ -19,22 +19,16 @@ jobs:
       - name: Checkout reporting-hub
         uses: actions/checkout@v4
 
-      - name: Checkout artifact core
-        uses: actions/checkout@v4
-        with:
-          repository: arlitwoa/artifact
-          ref: develop
-          token: ${{ secrets.ARTIFACT_CORE_PAT }}
-          path: artifact-core
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install packages
+        env:
+          ARTIFACT_CORE_PAT: ${{ secrets.ARTIFACT_CORE_PAT }}
         run: |
-          pip install -e artifact-core
+          pip install "https://x-access-token:${ARTIFACT_CORE_PAT}@github.com/barlconz/artifact/releases/download/v0.2.1/barlconz_artifact_core-0.2.1-py3-none-any.whl"
           pip install -e . --no-deps
 
       - name: Run unit tests
