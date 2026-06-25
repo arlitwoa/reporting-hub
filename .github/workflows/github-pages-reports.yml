@@ -2,7 +2,9 @@ name: Refresh GitHub Pages reports
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    # Top of each hour, Mon–Fri 07:00–19:00 NZ (Pacific/Auckland)
+    - cron: "0 7-19 * * 1-5"
+      timezone: Pacific/Auckland
   workflow_dispatch:
 
 permissions:
