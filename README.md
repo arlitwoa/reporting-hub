@@ -94,6 +94,16 @@ powershell -ExecutionPolicy Bypass -File .\scripts\push_to_github.ps1
 
 The script commits staged files if needed, pushes to `main`, and does **not** store the token in `.git/config` (only used for the push URL).
 
+**Feature branches:** `push_to_github.ps1` always pushes to `main`. For a feature branch, use the same PAT inline (see also `artifact-consumer-twoa/docs/execution-notes.md` → *reporting-hub git push*):
+
+```powershell
+$auth = "https://x-access-token:$env:TWOA_GITHUB_PAT@github.com/arlitwoa/reporting-hub.git"
+git push $auth HEAD:feature/my-branch
+git remote set-url origin https://github.com/arlitwoa/reporting-hub.git
+```
+
+Open PRs against **`main`** in the GitHub UI if `gh pr create` fails with the TWoA PAT.
+
 ### 3. GitHub Actions secrets (on arlitwoa/reporting-hub)
 
 | Secret | Purpose |
