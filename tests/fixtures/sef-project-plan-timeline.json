@@ -1,0 +1,84 @@
+{
+  "projectKey": "PDE",
+  "chartWindowStart": "2026-06-01",
+  "chartWindowEnd": "2027-06-14",
+  "phaseHubKeys": ["PDE-4072", "PDE-4108"],
+  "phases": [
+    {
+      "key": "PDE-4072",
+      "summary": "SEF Phase 1 | HCM and Payroll",
+      "status": "To Do",
+      "startDate": "2026-06-01",
+      "endDate": "2027-06-14",
+      "chapters": [
+        {
+          "key": "PDE-4078",
+          "summary": "Mobilisation",
+          "status": "To Do",
+          "startDate": "2026-06-01",
+          "endDate": "2026-07-10",
+          "packages": [
+            {
+              "key": "PDE-4080",
+              "summary": "Functional - HCM Stream",
+              "status": "To Do",
+              "startDate": "2026-06-04",
+              "endDate": "2026-07-31",
+              "details": []
+            },
+            {
+              "key": "PDE-4085",
+              "summary": "Testing Stream",
+              "status": "To Do",
+              "startDate": "2026-06-08",
+              "endDate": "2026-07-10",
+              "details": [
+                {
+                  "key": "PDE-4086",
+                  "summary": "SIT cycle 1",
+                  "status": "To Do",
+                  "startDate": "2026-06-15",
+                  "endDate": "2026-06-28"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "key": "PDE-4087",
+          "summary": "Architect and Configure",
+          "status": "To Do",
+          "startDate": "2026-07-13",
+          "endDate": "2026-10-23",
+          "packages": [
+            {
+              "key": "PDE-4089",
+              "summary": "Functional - HCM Stream",
+              "status": "To Do",
+              "startDate": "2026-07-20",
+              "endDate": "2026-10-23",
+              "details": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "PDE-4108",
+      "summary": "SEF Phase 2 | Finance (planning placeholder)",
+      "status": "To Do",
+      "startDate": "2027-03-01",
+      "endDate": "2027-12-03",
+      "chapters": [
+        {
+          "key": "PDE-4111",
+          "summary": "Test",
+          "status": "To Do",
+          "startDate": "2027-05-24",
+          "endDate": "2027-07-23",
+          "packages": []
+        }
+      ]
+    }
+  ]
+}

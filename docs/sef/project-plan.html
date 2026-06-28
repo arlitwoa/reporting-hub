@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>SEF | Integrated Project Plan</title>
+  <style>
+:root {
+  color-scheme: light;
+  --page-bg: #f4f5f7;
+  --card-bg: #ffffff;
+  --border: #dfe1e6;
+  --text: #172b4d;
+  --muted: #5e6c84;
+  --accent-bg: #deebff;
+  --accent-text: #0052cc;
+  --blue: #0052cc;
+  --green: #00875a;
+  --red: #de350b;
+  --amber: #ff8b00;
+  --purple: #6554c0;
+}
+body {
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+}
+body::before {
+  content: "";
+  display: block;
+  height: 8px;
+  background: linear-gradient(90deg, var(--blue), var(--purple), var(--green));
+}
+.report-shell { max-width: 1280px; margin: 0 auto; padding: 28px 32px 40px; }
+.report-header, .report-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(9, 30, 66, 0.08);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.report-header h1 {
+  margin: 0 0 8px;
+  font-size: 26px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.report-subtitle {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.report-subtitle a {
+  color: var(--blue);
+  font-weight: 600;
+  text-decoration: none;
+}
+.report-subtitle a:hover { text-decoration: underline; }
+.section-l1 { margin: 0 0 12px; font-size: 18px; line-height: 1.35; color: var(--text); }
+.section-l2 a { font-weight: 700; }
+p, li, td, th { font-size: 14px; line-height: 1.55; color: var(--text); }
+.report-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.report-meta-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafbfc;
+  padding: 12px 14px;
+}
+.report-meta-card dt {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.report-meta-card dd { margin: 0; font-size: 20px; font-weight: 700; color: var(--text); }
+.health-pill {
+  display: inline-block;
+  border-radius: 3px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 4px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.health-pill.green { background: var(--green); }
+.health-pill.amber { background: var(--amber); }
+.health-pill.red { background: var(--red); }
+.health-pill.neutral { background: var(--neutral); }
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+tr:last-child td { border-bottom: none; }
+th { background: #fafbfc; color: var(--muted); font-size: 12px; font-weight: 700; }
+a { color: var(--blue); font-weight: 600; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-size: 12px; color: var(--text); background: #f4f5f7; padding: 1px 4px; border-radius: 3px; }
+.num { text-align: right; }
+tr.slice-inactive td {
+  color: #a5adba;
+}
+tr.slice-inactive a {
+  color: #8993a4;
+}
+tr.slice-squad td:first-child {
+  padding-left: 28px;
+  color: var(--muted);
+  font-size: 13px;
+}
+tr.slice-squad td {
+  background: #fafbfc;
+}
+tr.slice-squad a {
+  font-weight: 500;
+}
+abbr.metric-tip,
+abbr.release-code {
+  text-decoration: none;
+  cursor: help;
+}
+abbr.metric-tip .health-pill {
+  cursor: help;
+}
+th abbr.metric-tip,
+.report-meta-card dt abbr.metric-tip {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+tr.row-projected td {
+  color: #a5adba;
+}
+tr.row-projected a {
+  color: #8993a4;
+}
+td.pending-metric {
+  color: #a5adba;
+}
+td.pending-metric a {
+  color: #8993a4;
+}
+.chart-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 4px 0;
+}
+.chart-wrap svg { display: block; min-width: 920px; }
+.report-shell .chart-wrap {
+  overflow-x: hidden;
+}
+.report-shell .chart-wrap svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.chart-wrap-timeline {
+  overflow-y: auto;
+  max-height: 720px;
+}
+.chart-wrap-timeline svg a {
+  cursor: pointer;
+}
+.chart-wrap-timeline svg a text {
+  text-decoration: underline;
+}
+.chart-key {
+  margin: 12px 0 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px 14px;
+}
+.chart-key-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0 0;
+  align-items: stretch;
+}
+.chart-key-wrap > .chart-key,
+.chart-key-wrap > .chart-milestones {
+  flex: 1 1 280px;
+  margin: 0;
+}
+.chart-milestones {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px 14px;
+}
+.chart-key-title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.chart-key-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.legend-swatch {
+  display: inline-block;
+  width: 16px;
+  height: 12px;
+  margin-right: 6px;
+  vertical-align: middle;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.legend-swatch.sprint-a { background: #deebff; border: 1px solid #85a9ff; }
+.legend-swatch.sprint-b { background: #e3fcef; border: 1px solid #57d9a3; }
+.legend-swatch.release-in {
+  width: 24px;
+  height: 14px;
+  border-top: 3px dashed #172b4d;
+  background: transparent;
+}
+.legend-swatch.release-out {
+  width: 24px;
+  height: 14px;
+  border-top: 3px dashed #ffc400;
+  background: transparent;
+}
+.legend-swatch.milestone {
+  width: 14px;
+  height: 14px;
+  border: none;
+  background: transparent;
+  vertical-align: middle;
+}
+.legend-swatch.today {
+  width: 14px;
+  height: 14px;
+  border: none;
+  background: transparent;
+  vertical-align: middle;
+}
+.chart-key-row .chart-key-milestone-letter {
+  display: inline-block;
+  padding-left: 22px;
+}
+.chart-key-wrap abbr.metric-tip {
+  cursor: help;
+  text-decoration: none;
+}
+.chart-key-wrap abbr.metric-tip strong {
+  text-decoration: none;
+}
+.chart-milestones .milestone-tip {
+  position: relative;
+  cursor: help;
+  display: inline-block;
+  max-width: 100%;
+}
+.milestone-tip-pop {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  min-width: 280px;
+  max-width: min(420px, 90vw);
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(9, 30, 66, 0.18);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+}
+.milestone-tip:hover .milestone-tip-pop,
+.milestone-tip:focus-within .milestone-tip-pop {
+  display: block;
+}
+.milestone-tip-desc {
+  margin: 0 0 8px;
+  color: var(--text);
+}
+.milestone-tip-heading {
+  margin: 8px 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.milestone-tip-pop ul {
+  margin: 0 0 4px;
+  padding-left: 18px;
+}
+.milestone-tip-pop li {
+  margin: 2px 0;
+}
+.milestone-tip-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.milestone-letter-link {
+  color: #de350b;
+  font-weight: 700;
+  text-decoration: none;
+}
+.milestone-letter-link:hover {
+  text-decoration: underline;
+}
+.chart-wrap svg a.chart-milestone-link {
+  cursor: pointer;
+}
+.chart-wrap svg a.chart-milestone-link:hover line.chart-milestone-line {
+  stroke-width: 3.5;
+  opacity: 1;
+}
+.legend-swatch.earned {
+  width: 20px;
+  height: 14px;
+  border-top: 3px solid #0052cc;
+  background: transparent;
+}
+.legend-swatch.goal {
+  width: 20px;
+  height: 14px;
+  border-top: 3px dashed #6b778c;
+  background: transparent;
+}
+.legend-swatch.lane-ec { background: #4d9cff; }
+.legend-swatch.lane-int { background: #9b7aff; }
+.legend-swatch.lane-data { background: #3ddb7a; }
+.legend-swatch.lane-unassigned { background: #ffcc33; }
+.legend-swatch.global-line { border-top: 3px solid #0052cc; width: 16px; height: 0; margin-bottom: 4px; background: transparent; }
+.footnote { color: var(--muted); font-size: 12px; margin-top: 12px; line-height: 1.5; }
+
+.chart-wrap-sef-plan.chart-wrap-timeline {
+  max-height: none;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+.chart-wrap-sef-plan svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.chart-wrap-sef-plan svg a text {
+  text-decoration: none;
+}
+.chart-wrap-sef-plan svg a:hover text {
+  text-decoration: underline;
+}
+.sef-phase-divider {
+  fill: #f4f5f7;
+}
+</style>
+</head>
+<body>
+  <main class="report">
+    <header class="report-header">
+      <h1>SEF | Integrated Project Plan</h1>
+      <p class="report-meta">Generated 28 Jun 2026 12:13 NZST</p>
+    </header>
+    <section class="chart-section">
+      <h1>Project plan timeline</h1>
+      <p class="footnote">11 schedule chapters, 29 stream packages, 8 detail items from PDE Block work items (2026-05-18 to 2027-12-17). Each bar runs from start date through due date.</p>
+      <div class="chart-wrap chart-wrap-timeline chart-wrap-sef-plan"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="1438" viewBox="0 0 1520.0 1438" preserveAspectRatio="xMinYMin meet" role="img" aria-label="SEF integrated project plan timeline"><rect x="0" y="0" width="1520.0" height="1438" fill="#ffffff"/><defs><clipPath id="sef-plan-label-col"><rect x="0" y="40" width="272" height="1326"/></clipPath></defs><line x1="280" y1="40" x2="280" y2="1366" stroke="#dfe1e6" stroke-width="1"/><line x1="280" y1="1366" x2="1496.0" y2="1366" stroke="#dfe1e6" stroke-width="1"/><line x1="280.0" y1="1366" x2="280.0" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="280.0" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">18</text><line x1="294.7" y1="1366" x2="294.7" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="294.7" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">25</text><line x1="309.5" y1="1366" x2="309.5" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="309.5" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">01</text><line x1="324.2" y1="1366" x2="324.2" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="324.2" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">08</text><line x1="338.9" y1="1366" x2="338.9" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="338.9" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">15</text><line x1="353.6" y1="1366" x2="353.6" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="353.6" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">22</text><line x1="368.4" y1="1366" x2="368.4" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="368.4" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">29</text><line x1="383.1" y1="1366" x2="383.1" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="383.1" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">06</text><line x1="397.8" y1="1366" x2="397.8" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="397.8" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">13</text><line x1="412.5" y1="1366" x2="412.5" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="412.5" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">20</text><line x1="427.3" y1="1366" x2="427.3" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="427.3" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">27</text><line x1="442.0" y1="1366" x2="442.0" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="442.0" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">03</text><line x1="456.7" y1="1366" x2="456.7" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="456.7" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">10</text><line x1="471.4" y1="1366" x2="471.4" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="471.4" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">17</text><line x1="486.2" y1="1366" x2="486.2" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="486.2" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">24</text><line x1="500.9" y1="1366" x2="500.9" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="500.9" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">31</text><line x1="515.6" y1="1366" x2="515.6" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="515.6" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">07</text><line x1="530.4" y1="1366" x2="530.4" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="530.4" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">14</text><line x1="545.1" y1="1366" x2="545.1" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="545.1" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">21</text><line x1="559.8" y1="1366" x2="559.8" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="559.8" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">28</text><line x1="574.5" y1="1366" x2="574.5" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="574.5" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">05</text><line x1="589.3" y1="1366" x2="589.3" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="589.3" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">12</text><line x1="604.0" y1="1366" x2="604.0" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="604.0" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">19</text><line x1="618.7" y1="1366" x2="618.7" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="618.7" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">26</text><line x1="633.4" y1="1366" x2="633.4" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="633.4" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">02</text><line x1="648.2" y1="1366" x2="648.2" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="648.2" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">09</text><line x1="662.9" y1="1366" x2="662.9" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="662.9" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">16</text><line x1="677.6" y1="1366" x2="677.6" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="677.6" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">23</text><line x1="692.3" y1="1366" x2="692.3" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="692.3" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">30</text><line x1="707.1" y1="1366" x2="707.1" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="707.1" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">07</text><line x1="721.8" y1="1366" x2="721.8" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="721.8" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">14</text><line x1="736.5" y1="1366" x2="736.5" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="736.5" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">21</text><line x1="751.3" y1="1366" x2="751.3" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="751.3" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">28</text><line x1="766.0" y1="1366" x2="766.0" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="766.0" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">04</text><line x1="780.7" y1="1366" x2="780.7" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="780.7" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">11</text><line x1="795.4" y1="1366" x2="795.4" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="795.4" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">18</text><line x1="810.2" y1="1366" x2="810.2" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="810.2" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">25</text><line x1="824.9" y1="1366" x2="824.9" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="824.9" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">01</text><line x1="839.6" y1="1366" x2="839.6" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="839.6" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">08</text><line x1="854.3" y1="1366" x2="854.3" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="854.3" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">15</text><line x1="869.1" y1="1366" x2="869.1" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="869.1" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">22</text><line x1="883.8" y1="1366" x2="883.8" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="883.8" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">01</text><line x1="898.5" y1="1366" x2="898.5" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="898.5" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">08</text><line x1="913.2" y1="1366" x2="913.2" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="913.2" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">15</text><line x1="928.0" y1="1366" x2="928.0" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="928.0" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">22</text><line x1="942.7" y1="1366" x2="942.7" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="942.7" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">29</text><line x1="957.4" y1="1366" x2="957.4" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="957.4" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">05</text><line x1="972.2" y1="1366" x2="972.2" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="972.2" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">12</text><line x1="986.9" y1="1366" x2="986.9" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="986.9" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">19</text><line x1="1001.6" y1="1366" x2="1001.6" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1001.6" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">26</text><line x1="1016.3" y1="1366" x2="1016.3" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1016.3" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">03</text><line x1="1031.1" y1="1366" x2="1031.1" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1031.1" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">10</text><line x1="1045.8" y1="1366" x2="1045.8" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1045.8" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">17</text><line x1="1060.5" y1="1366" x2="1060.5" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1060.5" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">24</text><line x1="1075.2" y1="1366" x2="1075.2" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1075.2" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">31</text><line x1="1090.0" y1="1366" x2="1090.0" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1090.0" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">07</text><line x1="1104.7" y1="1366" x2="1104.7" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1104.7" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">14</text><line x1="1119.4" y1="1366" x2="1119.4" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1119.4" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">21</text><line x1="1134.1" y1="1366" x2="1134.1" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1134.1" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">28</text><line x1="1148.9" y1="1366" x2="1148.9" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1148.9" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">05</text><line x1="1163.6" y1="1366" x2="1163.6" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1163.6" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">12</text><line x1="1178.3" y1="1366" x2="1178.3" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1178.3" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">19</text><line x1="1193.1" y1="1366" x2="1193.1" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1193.1" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">26</text><line x1="1207.8" y1="1366" x2="1207.8" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1207.8" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">02</text><line x1="1222.5" y1="1366" x2="1222.5" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1222.5" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">09</text><line x1="1237.2" y1="1366" x2="1237.2" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1237.2" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">16</text><line x1="1252.0" y1="1366" x2="1252.0" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1252.0" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">23</text><line x1="1266.7" y1="1366" x2="1266.7" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1266.7" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">30</text><line x1="1281.4" y1="1366" x2="1281.4" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1281.4" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">06</text><line x1="1296.1" y1="1366" x2="1296.1" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1296.1" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">13</text><line x1="1310.9" y1="1366" x2="1310.9" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1310.9" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">20</text><line x1="1325.6" y1="1366" x2="1325.6" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1325.6" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">27</text><line x1="1340.3" y1="1366" x2="1340.3" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1340.3" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">04</text><line x1="1355.0" y1="1366" x2="1355.0" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1355.0" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">11</text><line x1="1369.8" y1="1366" x2="1369.8" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1369.8" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">18</text><line x1="1384.5" y1="1366" x2="1384.5" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1384.5" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">25</text><line x1="1399.2" y1="1366" x2="1399.2" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1399.2" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">01</text><line x1="1414.0" y1="1366" x2="1414.0" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1414.0" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">08</text><line x1="1428.7" y1="1366" x2="1428.7" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1428.7" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">15</text><line x1="1443.4" y1="1366" x2="1443.4" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1443.4" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">22</text><line x1="1458.1" y1="1366" x2="1458.1" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1458.1" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">29</text><line x1="1472.9" y1="1366" x2="1472.9" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1472.9" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">06</text><line x1="1487.6" y1="1366" x2="1487.6" y2="1370.0" stroke="#dfe1e6" stroke-width="1"/><text x="1487.6" y="1382.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84">13</text><text x="309" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Jun</text><text x="373" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Jul</text><text x="438" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Aug</text><text x="503" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Sep</text><text x="566" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Oct</text><text x="631" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Nov</text><text x="694" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Dec</text><text x="760" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Jan</text><text x="825" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Feb</text><text x="884" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Mar</text><text x="949" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Apr</text><text x="1012" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">May</text><text x="1077" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Jun</text><text x="1140" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Jul</text><text x="1206" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Aug</text><text x="1271" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Sep</text><text x="1334" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Oct</text><text x="1399" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Nov</text><text x="1462" y="1398.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Dec</text><text x="888" y="1414.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#5e6c84" font-weight="600">Date</text><g><title>PDE-4072: SEF Phase 1 | HCM and Payroll
+Timeline: 2026-06-01 to 2027-06-14
+Status: To Do</title><rect x="309.5" y="44.0" width="795.2" height="24.0" rx="2" fill="#6b778c" opacity="0.85"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4072: SEF Phase 1 | HCM and Payroll
+Timeline: 2026-06-01 to 2027-06-14
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4072" target="_blank" rel="noopener"><text x="8.0" y="56.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="11" fill="#172b4d" font-weight="700">SEF Phase 1 | HCM and Payroll</text></a></g><rect x="0" y="72.0" width="1496.0" height="116.0" fill="none" stroke="#172b4d" stroke-width="0.75"/><g><title>PDE-4073: Change
+Timeline: 2026-06-01 to 2027-06-04
+Status: To Do</title><rect x="309.5" y="83.0" width="774.2" height="22.0" rx="2" fill="#6b778c" opacity="0.85"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4073: Change
+Timeline: 2026-06-01 to 2027-06-04
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4073" target="_blank" rel="noopener"><text x="8.0" y="94.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#172b4d" font-weight="600">Change</text></a></g><g><title>PDE-4074: Ongoing Change Goveranance, Readiness and Adoption Monitoring
+Timeline: 2026-06-01 to 2026-07-01
+Status: To Do</title><rect x="309.5" y="110.0" width="63.1" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4074: Ongoing Change Goveranance, Readiness and Adoption Monitoring
+Timeline: 2026-06-01 to 2026-07-01
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4074" target="_blank" rel="noopener"><text x="20.0" y="117.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Ongoing Change Goveranance, Readiness and…</text></a></g><g><title>PDE-4075: Stakeholder Mapping and Engagement Plan
+Timeline: 2026-06-01 to 2026-06-01
+Status: To Do</title><rect x="309.5" y="128.0" width="2.0" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4075: Stakeholder Mapping and Engagement Plan
+Timeline: 2026-06-01 to 2026-06-01
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4075" target="_blank" rel="noopener"><text x="20.0" y="135.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Stakeholder Mapping and Engagement Plan</text></a></g><g><title>PDE-4076: Change Risk Assessement
+Timeline: 2026-06-01 to 2026-06-01
+Status: To Do</title><rect x="309.5" y="146.0" width="2.0" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4076: Change Risk Assessement
+Timeline: 2026-06-01 to 2026-06-01
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4076" target="_blank" rel="noopener"><text x="20.0" y="153.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Change Risk Assessement</text></a></g><g><title>PDE-4077: Detailed plan
+Timeline: 2026-06-15 to 2027-06-04
+Status: To Do</title><rect x="338.9" y="164.0" width="744.7" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4077: Detailed plan
+Timeline: 2026-06-15 to 2027-06-04
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4077" target="_blank" rel="noopener"><text x="20.0" y="171.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Detailed plan</text></a></g><rect x="0" y="200.0" width="1496.0" height="188.0" fill="none" stroke="#172b4d" stroke-width="0.75"/><g><title>PDE-4078: Mobilisation
+Timeline: 2026-06-01 to 2026-12-18
+Status: To Do</title><rect x="309.5" y="211.0" width="420.8" height="22.0" rx="2" fill="#6b778c" opacity="0.85"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4078: Mobilisation
+Timeline: 2026-06-01 to 2026-12-18
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4078" target="_blank" rel="noopener"><text x="8.0" y="222.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#172b4d" font-weight="600">Mobilisation</text></a></g><g><title>PDE-4079: Program Management
+Timeline: 2026-06-01 to 2026-07-10
+Status: To Do</title><rect x="309.5" y="238.0" width="82.0" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4079: Program Management
+Timeline: 2026-06-01 to 2026-07-10
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4079" target="_blank" rel="noopener"><text x="20.0" y="245.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Program Management</text></a></g><g><title>PDE-4080: Functional - HCM Stream
+Timeline: 2026-06-04 to 2026-07-31
+Status: To Do</title><rect x="315.8" y="256.0" width="119.9" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4080: Functional - HCM Stream
+Timeline: 2026-06-04 to 2026-07-31
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4080" target="_blank" rel="noopener"><text x="20.0" y="263.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Functional - HCM Stream</text></a></g><g><title>PDE-4081: Functional - Finance Stream
+Timeline: 2026-06-04 to 2026-07-24
+Status: To Do</title><rect x="315.8" y="274.0" width="105.2" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4081: Functional - Finance Stream
+Timeline: 2026-06-04 to 2026-07-24
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4081" target="_blank" rel="noopener"><text x="20.0" y="281.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Functional - Finance Stream</text></a></g><g><title>PDE-4082: Integration Stream
+Timeline: 2026-06-01 to 2026-07-10
+Status: To Do</title><rect x="309.5" y="292.0" width="82.0" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4082: Integration Stream
+Timeline: 2026-06-01 to 2026-07-10
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4082" target="_blank" rel="noopener"><text x="20.0" y="299.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Integration Stream</text></a></g><g><title>PDE-4083: Payroll Stream
+Timeline: 2026-06-01 to 2026-12-18
+Status: To Do</title><rect x="309.5" y="310.0" width="420.8" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4083: Payroll Stream
+Timeline: 2026-06-01 to 2026-12-18
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4083" target="_blank" rel="noopener"><text x="20.0" y="317.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Payroll Stream</text></a></g><g><title>PDE-4084: Data Migration Stream
+Timeline: 2026-06-04 to 2026-09-04
+Status: To Do</title><rect x="315.8" y="328.0" width="193.6" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4084: Data Migration Stream
+Timeline: 2026-06-04 to 2026-09-04
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4084" target="_blank" rel="noopener"><text x="20.0" y="335.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Data Migration Stream</text></a></g><g><title>PDE-4085: Testing Stream
+Timeline: 2026-06-08 to 2026-07-10
+Status: To Do</title><rect x="324.2" y="346.0" width="67.3" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4085: Testing Stream
+Timeline: 2026-06-08 to 2026-07-10
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4085" target="_blank" rel="noopener"><text x="20.0" y="353.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Testing Stream</text></a></g><g><title>PDE-4086: Solution Architecture Stream
+Timeline: 2026-06-04 to 2026-07-08
+Status: To Do</title><rect x="315.8" y="364.0" width="71.5" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4086: Solution Architecture Stream
+Timeline: 2026-06-04 to 2026-07-08
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4086" target="_blank" rel="noopener"><text x="20.0" y="371.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Solution Architecture Stream</text></a></g><rect x="0" y="400.0" width="1496.0" height="216.0" fill="none" stroke="#172b4d" stroke-width="0.75"/><g><title>PDE-4087: Architect and Configure
+Timeline: 2026-06-04 to 2026-11-06
+Status: To Do</title><rect x="315.8" y="411.0" width="326.1" height="22.0" rx="2" fill="#6b778c" opacity="0.85"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4087: Architect and Configure
+Timeline: 2026-06-04 to 2026-11-06
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4087" target="_blank" rel="noopener"><text x="8.0" y="422.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#172b4d" font-weight="600">Architect and Configure</text></a></g><g><title>PDE-4088: Program Management
+Timeline: 2026-07-13 to 2026-07-17
+Status: To Do</title><rect x="397.8" y="438.0" width="8.4" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4088: Program Management
+Timeline: 2026-07-13 to 2026-07-17
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4088" target="_blank" rel="noopener"><text x="20.0" y="445.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Program Management</text></a></g><g><title>PDE-4089: Functional - HCM Stream
+Timeline: 2026-07-20 to 2026-10-23
+Status: To Do</title><rect x="412.5" y="456.0" width="199.9" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4089: Functional - HCM Stream
+Timeline: 2026-07-20 to 2026-10-23
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4089" target="_blank" rel="noopener"><text x="20.0" y="463.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Functional - HCM Stream</text></a></g><g><title>PDE-4090: Integration tream
+Timeline: 2026-07-13 to 2026-11-06
+Status: To Do</title><rect x="397.8" y="474.0" width="244.0" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4090: Integration tream
+Timeline: 2026-07-13 to 2026-11-06
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4090" target="_blank" rel="noopener"><text x="20.0" y="481.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Integration tream</text></a></g><g><title>PDE-4091: Payroll Stream
+Timeline: 2026-06-04 to 2026-10-23
+Status: To Do</title><rect x="315.8" y="492.0" width="296.6" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4091: Payroll Stream
+Timeline: 2026-06-04 to 2026-10-23
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4091" target="_blank" rel="noopener"><text x="20.0" y="499.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Payroll Stream</text></a></g><g><title>PDE-4198: Payroll Parallel | Planning workshop and tolerance baseline
+Timeline: 2026-07-01 to 2026-08-16
+Status: To Do</title><rect x="372.6" y="510.0" width="96.8" height="12.0" rx="1" fill="#6b778c" opacity="0.35"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4198: Payroll Parallel | Planning workshop and tolerance baseline
+Timeline: 2026-07-01 to 2026-08-16
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4198" target="_blank" rel="noopener"><text x="36.0" y="516.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="8" fill="#5e6c84" font-weight="400">Payroll Parallel | Planning workshop and …</text></a></g><g><title>PDE-4199: Payroll Parallel | NIP company build and full data load
+Timeline: 2026-06-04 to 2026-08-16
+Status: To Do</title><rect x="315.8" y="526.0" width="153.6" height="12.0" rx="1" fill="#6b778c" opacity="0.35"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4199: Payroll Parallel | NIP company build and full data load
+Timeline: 2026-06-04 to 2026-08-16
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4199" target="_blank" rel="noopener"><text x="36.0" y="532.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="8" fill="#5e6c84" font-weight="400">Payroll Parallel | NIP company build and …</text></a></g><g><title>PDE-4200: Payroll Parallel | P1 non-integrated parallel
+Timeline: 2026-08-17 to 2026-09-04
+Status: To Do</title><rect x="471.4" y="542.0" width="37.9" height="12.0" rx="1" fill="#6b778c" opacity="0.35"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4200: Payroll Parallel | P1 non-integrated parallel
+Timeline: 2026-08-17 to 2026-09-04
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4200" target="_blank" rel="noopener"><text x="36.0" y="548.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="8" fill="#5e6c84" font-weight="400">Payroll Parallel | P1 non-integrated para…</text></a></g><g><title>PDE-4201: Payroll Parallel | SIT Datapay company build (P2 prep)
+Timeline: 2026-09-07 to 2026-10-23
+Status: To Do</title><rect x="515.6" y="558.0" width="96.8" height="12.0" rx="1" fill="#6b778c" opacity="0.35"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4201: Payroll Parallel | SIT Datapay company build (P2 prep)
+Timeline: 2026-09-07 to 2026-10-23
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4201" target="_blank" rel="noopener"><text x="36.0" y="564.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="8" fill="#5e6c84" font-weight="400">Payroll Parallel | SIT Datapay company bu…</text></a></g><g><title>PDE-4092: Data Migration Stream
+Timeline: 2026-07-31 to 2026-10-23
+Status: To Do</title><rect x="435.7" y="574.0" width="176.7" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4092: Data Migration Stream
+Timeline: 2026-07-31 to 2026-10-23
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4092" target="_blank" rel="noopener"><text x="20.0" y="581.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Data Migration Stream</text></a></g><g><title>PDE-4093: Testing Stream
+Timeline: 2026-07-13 to 2026-10-23
+Status: To Do</title><rect x="397.8" y="592.0" width="214.6" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4093: Testing Stream
+Timeline: 2026-07-13 to 2026-10-23
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4093" target="_blank" rel="noopener"><text x="20.0" y="599.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Testing Stream</text></a></g><rect x="0" y="628.0" width="1496.0" height="306.0" fill="none" stroke="#172b4d" stroke-width="0.75"/><g><title>PDE-4094: Test
+Timeline: 2026-10-26 to 2027-04-09
+Status: To Do</title><rect x="618.7" y="639.0" width="347.1" height="22.0" rx="2" fill="#6b778c" opacity="0.85"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4094: Test
+Timeline: 2026-10-26 to 2027-04-09
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4094" target="_blank" rel="noopener"><text x="8.0" y="650.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#172b4d" font-weight="600">Test</text></a></g><g><title>PDE-4095: Programme Management
+Timeline: 2026-10-26 to 2026-12-18
+Status: To Do</title><rect x="618.7" y="666.0" width="111.5" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4095: Programme Management
+Timeline: 2026-10-26 to 2026-12-18
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4095" target="_blank" rel="noopener"><text x="20.0" y="673.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Programme Management</text></a></g><g><title>PDE-4096: Integration Stream
+Timeline: 2027-01-11 to 2027-02-19
+Status: To Do</title><rect x="780.7" y="684.0" width="82.0" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4096: Integration Stream
+Timeline: 2027-01-11 to 2027-02-19
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4096" target="_blank" rel="noopener"><text x="20.0" y="691.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Integration Stream</text></a></g><g><title>PDE-4097: Payroll
+Timeline: 2027-01-25 to 2027-04-09
+Status: To Do</title><rect x="810.2" y="702.0" width="155.7" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4097: Payroll
+Timeline: 2027-01-25 to 2027-04-09
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4097" target="_blank" rel="noopener"><text x="20.0" y="709.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Payroll</text></a></g><g><title>PDE-4204: Payroll Parallel | P3 integrated parallel run 3
+Timeline: 2027-01-25 to 2027-02-19
+Status: To Do</title><rect x="810.2" y="720.0" width="52.6" height="12.0" rx="1" fill="#6b778c" opacity="0.35"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4204: Payroll Parallel | P3 integrated parallel run 3
+Timeline: 2027-01-25 to 2027-02-19
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4204" target="_blank" rel="noopener"><text x="36.0" y="726.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="8" fill="#5e6c84" font-weight="400">Payroll Parallel | P3 integrated parallel…</text></a></g><g><title>PDE-4205: Payroll Parallel | Payroll go-live readiness sign-off
+Timeline: 2027-02-19 to 2027-04-09
+Status: To Do</title><rect x="862.8" y="736.0" width="103.1" height="12.0" rx="1" fill="#6b778c" opacity="0.35"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4205: Payroll Parallel | Payroll go-live readiness sign-off
+Timeline: 2027-02-19 to 2027-04-09
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4205" target="_blank" rel="noopener"><text x="36.0" y="742.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="8" fill="#5e6c84" font-weight="400">Payroll Parallel | Payroll go-live readin…</text></a></g><g><title>PDE-4098: Data Migration Stream
+Timeline: 2027-01-11 to 2027-02-19
+Status: To Do</title><rect x="780.7" y="752.0" width="82.0" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4098: Data Migration Stream
+Timeline: 2027-01-11 to 2027-02-19
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4098" target="_blank" rel="noopener"><text x="20.0" y="759.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Data Migration Stream</text></a></g><g><title>PDE-4099: Testing Stream
+Timeline: 2027-01-11 to 2027-02-19
+Status: To Do</title><rect x="780.7" y="770.0" width="82.0" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4099: Testing Stream
+Timeline: 2027-01-11 to 2027-02-19
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4099" target="_blank" rel="noopener"><text x="20.0" y="777.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Testing Stream</text></a></g><g><title>PDE-4100: Functional - HCM Stream
+Timeline: 2026-10-26 to 2026-12-18
+Status: To Do</title><rect x="618.7" y="788.0" width="111.5" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4100: Functional - HCM Stream
+Timeline: 2026-10-26 to 2026-12-18
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4100" target="_blank" rel="noopener"><text x="20.0" y="795.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Functional - HCM Stream</text></a></g><g><title>PDE-4101: Integration Stream
+Timeline: 2026-10-26 to 2026-12-18
+Status: To Do</title><rect x="618.7" y="806.0" width="111.5" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4101: Integration Stream
+Timeline: 2026-10-26 to 2026-12-18
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4101" target="_blank" rel="noopener"><text x="20.0" y="813.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Integration Stream</text></a></g><g><title>PDE-4102: Payroll
+Timeline: 2026-10-26 to 2026-12-18
+Status: To Do</title><rect x="618.7" y="824.0" width="111.5" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4102: Payroll
+Timeline: 2026-10-26 to 2026-12-18
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4102" target="_blank" rel="noopener"><text x="20.0" y="831.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Payroll</text></a></g><g><title>PDE-4202: Payroll Parallel | P2 integrated parallel run 1
+Timeline: 2026-10-26 to 2026-11-20
+Status: To Do</title><rect x="618.7" y="842.0" width="52.6" height="12.0" rx="1" fill="#6b778c" opacity="0.35"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4202: Payroll Parallel | P2 integrated parallel run 1
+Timeline: 2026-10-26 to 2026-11-20
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4202" target="_blank" rel="noopener"><text x="36.0" y="848.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="8" fill="#5e6c84" font-weight="400">Payroll Parallel | P2 integrated parallel…</text></a></g><g><title>PDE-4203: Payroll Parallel | P2 integrated parallel run 2
+Timeline: 2026-11-30 to 2026-12-18
+Status: To Do</title><rect x="692.3" y="858.0" width="37.9" height="12.0" rx="1" fill="#6b778c" opacity="0.35"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4203: Payroll Parallel | P2 integrated parallel run 2
+Timeline: 2026-11-30 to 2026-12-18
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4203" target="_blank" rel="noopener"><text x="36.0" y="864.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="8" fill="#5e6c84" font-weight="400">Payroll Parallel | P2 integrated parallel…</text></a></g><g><title>PDE-4103: Data Migration Stream
+Timeline: 2026-10-26 to 2026-12-18
+Status: To Do</title><rect x="618.7" y="874.0" width="111.5" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4103: Data Migration Stream
+Timeline: 2026-10-26 to 2026-12-18
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4103" target="_blank" rel="noopener"><text x="20.0" y="881.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Data Migration Stream</text></a></g><g><title>PDE-4104: Testing Stream
+Timeline: 2026-10-26 to 2026-12-18
+Status: To Do</title><rect x="618.7" y="892.0" width="111.5" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4104: Testing Stream
+Timeline: 2026-10-26 to 2026-12-18
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4104" target="_blank" rel="noopener"><text x="20.0" y="899.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Testing Stream</text></a></g><g><title>PDE-4105: Functional - HCM Stream
+Timeline: 2027-01-11 to 2027-02-19
+Status: To Do</title><rect x="780.7" y="910.0" width="82.0" height="14.0" rx="1" fill="#6b778c" opacity="0.55"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4105: Functional - HCM Stream
+Timeline: 2027-01-11 to 2027-02-19
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4105" target="_blank" rel="noopener"><text x="20.0" y="917.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="9" fill="#5e6c84" font-weight="400">Functional - HCM Stream</text></a></g><rect x="0" y="946.0" width="1496.0" height="44.0" fill="none" stroke="#172b4d" stroke-width="0.75"/><g><title>PDE-4106: Deploy and Cutover
+Timeline: 2027-02-22 to 2027-04-09
+Status: To Do</title><rect x="869.1" y="957.0" width="96.8" height="22.0" rx="2" fill="#6b778c" opacity="0.85"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4106: Deploy and Cutover
+Timeline: 2027-02-22 to 2027-04-09
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4106" target="_blank" rel="noopener"><text x="8.0" y="968.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#172b4d" font-weight="600">Deploy and Cutover</text></a></g><rect x="0" y="1002.0" width="1496.0" height="44.0" fill="none" stroke="#172b4d" stroke-width="0.75"/><g><title>PDE-4107: Hypercare
+Timeline: 2027-04-09 to 2027-06-14
+Status: To Do</title><rect x="965.8" y="1013.0" width="138.9" height="22.0" rx="2" fill="#6b778c" opacity="0.85"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4107: Hypercare
+Timeline: 2027-04-09 to 2027-06-14
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4107" target="_blank" rel="noopener"><text x="8.0" y="1024.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#172b4d" font-weight="600">Hypercare</text></a></g><rect class="sef-phase-divider" x="0" y="1056.0" width="1496.0" height="20.0" /><g><title>PDE-4108: SEF Phase 2 | Finance (planning placeholder)
+Timeline: 2027-03-01 to 2027-12-03
+Status: To Do</title><rect x="883.8" y="1070.0" width="582.8" height="24.0" rx="2" fill="#6b778c" opacity="0.85"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4108: SEF Phase 2 | Finance (planning placeholder)
+Timeline: 2027-03-01 to 2027-12-03
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4108" target="_blank" rel="noopener"><text x="8.0" y="1082.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="11" fill="#172b4d" font-weight="700">SEF Phase 2 | Finance (planning placehold…</text></a></g><rect x="0" y="1098.0" width="1496.0" height="44.0" fill="none" stroke="#172b4d" stroke-width="0.75"/><g><title>PDE-4109: Mobilisation and Planning
+Timeline: 2027-03-01 to 2027-03-25
+Status: To Do</title><rect x="883.8" y="1109.0" width="50.5" height="22.0" rx="2" fill="#6b778c" opacity="0.85"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4109: Mobilisation and Planning
+Timeline: 2027-03-01 to 2027-03-25
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4109" target="_blank" rel="noopener"><text x="8.0" y="1120.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#172b4d" font-weight="600">Mobilisation and Planning</text></a></g><rect x="0" y="1154.0" width="1496.0" height="44.0" fill="none" stroke="#172b4d" stroke-width="0.75"/><g><title>PDE-4110: Architect and Configure
+Timeline: 2027-03-30 to 2027-05-21
+Status: To Do</title><rect x="944.8" y="1165.0" width="109.4" height="22.0" rx="2" fill="#6b778c" opacity="0.85"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4110: Architect and Configure
+Timeline: 2027-03-30 to 2027-05-21
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4110" target="_blank" rel="noopener"><text x="8.0" y="1176.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#172b4d" font-weight="600">Architect and Configure</text></a></g><rect x="0" y="1210.0" width="1496.0" height="44.0" fill="none" stroke="#172b4d" stroke-width="0.75"/><g><title>PDE-4111: Test
+Timeline: 2027-05-24 to 2027-07-23
+Status: To Do</title><rect x="1060.5" y="1221.0" width="126.2" height="22.0" rx="2" fill="#6b778c" opacity="0.85"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4111: Test
+Timeline: 2027-05-24 to 2027-07-23
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4111" target="_blank" rel="noopener"><text x="8.0" y="1232.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#172b4d" font-weight="600">Test</text></a></g><rect x="0" y="1266.0" width="1496.0" height="44.0" fill="none" stroke="#172b4d" stroke-width="0.75"/><g><title>PDE-4112: Deploy
+Timeline: 2027-08-02 to 2027-09-10
+Status: To Do</title><rect x="1207.8" y="1277.0" width="82.0" height="22.0" rx="2" fill="#6b778c" opacity="0.85"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4112: Deploy
+Timeline: 2027-08-02 to 2027-09-10
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4112" target="_blank" rel="noopener"><text x="8.0" y="1288.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#172b4d" font-weight="600">Deploy</text></a></g><rect x="0" y="1322.0" width="1496.0" height="44.0" fill="none" stroke="#172b4d" stroke-width="0.75"/><g><title>PDE-4113: Hypercare and BAU transition
+Timeline: 2027-09-13 to 2027-12-03
+Status: To Do</title><rect x="1296.1" y="1333.0" width="170.4" height="22.0" rx="2" fill="#6b778c" opacity="0.85"/></g><g clip-path="url(#sef-plan-label-col)"><title>PDE-4113: Hypercare and BAU transition
+Timeline: 2027-09-13 to 2027-12-03
+Status: To Do</title><a href="https://twoa.atlassian.net/browse/PDE-4113" target="_blank" rel="noopener"><text x="8.0" y="1344.0" text-anchor="start" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif" font-size="10" fill="#172b4d" font-weight="600">Hypercare and BAU transition</text></a></g><g class="chart-today-marker"><title>Today: 2026-06-28 (Pacific/Auckland)</title><rect x="358.3" y="40.0" width="16.0" height="1326.0" fill="transparent" pointer-events="all"/><line class="chart-today-line" x1="366.3" y1="40.0" x2="366.3" y2="1366.0" stroke="#000000" stroke-width="2.5" opacity="0.95"/></g></svg></div>
+      <div class="chart-key"><p class="chart-key-title"><strong>Key</strong></p><div class="chart-key-row"><span class="legend-swatch" style="background:#6b778c;opacity:0.85"></span> Phase bar (Block Level Two): programme phase envelope (e.g. PDE-4072 Phase 1 HCM and Payroll)</div><div class="chart-key-row"><span class="legend-swatch" style="background:#6b778c;opacity:0.85"></span> Chapter bar (Block Level One): schedule window for the phase chapter</div><div class="chart-key-row"><span class="legend-swatch" style="background:#6b778c;opacity:0.55"></span> Stream bar (Block Level Zero): work package within the chapter (same colour, lighter)</div><div class="chart-key-row"><span class="legend-swatch" style="background:#6b778c;opacity:0.35"></span> Detail bar (Block Level Minus One): optional sub-item under a stream (same colour, lightest)</div><div class="chart-key-row">Bar colour reflects Jira status: <span class="legend-swatch" style="background:#00875a;opacity:0.85"></span> Done <span class="legend-swatch" style="background:#6b778c;opacity:0.85"></span> To Do <span class="legend-swatch" style="background:#0052cc;opacity:0.85"></span> In progress</div><div class="chart-key-row"><abbr title="Solid black vertical line at today&#x27;s date in Pacific/Auckland" class="metric-tip"><span class="legend-swatch today" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg"><line x1="7" y1="1" x2="7" y2="13" stroke="#000000" stroke-width="2.5"/></svg></span> Today (NZ)</abbr></div></div>
+    </section>
+  </main>
+</body>
+</html>

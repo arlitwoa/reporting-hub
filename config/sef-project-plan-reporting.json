@@ -1,0 +1,24 @@
+{
+  "projectKey": "PDE",
+  "phaseHubKeys": ["PDE-4072", "PDE-4108"],
+  "manifestFile": "sef-project-plan-blocks.json",
+  "chartWindow": {
+    "start": "2026-06-01",
+    "end": "2027-12-03"
+  },
+  "issueTypes": {
+    "chapter": "Block Level One",
+    "package": "Block Level Zero",
+    "detail": "Block Level Minus One"
+  },
+  "artifacts": {
+    "timelineJson": "sef-project-plan-timeline.json",
+    "htmlFile": "sef-project-plan-chart.html"
+  },
+  "githubPages": {
+    "publishPath": "docs/sef/project-plan.html",
+    "sitePath": "sef/project-plan.html",
+    "pageTitle": "SEF | Integrated Project Plan"
+  },
+  "notes": "Block hierarchy from scripts/sef/create_sef_project_plan_blocks.py (consumer). chartWindow is a fallback only; fetch computes the x-axis from all phase/chapter/package dates (Phase 2 through Dec 2027)."
+}

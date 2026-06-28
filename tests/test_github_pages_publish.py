@@ -8,7 +8,11 @@ from pathlib import Path
 
 from extensions.twoa_programme.github_pages_publish import (
     SiteIndexReport,
+    build_github_pages_programme_hub_html,
+    build_github_pages_root_index_html,
     build_github_pages_site_index_html,
+    load_github_pages_site_config,
+    programme_hub_path,
     site_root_index_path,
     write_pages_snapshot,
 )
@@ -69,6 +73,55 @@ class GitHubPagesPublishTests(unittest.TestCase):
         self.assertIn('href="quarter/"', html_doc)
         self.assertIn('href="sprint-health/"', html_doc)
         self.assertIn("barlconz.github.io/artifact-consumer-twoa/", html_doc)
+
+    def test_site_config_loads_programmes(self):
+        root = Path(__file__).resolve().parents[1]
+        config = load_github_pages_site_config(root / "config" / "github-pages-site.json")
+        self.assertEqual(config.site_title, "TWoA reporting hub")
+        ids = [programme.id for programme in config.programmes]
+        self.assertEqual(ids, ["epc", "sef", "enterprise"])
+
+    def test_root_index_groups_by_programme(self):
+        root = Path(__file__).resolve().parents[1]
+        config = load_github_pages_site_config(root / "config" / "github-pages-site.json")
+        html_doc = build_github_pages_root_index_html(
+            config,
+            generated_on="27 Jun 2026 12:00 NZST",
+            site_url="https://arlitwoa.github.io/reporting-hub/",
+        )
+        self.assertIn("TWoA reporting hub", html_doc)
+        self.assertIn('href="epc/"', html_doc)
+        self.assertIn('href="sef/"', html_doc)
+        self.assertIn('href="enterprise/"', html_doc)
+        self.assertIn("EPC delivery", html_doc)
+        self.assertIn("Enterprise reporting", html_doc)
+
+    def test_programme_hub_uses_relative_links(self):
+        root = Path(__file__).resolve().parents[1]
+        config = load_github_pages_site_config(root / "config" / "github-pages-site.json")
+        sef = next(programme for programme in config.programmes if programme.id == "sef")
+        html_doc = build_github_pages_programme_hub_html(
+            sef,
+            site_title=config.site_title,
+            generated_on="27 Jun 2026 12:00 NZST",
+        )
+        self.assertIn('href="project-plan.html"', html_doc)
+        self.assertIn("Integrated project plan", html_doc)
+
+    def test_enterprise_hub_shows_empty_state(self):
+        root = Path(__file__).resolve().parents[1]
+        config = load_github_pages_site_config(root / "config" / "github-pages-site.json")
+        enterprise = next(programme for programme in config.programmes if programme.id == "enterprise")
+        html_doc = build_github_pages_programme_hub_html(
+            enterprise,
+            site_title=config.site_title,
+            generated_on="27 Jun 2026 12:00 NZST",
+        )
+        self.assertIn("No published reports yet", html_doc)
+
+    def test_programme_hub_path(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(programme_hub_path(root, "epc"), root / "docs" / "epc" / "index.html")
 
     def test_site_root_index_path(self):
         root = Path(__file__).resolve().parents[1]

@@ -1,6 +1,6 @@
 # reporting-hub
 
-TWoA EPCE **delivery report snapshots** for GitHub Pages: quarterly dashboard, milestone scope, Sprint Health, and Dev Done risk.
+TWoA **reporting hub** for GitHub Pages: programme-scoped delivery snapshots (EPC, SEF, enterprise) refreshed from Jira.
 
 Runs on **`barlconz-artifact-core`** (Artifact core wheel from [barlconz/artifact](https://github.com/barlconz/artifact) GitHub Releases) with the TWoA programme extension from this repo. Published HTML lives under `docs/` on **TWoA GitHub** (`arlitwoa`).
 
@@ -8,13 +8,14 @@ Runs on **`barlconz-artifact-core`** (Artifact core wheel from [barlconz/artifac
 
 After Pages is enabled: **https://arlitwoa.github.io/reporting-hub/**
 
-| Report | Path |
-|--------|------|
-| Site hub | `/` |
-| Current quarter dashboard | `/quarter/` |
-| Milestone scope | `/quarter/milestone.html` |
-| Sprint Health (per squad) | `/sprint-health/` |
-| Dev Done risk (in-cycle engine) | `/dev-done-risk/` |
+| Area | Path | Reports |
+|------|------|---------|
+| Site hub | `/` | Links to programme areas below |
+| EPC delivery | `/epc/` | Quarter dashboard, milestone scope, Sprint Health, Dev Done risk |
+| SEF | `/sef/` | Integrated project plan Gantt |
+| Enterprise reporting | `/enterprise/` | Placeholder for cross-programme reports |
+
+Report URLs are unchanged for stability (e.g. `/quarter/`, `/sprint-health/`, `/sef/project-plan.html`). Programme hubs group navigation only.
 
 ## Setup (local refresh)
 
@@ -123,8 +124,11 @@ Push from the workflow uses the built-in **`GITHUB_TOKEN`** on `arlitwoa/reporti
 
 | File | Role |
 |------|------|
+| `config/github-pages-site.json` | Site hub structure — programmes (EPC, SEF, enterprise) and report links |
 | `config/quarterly-reporting.json` | Three-lane quarter model, burn tracking, milestone scope |
 | `config/delivery-health.json` | Sprint Health + Dev Done risk |
+| `config/sef-project-plan-reporting.json` | SEF Block Gantt hub keys, chart window, artifact names |
+| `config/sef-project-plan-blocks.json` | PDE issue keys for Phase 1 and Phase 2 Block hierarchy |
 | `config/jira-binding.json` | D-Train status → phase map |
 | `config/programme-registry.json` | Wires `extensions.twoa_programme` into Artifact core |
 

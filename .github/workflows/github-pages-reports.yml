@@ -66,7 +66,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/index.html docs/quarter/index.html docs/quarter/milestone.html docs/sprint-health docs/dev-done-risk
+          git add docs/index.html docs/epc docs/enterprise docs/quarter/index.html docs/quarter/milestone.html docs/sprint-health docs/dev-done-risk docs/sef
           if git diff --staged --quiet; then
             echo "No report snapshot changes to publish."
             exit 0
