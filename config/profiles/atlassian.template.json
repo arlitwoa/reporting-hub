@@ -4,7 +4,8 @@
   "credentialKey": "client-atlassian",
   "credentialProvider": "local",
   "approvedJiraProjects": [
-    "EPCE"
+    "EPCE",
+    "PDE"
   ],
   "approvedConfluenceSpaces": [
     "EPCE",

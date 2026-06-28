@@ -1,0 +1,51 @@
+{
+  "siteTitle": "TWoA reporting hub",
+  "siteIntro": "Hosted snapshots refreshed from Jira. Each report is overwritten when the pipeline runs.",
+  "programmes": [
+    {
+      "id": "epc",
+      "title": "EPC delivery",
+      "description": "EPCE programme dashboards, milestone scope, sprint health, and development-done risk.",
+      "reports": [
+        {
+          "href": "quarter/",
+          "title": "Current Quarter | EPC Delivery Dashboard",
+          "description": "cumulative burn, lane breakdown, sprint and release credit"
+        },
+        {
+          "href": "quarter/milestone.html",
+          "title": "Milestone scope report",
+          "description": "quarter milestone scope snapshot"
+        },
+        {
+          "href": "sprint-health/",
+          "title": "EPCE Sprint Health",
+          "description": "per-squad active sprint scope and forecast"
+        },
+        {
+          "href": "dev-done-risk/",
+          "title": "Dev Done Risk",
+          "description": "in-cycle engine development-done risk"
+        }
+      ]
+    },
+    {
+      "id": "sef",
+      "title": "SEF",
+      "description": "Student Experience Framework integrated project planning.",
+      "reports": [
+        {
+          "href": "sef/project-plan.html",
+          "title": "Integrated project plan",
+          "description": "PDE Block schedule Gantt (Phase 1 HCM and Payroll, Phase 2 placeholder)"
+        }
+      ]
+    },
+    {
+      "id": "enterprise",
+      "title": "Enterprise reporting",
+      "description": "Cross-programme and enterprise-wide reporting snapshots.",
+      "reports": []
+    }
+  ]
+}

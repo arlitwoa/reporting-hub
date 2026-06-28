@@ -1,0 +1,23 @@
+{
+  "phase1": {
+    "phase1": "PDE-4072",
+    "l1": {
+      "1.3.1": "PDE-4073",
+      "1.3.2": "PDE-4078",
+      "1.3.3": "PDE-4087",
+      "1.3.4": "PDE-4094",
+      "1.21-deploy": "PDE-4106",
+      "1.21-hypercare": "PDE-4107"
+    }
+  },
+  "phase2": {
+    "phase2": "PDE-4108",
+    "l1": {
+      "mob-plan": "PDE-4109",
+      "arch-plan": "PDE-4110",
+      "test-plan": "PDE-4111",
+      "deploy-plan": "PDE-4112",
+      "hypercare-plan": "PDE-4113"
+    }
+  }
+}
