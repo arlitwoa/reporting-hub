@@ -29,6 +29,14 @@ from extensions.twoa_programme.quarterly_dashboard_svg_core import (
     _svg_x_bottom_margin,
     _today_legend_key_row,
 )
+from extensions.twoa_programme.field_maps import field_aliases
+from extensions.twoa_programme.milestone_scope_chart import (
+    DTRAIN_PHASE_FILL,
+    append_scope_composition_overlay,
+    lane_bar_segments,
+    timeline_bar_segment_order,
+)
+from extensions.twoa_programme.sef_block_scope import build_block_scope_rollups
 from extensions.twoa_programme.sef_project_plan_reporting import (
     SefProjectPlanReportingConfig,
     load_phase_hub_keys,
@@ -57,6 +65,9 @@ DETAIL_BAR_HEIGHT = DETAIL_ROW_HEIGHT - 4
 BAR_OPACITY = 0.85
 SUB_BAR_OPACITY = 0.55
 DETAIL_BAR_OPACITY = 0.35
+SCOPE_OVERLAY_OPACITY = 0.92
+SUB_SCOPE_OVERLAY_OPACITY = 0.72
+DETAIL_SCOPE_OVERLAY_OPACITY = 0.62
 BLOCK_BORDER_WIDTH = 0.75
 PHASE_GAP = 20
 CHART_WINDOW_PADDING_DAYS = 14
@@ -223,8 +234,11 @@ def fetch_sef_project_plan_timeline(
     fallback_end = date.fromisoformat(config.chart_window_end)
     start_field = START_DATE_FIELD
     fields = ["summary", "status", "issuetype", "created", "duedate", start_field]
+    scope_fields = [*fields, "issuelinks"]
+    story_points_field = field_aliases()["Story Points"]
     hub_keys = load_phase_hub_keys(config)
     phases: list[dict[str, Any]] = []
+    block_issues: dict[str, dict[str, Any]] = {}
 
     for hub_key in hub_keys:
         hub = adapter.http.get_json(
@@ -240,10 +254,12 @@ def fetch_sef_project_plan_timeline(
             adapter,
             parent_key=hub_key,
             issue_type=config.chapter_issue_type,
-            fields=fields,
+            fields=scope_fields,
         )
         chapters: list[dict[str, Any]] = []
         for chapter_issue in chapters_raw:
+            chapter_key = str(chapter_issue["key"])
+            block_issues[chapter_key] = chapter_issue
             chapter_row = _issue_timeline_row(
                 chapter_issue,
                 fallback_start=fallback_start,
@@ -251,12 +267,14 @@ def fetch_sef_project_plan_timeline(
             )
             packages_raw = _fetch_children(
                 adapter,
-                parent_key=str(chapter_issue["key"]),
+                parent_key=chapter_key,
                 issue_type=config.package_issue_type,
-                fields=fields,
+                fields=scope_fields,
             )
             packages: list[dict[str, Any]] = []
             for package_issue in packages_raw:
+                package_key = str(package_issue["key"])
+                block_issues[package_key] = package_issue
                 package_row = _issue_timeline_row(
                     package_issue,
                     fallback_start=fallback_start,
@@ -264,23 +282,46 @@ def fetch_sef_project_plan_timeline(
                 )
                 details_raw = _fetch_children(
                     adapter,
-                    parent_key=str(package_issue["key"]),
+                    parent_key=package_key,
                     issue_type=config.detail_issue_type,
-                    fields=fields,
+                    fields=scope_fields,
                 )
-                package_row["details"] = [
-                    _issue_timeline_row(
-                        detail_issue,
-                        fallback_start=fallback_start,
-                        fallback_end=fallback_end,
+                detail_rows: list[dict[str, Any]] = []
+                for detail_issue in details_raw:
+                    detail_key = str(detail_issue["key"])
+                    block_issues[detail_key] = detail_issue
+                    detail_rows.append(
+                        _issue_timeline_row(
+                            detail_issue,
+                            fallback_start=fallback_start,
+                            fallback_end=fallback_end,
+                        )
                     )
-                    for detail_issue in details_raw
-                ]
+                package_row["details"] = detail_rows
                 packages.append(package_row)
             chapter_row["packages"] = packages
             chapters.append(chapter_row)
         hub_row["chapters"] = chapters
         phases.append(hub_row)
+
+    scope_rollups = build_block_scope_rollups(
+        adapter,
+        block_issues=block_issues,
+        story_points_field=story_points_field,
+    )
+    for phase in phases:
+        for chapter in phase.get("chapters") or []:
+            chapter_key = str(chapter.get("key") or "")
+            if chapter_key in scope_rollups:
+                chapter["scopeRollup"] = scope_rollups[chapter_key]
+            for package in chapter.get("packages") or []:
+                package_key = str(package.get("key") or "")
+                if package_key in scope_rollups:
+                    package["scopeRollup"] = scope_rollups[package_key]
+                for detail in package.get("details") or []:
+                    detail_key = str(detail.get("key") or "")
+                    if detail_key in scope_rollups:
+                        detail["scopeRollup"] = scope_rollups[detail_key]
 
     window_start, window_end = resolve_chart_window_for_phases(
         phases,
@@ -336,7 +377,49 @@ def _bar_tooltip(row: dict[str, Any]) -> str:
     status = row.get("status")
     if status:
         lines.append(f"Status: {status}")
+    scope = row.get("scopeRollup")
+    if scope:
+        total_weight = float(scope.get("totalWeight") or 0)
+        story_points = float(scope.get("storyPoints") or 0)
+        unpointed = int(scope.get("unpointedCount") or 0)
+        lines.append(f"Scope: {total_weight:g} weight ({story_points:g} SP + {unpointed} unpointed)")
     return "\n".join(lines)
+
+
+def _append_timeline_bar(
+    parts: list[str],
+    *,
+    row: dict[str, Any],
+    x1: float,
+    bar_y: float,
+    bar_w: float,
+    bar_h: float,
+    fill: str,
+    opacity: float,
+    rx: int = 2,
+    scope_overlay_opacity: float = SCOPE_OVERLAY_OPACITY,
+) -> None:
+    parts.append(f'<g>{_svg_embedded_title(_bar_tooltip(row))}')
+    parts.append(
+        f'<rect x="{x1:.1f}" y="{bar_y:.1f}" width="{bar_w:.1f}" '
+        f'height="{bar_h:.1f}" rx="{rx}" fill="{fill}" opacity="{opacity}"/>'
+    )
+    scope = row.get("scopeRollup")
+    if scope:
+        segments = lane_bar_segments(scope, segment_order=timeline_bar_segment_order())
+        if segments:
+            append_scope_composition_overlay(
+                parts,
+                rollup=scope,
+                segments=segments,
+                x0=x1,
+                y0=bar_y,
+                bar_w=bar_w,
+                bar_h=bar_h,
+                overlay_opacity=scope_overlay_opacity,
+                link_class="block-scope-segment",
+            )
+    parts.append("</g>")
 
 
 def _package_block_height(package: dict[str, Any]) -> int:
@@ -484,12 +567,17 @@ def sef_project_plan_timeline_svg(
             summary = str(chapter.get("summary") or key)
             label = summary
 
-            parts.append(f'<g>{_svg_embedded_title(_bar_tooltip(chapter))}')
-            parts.append(
-                f'<rect x="{x1:.1f}" y="{bar_y:.1f}" width="{bar_w:.1f}" '
-                f'height="{CHAPTER_BAR_HEIGHT:.1f}" rx="2" fill="{fill}" opacity="{BAR_OPACITY}"/>'
+            _append_timeline_bar(
+                parts,
+                row=chapter,
+                x1=x1,
+                bar_y=bar_y,
+                bar_w=bar_w,
+                bar_h=CHAPTER_BAR_HEIGHT,
+                fill=fill,
+                opacity=BAR_OPACITY,
+                scope_overlay_opacity=SCOPE_OVERLAY_OPACITY,
             )
-            parts.append("</g>")
 
             browse_url = f"{JIRA_SERVER}/browse/{html.escape(key)}"
             _append_label_link(
@@ -513,13 +601,18 @@ def sef_project_plan_timeline_svg(
                 p_fill = epic_bar_fill(str(package.get("status") or ""))
                 p_key = str(package.get("key") or "")
                 p_summary = str(package.get("summary") or p_key)
-                parts.append(f'<g>{_svg_embedded_title(_bar_tooltip(package))}')
-                parts.append(
-                    f'<rect x="{px1:.1f}" y="{p_bar_y:.1f}" width="{p_bar_w:.1f}" '
-                    f'height="{STREAM_BAR_HEIGHT:.1f}" rx="1" fill="{p_fill}" '
-                    f'opacity="{SUB_BAR_OPACITY}"/>'
+                _append_timeline_bar(
+                    parts,
+                    row=package,
+                    x1=px1,
+                    bar_y=p_bar_y,
+                    bar_w=p_bar_w,
+                    bar_h=STREAM_BAR_HEIGHT,
+                    fill=p_fill,
+                    opacity=SUB_BAR_OPACITY,
+                    rx=1,
+                    scope_overlay_opacity=SUB_SCOPE_OVERLAY_OPACITY,
                 )
-                parts.append("</g>")
                 _append_label_link(
                     parts,
                     text=p_summary,
@@ -544,13 +637,18 @@ def sef_project_plan_timeline_svg(
                     d_fill = epic_bar_fill(str(detail.get("status") or ""))
                     d_key = str(detail.get("key") or "")
                     d_summary = str(detail.get("summary") or d_key)
-                    parts.append(f'<g>{_svg_embedded_title(_bar_tooltip(detail))}')
-                    parts.append(
-                        f'<rect x="{dx1:.1f}" y="{d_bar_y:.1f}" width="{d_bar_w:.1f}" '
-                        f'height="{DETAIL_BAR_HEIGHT:.1f}" rx="1" fill="{d_fill}" '
-                        f'opacity="{DETAIL_BAR_OPACITY}"/>'
+                    _append_timeline_bar(
+                        parts,
+                        row=detail,
+                        x1=dx1,
+                        bar_y=d_bar_y,
+                        bar_w=d_bar_w,
+                        bar_h=DETAIL_BAR_HEIGHT,
+                        fill=d_fill,
+                        opacity=DETAIL_BAR_OPACITY,
+                        rx=1,
+                        scope_overlay_opacity=DETAIL_SCOPE_OVERLAY_OPACITY,
                     )
-                    parts.append("</g>")
                     _append_label_link(
                         parts,
                         text=d_summary,
@@ -604,10 +702,17 @@ def sef_project_plan_key_html() -> str:
         "Detail bar (Block Level Minus One): optional sub-item under a stream (same colour, lightest)"
         "</div>"
         '<div class="chart-key-row">'
-        "Bar colour reflects Jira status: "
+        "Bar colour reflects Jira status when no Scope link is set: "
         f'<span class="legend-swatch" style="background:{done_fill};opacity:{BAR_OPACITY}"></span> Done '
         f'<span class="legend-swatch" style="background:{open_fill};opacity:{BAR_OPACITY}"></span> To Do '
         f'<span class="legend-swatch" style="background:{active_fill};opacity:{BAR_OPACITY}"></span> In progress'
+        "</div>"
+        '<div class="chart-key-row">'
+        "Scope overlay (Scope link in Jira): D-Train phases left to right — "
+        f'<span class="legend-swatch" style="background:{DTRAIN_PHASE_FILL["Drive"]}"></span> Drive '
+        "through "
+        f'<span class="legend-swatch" style="background:{DTRAIN_PHASE_FILL["Dream"]}"></span> Dream '
+        "(Story/Bug/Spike under linked Epics plus direct scope links; click segment for Jira filter)"
         "</div>"
         f'<div class="chart-key-row">{_today_legend_key_row()}</div>'
         "</div>"

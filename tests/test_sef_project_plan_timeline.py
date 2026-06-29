@@ -68,6 +68,11 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
         self.assertIn('class="chart-today-marker"', svg)
         self.assertIn('class="chart-today-line"', svg)
 
+    def test_svg_renders_scope_overlay_when_scope_rollup_present(self) -> None:
+        svg = sef_project_plan_timeline_svg(self.payload)
+        self.assertIn('class="block-scope-segment"', svg)
+        self.assertIn("Scope overlay", sef_project_plan_key_html())
+
 
 if __name__ == "__main__":
     unittest.main()

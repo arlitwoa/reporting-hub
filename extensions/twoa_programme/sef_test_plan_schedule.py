@@ -7,7 +7,9 @@ from typing import Any
 
 from artifact.confluence_blocks import h2, h3, jira_issue_link, p, p_html, page_link, table_wide_html, url_link
 
+from extensions.twoa_programme.field_maps import field_aliases
 from extensions.twoa_programme.jira_search import search_all
+from extensions.twoa_programme.sef_block_scope import build_block_scope_rollups
 from extensions.twoa_programme.sef_test_plan_manifest import (
     INTEGRATED_PROJECT_PLAN_TITLE,
     SEF_JIRA_PLAN_URL,
@@ -18,7 +20,16 @@ from extensions.twoa_programme.sef_test_plan_manifest import (
 
 JIRA_BASE = "https://twoa.atlassian.net"
 START_DATE_FIELD = "customfield_10015"
-ISSUE_FIELDS = ["summary", "status", "issuetype", "created", "duedate", START_DATE_FIELD, "parent"]
+ISSUE_FIELDS = [
+    "summary",
+    "status",
+    "issuetype",
+    "created",
+    "duedate",
+    START_DATE_FIELD,
+    "parent",
+    "issuelinks",
+]
 
 
 def _parse_day(value: str | None) -> date | None:
@@ -218,9 +229,14 @@ def fetch_test_plan_timeline_payload(
         return {"phases": [], "pageTitle": plan.title}
 
     jql = f"key in ({', '.join(all_keys)}) ORDER BY rank ASC, key ASC"
-    fields = ["summary", "status", "issuetype", "created", "duedate", START_DATE_FIELD, "parent"]
-    issues = search_all(adapter, jql, fields)
+    issues = search_all(adapter, jql, ISSUE_FIELDS)
     issues_by_key = {str(issue["key"]): issue for issue in issues}
+    story_points_field = field_aliases()["Story Points"]
+    scope_rollups = build_block_scope_rollups(
+        adapter,
+        block_issues={key: issues_by_key[key] for key in all_keys if key in issues_by_key},
+        story_points_field=story_points_field,
+    )
 
     fallback_start = date(2026, 6, 1)
     fallback_end = date(2027, 12, 3)
@@ -236,6 +252,11 @@ def fetch_test_plan_timeline_payload(
             "status": str((fields_data.get("status") or {}).get("name") or ""),
             "startDate": start.isoformat(),
             "endDate": end.isoformat(),
+            **(
+                {"scopeRollup": scope_rollups[str(issue.get("key") or "")]}
+                if str(issue.get("key") or "") in scope_rollups
+                else {}
+            ),
         }
 
     packages: list[dict[str, Any]] = []
