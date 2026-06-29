@@ -366,6 +366,21 @@ td.pending-metric a {
 .legend-swatch.global-line { border-top: 3px solid #0052cc; width: 16px; height: 0; margin-bottom: 4px; background: transparent; }
 .footnote { color: var(--muted); font-size: 12px; margin-top: 12px; line-height: 1.5; }
 
+.breadcrumb, .report-nav {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 16px;
+  color: #5e6c84;
+}
+.breadcrumb a, .report-nav a {
+  color: #0052cc;
+  text-decoration: none;
+  font-weight: 600;
+}
+.breadcrumb a:hover, .report-nav a:hover { text-decoration: underline; }
+.breadcrumb .sep, .report-nav .sep { margin: 0 0.35em; color: #97a0af; }
+.breadcrumb .current, .report-nav .current { color: #172b4d; font-weight: 600; }
+
 .chart-wrap-sef-plan.chart-wrap-timeline {
   max-height: none;
   overflow-x: auto;
@@ -391,9 +406,10 @@ td.pending-metric a {
 </head>
 <body>
   <main class="report">
+    <nav class="report-nav" aria-label="Breadcrumb"><a href="../index.html">TWoA reporting hub</a> <span class="sep">›</span> <a href="index.html">SEF</a> <span class="sep">›</span> <span class="current">SEF | Integrated Project Plan</span></nav>
     <header class="report-header">
       <h1>SEF | Integrated Project Plan</h1>
-      <p class="report-meta">Generated 29 Jun 2026 12:13 NZST</p>
+      <p class="report-meta">Generated 29 Jun 2026 12:51 NZST</p>
     </header>
     <section class="chart-section">
       <h1>Project plan timeline</h1>

@@ -28,6 +28,7 @@ from extensions.twoa_programme.quarterly_reporting import (  # noqa: E402
     NZ_TZ,
     load_quarterly_reporting_config,
 )
+from extensions.twoa_programme.github_pages_nav import epc_report_breadcrumbs  # noqa: E402
 from scripts.quarterly.common import CONFIG_PATH, out_path  # noqa: E402
 
 
@@ -64,7 +65,16 @@ def build_dashboard_document(config, *, repo_root: Path) -> str:
         if config.confluence
         else f"{config.quarter.label.split('(')[0].strip()} | Quarterly Dashboard"
     )
-    return build_dashboard_html(payload, generated_on=generated, page_title=title)
+    breadcrumb = epc_report_breadcrumbs(
+        publish_path="quarter/index.html",
+        report_title=title,
+    )
+    return build_dashboard_html(
+        payload,
+        generated_on=generated,
+        page_title=title,
+        breadcrumb_nav=breadcrumb,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:

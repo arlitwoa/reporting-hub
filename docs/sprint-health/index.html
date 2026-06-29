@@ -10,12 +10,29 @@
     .report-subtitle { margin: 0 0 1rem; color: #5e6c84; font-size: 0.95rem; }
     ul { line-height: 1.8; }
     .note { color: #5e6c84; font-size: 0.9rem; }
+    
+.breadcrumb, .report-nav {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 16px;
+  color: #5e6c84;
+}
+.breadcrumb a, .report-nav a {
+  color: #0052cc;
+  text-decoration: none;
+  font-weight: 600;
+}
+.breadcrumb a:hover, .report-nav a:hover { text-decoration: underline; }
+.breadcrumb .sep, .report-nav .sep { margin: 0 0.35em; color: #97a0af; }
+.breadcrumb .current, .report-nav .current { color: #172b4d; font-weight: 600; }
+
   </style>
 </head>
 <body>
   <main>
+    <nav class="report-nav" aria-label="Breadcrumb"><a href="../index.html">TWoA reporting hub</a> <span class="sep">›</span> <a href="../epc/index.html">EPC delivery</a> <span class="sep">›</span> <span class="current">EPCE Sprint Health</span></nav>
     <h1>EPCE Sprint Health</h1>
-    <p class="report-subtitle">Generated 29 Jun 2026 12:13 NZST</p>
+    <p class="report-subtitle">Generated 29 Jun 2026 12:51 NZST</p>
     <p>Per-squad sprint scope, forecast, and delivery health. Each link is overwritten when the snapshot refreshes.</p>
     <ul>
       <li><a href="kikorangi/">Kikorangi</a></li>

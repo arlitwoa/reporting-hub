@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
+from extensions.twoa_programme.github_pages_nav import BREADCRUMB_CSS, programme_hub_breadcrumbs
+
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SITE_CONFIG_NAME = "github-pages-site.json"
 
@@ -41,7 +43,7 @@ class GitHubPagesSiteConfig:
     programmes: tuple[SiteProgramme, ...]
 
 
-_SITE_CSS = """
+_SITE_CSS = BREADCRUMB_CSS + """
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 2rem; color: #172b4d; max-width: 52rem; }
     h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
     h2 { font-size: 1.15rem; margin: 1.75rem 0 0.35rem; }
@@ -50,9 +52,6 @@ _SITE_CSS = """
     ul { line-height: 1.8; padding-left: 1.25rem; margin: 0.35rem 0 0; }
     .desc, .note, .empty { color: #5e6c84; font-size: 0.95rem; }
     .programme-desc { color: #5e6c84; font-size: 0.95rem; margin: 0 0 0.25rem; }
-    .breadcrumb { font-size: 0.9rem; margin-bottom: 1.25rem; }
-    .breadcrumb a { color: #0052cc; text-decoration: none; }
-    .breadcrumb a:hover { text-decoration: underline; }
     footer { margin-top: 2rem; color: #5e6c84; font-size: 0.85rem; }
 """
 
@@ -203,6 +202,10 @@ def build_github_pages_programme_hub_html(
             f'<p class="note">Site home: '
             f'<a href="{html.escape(site_url)}">{html.escape(site_url)}</a>.</p>'
         )
+    breadcrumb = programme_hub_breadcrumbs(
+        programme_title=programme.title,
+        site_title=site_title,
+    )
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -213,7 +216,7 @@ def build_github_pages_programme_hub_html(
 </head>
 <body>
   <main>
-    <p class="breadcrumb"><a href="../">← {html.escape(site_title)}</a></p>
+    {breadcrumb}
     <h1>{html.escape(programme.title)}</h1>
     <p class="programme-desc">{html.escape(programme.description)}</p>
     {reports_block}

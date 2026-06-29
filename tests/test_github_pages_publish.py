@@ -106,7 +106,9 @@ class GitHubPagesPublishTests(unittest.TestCase):
             generated_on="27 Jun 2026 12:00 NZST",
         )
         self.assertIn('href="project-plan.html"', html_doc)
+        self.assertIn('href="plans/payroll-parallel.html"', html_doc)
         self.assertIn("Integrated project plan", html_doc)
+        self.assertIn('aria-label="Breadcrumb"', html_doc)
 
     def test_enterprise_hub_shows_empty_state(self):
         root = Path(__file__).resolve().parents[1]

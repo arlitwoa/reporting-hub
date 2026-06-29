@@ -15,6 +15,7 @@ from artifact.confluence_blocks import (
 )
 
 from extensions.twoa_programme.epic_timeline import EPIC_TIMELINE_EXTRA_CSS, epic_timeline_key_html
+from extensions.twoa_programme.github_pages_nav import BREADCRUMB_CSS
 from extensions.twoa_programme.quarterly_dashboard_constants import (
     ATL,
     JIRA_SERVER,
@@ -202,7 +203,13 @@ def build_confluence_body(payload: dict, *, generated_on: str) -> str:
     )
 
 
-def build_dashboard_html(payload: dict, *, generated_on: str, page_title: str) -> str:
+def build_dashboard_html(
+    payload: dict,
+    *,
+    generated_on: str,
+    page_title: str,
+    breadcrumb_nav: str = "",
+) -> str:
     status = payload["status"]
     burn = payload.get("burn") or {}
     squad = payload.get("squad") or {}
@@ -324,10 +331,11 @@ def build_dashboard_html(payload: dict, *, generated_on: str, page_title: str) -
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{html.escape(page_title)}</title>
-  <style>{REPORT_CSS}{EPIC_TIMELINE_EXTRA_CSS}</style>
+  <style>{REPORT_CSS}{BREADCRUMB_CSS}{EPIC_TIMELINE_EXTRA_CSS}</style>
 </head>
 <body>
   <main class="report-shell">
+    {breadcrumb_nav}
     <header class="report-header">
       <h1>{html.escape(page_title)}</h1>
       <p class="report-subtitle">
