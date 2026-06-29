@@ -38,6 +38,16 @@
           "href": "sef/project-plan.html",
           "title": "Integrated project plan",
           "description": "PDE Block schedule Gantt (Phase 1 HCM and Payroll, Phase 2 placeholder)"
+        },
+        {
+          "href": "sef/plans/payroll-parallel.html",
+          "title": "Test Plan | Payroll Parallel | Block Schedule",
+          "description": "Payroll parallel sub-plan Gantt from PDE Block rows"
+        },
+        {
+          "href": "sef/plans/testing-stream.html",
+          "title": "Test Plan | Testing Stream | Block Schedule",
+          "description": "Testing stream sub-plan Gantt from PDE Block rows"
         }
       ]
     },
