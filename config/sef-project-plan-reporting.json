@@ -11,6 +11,7 @@
     "package": "Block Level Zero",
     "detail": "Block Level Minus One"
   },
+  "scopeLinkType": "Scope",
   "artifacts": {
     "timelineJson": "sef-project-plan-timeline.json",
     "htmlFile": "sef-project-plan-chart.html"

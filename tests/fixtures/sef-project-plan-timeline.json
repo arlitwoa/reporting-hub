@@ -32,6 +32,34 @@
               "status": "To Do",
               "startDate": "2026-06-08",
               "endDate": "2026-07-10",
+              "scopeRollup": {
+                "phases": {
+                  "Dream": 0.0,
+                  "Discover": 5.0,
+                  "Design": 0.0,
+                  "Develop": 0.0,
+                  "Deliver": 0.0,
+                  "Demonstrate": 0.0,
+                  "Deploy": 0.0,
+                  "Drive": 0.0,
+                  "Unknown": 0.0
+                },
+                "phaseIssueKeys": {
+                  "Dream": [],
+                  "Discover": ["EPCE-9001"],
+                  "Design": [],
+                  "Develop": [],
+                  "Deliver": [],
+                  "Demonstrate": [],
+                  "Deploy": [],
+                  "Drive": [],
+                  "Unknown": []
+                },
+                "unpointedCount": 0,
+                "unpointedIssueKeys": [],
+                "storyPoints": 5.0,
+                "totalWeight": 5.0
+              },
               "details": [
                 {
                   "key": "PDE-4086",
