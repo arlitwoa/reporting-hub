@@ -22,6 +22,11 @@ from extensions.twoa_programme.sef_project_plan_timeline import (  # noqa: E402
     default_sef_project_plan_timeline_path,
     load_sef_project_plan_timeline_payload,
 )
+from extensions.twoa_programme.github_pages_nav import (  # noqa: E402
+    programme_report_breadcrumbs,
+    SEF_PROGRAMME_ID,
+    SEF_PROGRAMME_TITLE,
+)
 from scripts.sef.common import CONFIG_PATH  # noqa: E402
 
 
@@ -47,10 +52,18 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     generated = datetime.now(NZ_TZ).strftime("%d %b %Y %H:%M %Z")
+    publish_path = config.pages_publish_path.removeprefix("docs/")
+    breadcrumb = programme_report_breadcrumbs(
+        publish_path=publish_path,
+        programme_id=SEF_PROGRAMME_ID,
+        programme_title=SEF_PROGRAMME_TITLE,
+        report_title=config.page_title,
+    )
     html_doc = build_sef_project_plan_report_html(
         payload,
         generated_on=generated,
         page_title=config.page_title,
+        breadcrumb_nav=breadcrumb,
     )
 
     out_file = args.output or config.html_path(_REPO_ROOT)

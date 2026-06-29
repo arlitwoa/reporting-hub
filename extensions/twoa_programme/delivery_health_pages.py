@@ -14,6 +14,8 @@ from artifact.delivery_health.gateway import JiraGateway
 
 from extensions.twoa_programme.quarterly_reporting import GitHubPagesPublish
 
+from extensions.twoa_programme.github_pages_nav import BREADCRUMB_CSS, epc_report_breadcrumbs
+
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _DEFAULT_HEALTH = _REPO_ROOT / "config" / "delivery-health.json"
 
@@ -101,6 +103,10 @@ def build_sprint_health_landing_html(
     site_note = ""
     if base:
         site_note = f'<p class="note">Stable URLs under <a href="{html.escape(base)}">{html.escape(base)}</a>.</p>'
+    breadcrumb = epc_report_breadcrumbs(
+        publish_path="sprint-health/index.html",
+        report_title="EPCE Sprint Health",
+    )
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -113,10 +119,12 @@ def build_sprint_health_landing_html(
     .report-subtitle {{ margin: 0 0 1rem; color: #5e6c84; font-size: 0.95rem; }}
     ul {{ line-height: 1.8; }}
     .note {{ color: #5e6c84; font-size: 0.9rem; }}
+    {BREADCRUMB_CSS}
   </style>
 </head>
 <body>
   <main>
+    {breadcrumb}
     <h1>EPCE Sprint Health</h1>
     <p class="report-subtitle">Generated {html.escape(generated_on)}</p>
     <p>Per-squad sprint scope, forecast, and delivery health. Each link is overwritten when the snapshot refreshes.</p>

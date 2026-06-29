@@ -18,6 +18,7 @@ from artifact.atlassian import AtlassianAdapter  # noqa: E402
 
 from extensions.twoa_programme.quarterly_reporting import NZ_TZ  # noqa: E402
 from extensions.twoa_programme.sef_project_plan_timeline import build_sef_project_plan_report_html  # noqa: E402
+from extensions.twoa_programme.github_pages_nav import programme_report_breadcrumbs, SEF_PROGRAMME_ID, SEF_PROGRAMME_TITLE  # noqa: E402
 from extensions.twoa_programme.sef_test_plan_manifest import (  # noqa: E402
     default_manifest_path,
     get_test_plan,
@@ -60,10 +61,18 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Skipping {slug}: no reportingHub.sitePath", file=sys.stderr)
             continue
         payload = fetch_test_plan_timeline_payload(adapter, plan)
+        page_title = str(payload.get("pageTitle") or plan.title)
+        breadcrumb = programme_report_breadcrumbs(
+            publish_path=plan.reporting_hub.site_path,
+            programme_id=SEF_PROGRAMME_ID,
+            programme_title=SEF_PROGRAMME_TITLE,
+            report_title=page_title,
+        )
         html_doc = build_sef_project_plan_report_html(
             payload,
             generated_on=generated,
-            page_title=str(payload.get("pageTitle") or plan.title),
+            page_title=page_title,
+            breadcrumb_nav=breadcrumb,
         )
         pages_path = _REPO_ROOT / "docs" / plan.reporting_hub.site_path
         if args.write:

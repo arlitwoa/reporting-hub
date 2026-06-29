@@ -40,6 +40,7 @@ from extensions.twoa_programme.quarterly_dashboard_markup import (
     _svg_embedded_title,
     _unpointed_cell,
 )
+from extensions.twoa_programme.github_pages_nav import BREADCRUMB_CSS
 from extensions.twoa_programme.quarterly_dashboard_svg_core import (
     _append_milestone_markers,
     _linear_goal_polyline_points,
@@ -1455,6 +1456,7 @@ def build_milestone_scope_report_html(
     quarter_start: date | str,
     quarter_end: date | str,
     chart_as_of: date | str | None = None,
+    breadcrumb_nav: str = "",
 ) -> str:
     from extensions.twoa_programme.milestone_report_scope import milestone_report_timeline_footnote
     from extensions.twoa_programme.milestone_timeline import (
@@ -1490,10 +1492,11 @@ def build_milestone_scope_report_html(
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>{html.escape(page_title)}</title>
-  <style>{REPORT_CSS}{MILESTONE_TIMELINE_EXTRA_CSS}{MILESTONE_BURN_EXTRA_CSS}</style>
+  <style>{REPORT_CSS}{BREADCRUMB_CSS}{MILESTONE_TIMELINE_EXTRA_CSS}{MILESTONE_BURN_EXTRA_CSS}</style>
 </head>
 <body>
   <main class="report">
+    {breadcrumb_nav}
     <header class="report-header">
       <h1>{html.escape(page_title)}</h1>
       <p class="report-meta">Generated {html.escape(generated_on)}</p>

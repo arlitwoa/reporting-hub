@@ -21,6 +21,7 @@ from extensions.twoa_programme.milestone_burn_up import (  # noqa: E402
     build_milestone_scope_report_html,
     load_deploy_burn_payload,
 )
+from extensions.twoa_programme.github_pages_nav import epc_report_breadcrumbs  # noqa: E402
 from extensions.twoa_programme.milestone_report_scope import (  # noqa: E402
     milestone_report_page_title,
     report_window_dates,
@@ -100,6 +101,10 @@ def main(argv: list[str] | None = None) -> int:
 
     generated = datetime.now(NZ_TZ).strftime("%d %b %Y %H:%M %Z")
     title = milestone_report_page_title(timeline_payload)
+    breadcrumb = epc_report_breadcrumbs(
+        publish_path="quarter/milestone.html",
+        report_title=title,
+    )
     html_doc = build_milestone_scope_report_html(
         timeline_payload,
         burn_payload,
@@ -110,6 +115,7 @@ def main(argv: list[str] | None = None) -> int:
         quarter_start=quarter_start,
         quarter_end=quarter_end,
         chart_as_of=chart_as_of,
+        breadcrumb_nav=breadcrumb,
     )
 
     out_file = args.output or out_path("milestone-scope-chart.html")

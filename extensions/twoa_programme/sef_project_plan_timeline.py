@@ -19,6 +19,7 @@ from extensions.twoa_programme.epic_timeline import (
 from extensions.twoa_programme.jira_search import search_all
 from extensions.twoa_programme.quarterly_dashboard_constants import ATL, JIRA_SERVER, SVG_FONT
 from extensions.twoa_programme.quarterly_dashboard_markup import REPORT_CSS, _svg_embedded_title
+from extensions.twoa_programme.github_pages_nav import BREADCRUMB_CSS
 from extensions.twoa_programme.quarterly_dashboard_svg_core import (
     QUARTERLY_REPORT_MAX_SVG_WIDTH,
     QUARTERLY_REPORT_MIN_PLOT_WIDTH,
@@ -618,6 +619,7 @@ def build_sef_project_plan_report_html(
     *,
     generated_on: str,
     page_title: str | None = None,
+    breadcrumb_nav: str = "",
 ) -> str:
     title = page_title or str(payload.get("pageTitle") or "SEF | Integrated Project Plan")
     chapter_count = sum(len(phase.get("chapters") or []) for phase in payload.get("phases") or [])
@@ -645,6 +647,7 @@ def build_sef_project_plan_report_html(
         "Each bar runs from start date through due date."
     )
     chart = sef_project_plan_timeline_svg(payload)
+    nav_block = f"\n    {breadcrumb_nav}" if breadcrumb_nav else ""
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -652,10 +655,10 @@ def build_sef_project_plan_report_html(
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>{html.escape(title)}</title>
-  <style>{REPORT_CSS}{SEF_PROJECT_PLAN_EXTRA_CSS}</style>
+  <style>{REPORT_CSS}{BREADCRUMB_CSS}{SEF_PROJECT_PLAN_EXTRA_CSS}</style>
 </head>
 <body>
-  <main class="report">
+  <main class="report">{nav_block}
     <header class="report-header">
       <h1>{html.escape(title)}</h1>
       <p class="report-meta">Generated {html.escape(generated_on)}</p>

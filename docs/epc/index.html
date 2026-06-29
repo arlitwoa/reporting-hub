@@ -5,6 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>EPC delivery | TWoA reporting hub</title>
   <style>
+.breadcrumb, .report-nav {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 16px;
+  color: #5e6c84;
+}
+.breadcrumb a, .report-nav a {
+  color: #0052cc;
+  text-decoration: none;
+  font-weight: 600;
+}
+.breadcrumb a:hover, .report-nav a:hover { text-decoration: underline; }
+.breadcrumb .sep, .report-nav .sep { margin: 0 0.35em; color: #97a0af; }
+.breadcrumb .current, .report-nav .current { color: #172b4d; font-weight: 600; }
+
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 2rem; color: #172b4d; max-width: 52rem; }
     h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
     h2 { font-size: 1.15rem; margin: 1.75rem 0 0.35rem; }
@@ -13,15 +28,12 @@
     ul { line-height: 1.8; padding-left: 1.25rem; margin: 0.35rem 0 0; }
     .desc, .note, .empty { color: #5e6c84; font-size: 0.95rem; }
     .programme-desc { color: #5e6c84; font-size: 0.95rem; margin: 0 0 0.25rem; }
-    .breadcrumb { font-size: 0.9rem; margin-bottom: 1.25rem; }
-    .breadcrumb a { color: #0052cc; text-decoration: none; }
-    .breadcrumb a:hover { text-decoration: underline; }
     footer { margin-top: 2rem; color: #5e6c84; font-size: 0.85rem; }
 </style>
 </head>
 <body>
   <main>
-    <p class="breadcrumb"><a href="../">← TWoA reporting hub</a></p>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../index.html">TWoA reporting hub</a> <span class="sep">›</span> <span class="current">EPC delivery</span></nav>
     <h1>EPC delivery</h1>
     <p class="programme-desc">EPCE programme dashboards, milestone scope, sprint health, and development-done risk.</p>
     <ul>
@@ -31,7 +43,7 @@
       <li><a href="../dev-done-risk/">Dev Done Risk</a><span class="desc"> — in-cycle engine development-done risk</span></li>
     </ul>
     <p class="note">Site home: <a href="https://arlitwoa.github.io/reporting-hub/">https://arlitwoa.github.io/reporting-hub/</a>.</p>
-    <footer>Generated 29 Jun 2026 12:14 NZST.</footer>
+    <footer>Generated 29 Jun 2026 12:53 NZST.</footer>
   </main>
 </body>
 </html>
