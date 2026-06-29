@@ -1,4 +1,5 @@
 {
+  "source": "C:\\development\\work-local\\twoa\\sef-dox\\_mpxj\\june-plan-export.txt",
   "phase1": {
     "phase1": "PDE-4072",
     "l1": {
@@ -19,5 +20,167 @@
       "deploy-plan": "PDE-4112",
       "hypercare-plan": "PDE-4113"
     }
+  },
+  "created": [],
+  "testPlans": {
+    "payroll-parallel": {
+      "title": "SEF | Test Plan | Payroll Parallel",
+      "confluencePageId": "1582760032",
+      "confluenceUrl": "https://twoa.atlassian.net/wiki/spaces/dtrain/pages/1582760032/SEF+Test+Plan+Payroll+Parallel",
+      "summaryPrefix": "Payroll Parallel |",
+      "streamParents": {
+        "acPayrollStream": "PDE-4091",
+        "testPayrollP2": "PDE-4102",
+        "testPayrollP3": "PDE-4097"
+      },
+      "p1RollupBlock": "PDE-4200",
+      "blocks": {
+        "details": {
+          "Planning workshop and tolerance baseline": "PDE-4198",
+          "NIP company build and full data load": "PDE-4199",
+          "P1 non-integrated parallel": "PDE-4200",
+          "SIT Datapay company build (P2 prep)": "PDE-4201",
+          "P2 integrated parallel run 1": "PDE-4202",
+          "P2 integrated parallel run 2": "PDE-4203",
+          "P3 integrated parallel run 3": "PDE-4204",
+          "Payroll go-live readiness sign-off": "PDE-4205"
+        },
+        "nipDetails": {
+          "P1 NIP | Payroll data mapping and migration": "PDE-4206",
+          "P1 NIP | Environment build and employee reconciliation": "PDE-4207",
+          "P1 NIP | Encryption keys and Datapay readiness": "PDE-4208",
+          "P1 NIP | TWoA data provision for parallel PE 04 May": "PDE-4209",
+          "P1 NIP | Datapay import (timesheet, leave, deductions, one-offs)": "PDE-4210",
+          "P1 NIP | Execute non-integrated parallel pay runs": "PDE-4211",
+          "P1 NIP | Payroll and leave variance investigation": "PDE-4212",
+          "P1 NIP | Variance review and parallel sign-off": "PDE-4213"
+        }
+      },
+      "reportingHub": {
+        "sitePath": "sef/plans/payroll-parallel.html",
+        "siteBase": "https://arlitwoa.github.io/reporting-hub"
+      },
+      "jiraPlanUrl": "https://twoa.atlassian.net/jira/plans/959/scenarios/959/timeline?vid=1053"
+    },
+    "testing-stream": {
+      "title": "SEF | Test Plan | Testing Stream",
+      "summaryPrefix": "Testing Stream |",
+      "streamParents": {
+        "Mobilisation": "PDE-4085",
+        "Architect and Configure": "PDE-4093",
+        "Test P2": "PDE-4104",
+        "Test P3": "PDE-4099"
+      },
+      "blocks": {
+        "details": {
+          "Mobilisation|1.3.2.7.1|Finalise approach and Strategy": "PDE-4214",
+          "Mobilisation|1.3.2.7.2|Kick off Workshop": "PDE-4215",
+          "Mobilisation|1.3.2.7.3|SME Capacity": "PDE-4216",
+          "Mobilisation|1.3.2.7.4|Week 7 - 22 weeks detailed project plan": "PDE-4217",
+          "Architect and Configure|1.3.3.6.1|Identify Testing Approach": "PDE-4218",
+          "Architect and Configure|1.3.3.6.10|Unit testing": "PDE-4219",
+          "Architect and Configure|1.3.3.6.11|E2E Testing Prep": "PDE-4220",
+          "Architect and Configure|1.3.3.6.12|SIT Testing": "PDE-4221",
+          "Architect and Configure|1.3.3.6.13|MILESTONE: SIGN OFF > Confirm Readiness to move to test": "PDE-4222",
+          "Architect and Configure|1.3.3.6.2|Document Testing Strategy/Plan": "PDE-4223",
+          "Architect and Configure|1.3.3.6.3|Conduct Testing Portal Walkthrough": "PDE-4224",
+          "Architect and Configure|1.3.3.6.4|Provide Testing Scenarios to Customer": "PDE-4225",
+          "Architect and Configure|1.3.3.6.5|Update Testing Scenarios": "PDE-4226",
+          "Architect and Configure|1.3.3.6.6|Confirm Customer Develops User Readiness Training Materials": "PDE-4227",
+          "Architect and Configure|1.3.3.6.7|Validate Testing Schedule": "PDE-4228",
+          "Architect and Configure|1.3.3.6.8|Testing Preparation Completed": "PDE-4229",
+          "Architect and Configure|1.3.3.6.9|Unit testing prep": "PDE-4230",
+          "Test P2|1.3.4.6.1|E2E System Testing": "PDE-4231",
+          "Test P2|1.3.4.6.2|Payroll Parallel Run 1": "PDE-4232",
+          "Test P2|1.3.4.6.3|Payroll Parallel Run 2": "PDE-4233",
+          "Test P2|1.3.4.6.4|UAT Prep": "PDE-4234",
+          "Test P3|1.3.4.13.1|UAT": "PDE-4235",
+          "Test P3|1.3.4.13.2|Payroll Parallel Run 3": "PDE-4236"
+        }
+      },
+      "reportingHub": {
+        "sitePath": "sef/plans/testing-stream.html",
+        "siteBase": "https://arlitwoa.github.io/reporting-hub"
+      },
+      "jiraPlanUrl": "https://twoa.atlassian.net/jira/plans/959/scenarios/959/timeline?vid=1053"
+    }
+  },
+  "payrollParallel": {
+    "confluencePageId": "1582760032",
+    "confluenceUrl": "https://twoa.atlassian.net/wiki/spaces/dtrain/pages/1582760032/SEF+Test+Plan+Payroll+Parallel",
+    "streamParents": {
+      "acPayrollStream": "PDE-4091",
+      "testPayrollP2": "PDE-4102",
+      "testPayrollP3": "PDE-4097"
+    },
+    "p1RollupBlock": "PDE-4200",
+    "details": {
+      "Planning workshop and tolerance baseline": "PDE-4198",
+      "NIP company build and full data load": "PDE-4199",
+      "P1 non-integrated parallel": "PDE-4200",
+      "SIT Datapay company build (P2 prep)": "PDE-4201",
+      "P2 integrated parallel run 1": "PDE-4202",
+      "P2 integrated parallel run 2": "PDE-4203",
+      "P3 integrated parallel run 3": "PDE-4204",
+      "Payroll go-live readiness sign-off": "PDE-4205"
+    },
+    "nipDetails": {
+      "P1 NIP | Payroll data mapping and migration": "PDE-4206",
+      "P1 NIP | Environment build and employee reconciliation": "PDE-4207",
+      "P1 NIP | Encryption keys and Datapay readiness": "PDE-4208",
+      "P1 NIP | TWoA data provision for parallel PE 04 May": "PDE-4209",
+      "P1 NIP | Datapay import (timesheet, leave, deductions, one-offs)": "PDE-4210",
+      "P1 NIP | Execute non-integrated parallel pay runs": "PDE-4211",
+      "P1 NIP | Payroll and leave variance investigation": "PDE-4212",
+      "P1 NIP | Variance review and parallel sign-off": "PDE-4213"
+    }
+  },
+  "testingStream": {
+    "testStrategyPageId": "1575583794",
+    "testStrategyUrl": "https://twoa.atlassian.net/wiki/spaces/dtrain/pages/1575583794/SEF+Test+Strategy",
+    "architectConfigureUrl": "https://twoa.atlassian.net/wiki/spaces/dtrain/pages/1572765745/SEF+Architect+and+Configure",
+    "streamParents": {
+      "Mobilisation": "PDE-4085",
+      "Architect and Configure": "PDE-4093",
+      "Test P2": "PDE-4104",
+      "Test P3": "PDE-4099"
+    },
+    "details": {
+      "Mobilisation|1.3.2.7.1|Finalise approach and Strategy": "PDE-4214",
+      "Mobilisation|1.3.2.7.2|Kick off Workshop": "PDE-4215",
+      "Mobilisation|1.3.2.7.3|SME Capacity": "PDE-4216",
+      "Mobilisation|1.3.2.7.4|Week 7 - 22 weeks detailed project plan": "PDE-4217",
+      "Architect and Configure|1.3.3.6.1|Identify Testing Approach": "PDE-4218",
+      "Architect and Configure|1.3.3.6.10|Unit testing": "PDE-4219",
+      "Architect and Configure|1.3.3.6.11|E2E Testing Prep": "PDE-4220",
+      "Architect and Configure|1.3.3.6.12|SIT Testing": "PDE-4221",
+      "Architect and Configure|1.3.3.6.13|MILESTONE: SIGN OFF > Confirm Readiness to move to test": "PDE-4222",
+      "Architect and Configure|1.3.3.6.2|Document Testing Strategy/Plan": "PDE-4223",
+      "Architect and Configure|1.3.3.6.3|Conduct Testing Portal Walkthrough": "PDE-4224",
+      "Architect and Configure|1.3.3.6.4|Provide Testing Scenarios to Customer": "PDE-4225",
+      "Architect and Configure|1.3.3.6.5|Update Testing Scenarios": "PDE-4226",
+      "Architect and Configure|1.3.3.6.6|Confirm Customer Develops User Readiness Training Materials": "PDE-4227",
+      "Architect and Configure|1.3.3.6.7|Validate Testing Schedule": "PDE-4228",
+      "Architect and Configure|1.3.3.6.8|Testing Preparation Completed": "PDE-4229",
+      "Architect and Configure|1.3.3.6.9|Unit testing prep": "PDE-4230",
+      "Test P2|1.3.4.6.1|E2E System Testing": "PDE-4231",
+      "Test P2|1.3.4.6.2|Payroll Parallel Run 1": "PDE-4232",
+      "Test P2|1.3.4.6.3|Payroll Parallel Run 2": "PDE-4233",
+      "Test P2|1.3.4.6.4|UAT Prep": "PDE-4234",
+      "Test P3|1.3.4.13.1|UAT": "PDE-4235",
+      "Test P3|1.3.4.13.2|Payroll Parallel Run 3": "PDE-4236"
+    }
+  },
+  "l0Renames": {
+    "PDE-4100": "HCM | P2",
+    "PDE-4101": "Integration Stream | P2",
+    "PDE-4103": "Data Migration Stream | P2",
+    "PDE-4104": "Testing Stream | P2",
+    "PDE-4105": "HCM | P3",
+    "PDE-4096": "Integration Stream | P3",
+    "PDE-4098": "Data Migration Stream | P3",
+    "PDE-4099": "Testing Stream | P3",
+    "PDE-4102": "Payroll | P2",
+    "PDE-4097": "Payroll | P3"
   }
 }

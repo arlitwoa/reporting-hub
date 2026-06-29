@@ -12,5 +12,6 @@ bash scripts/quarterly/refresh_dashboard_pages.sh "$@"
 "$PY" scripts/quarterly/milestone_scope_report.py --output docs/quarter/milestone.html
 "$PY" scripts/sef/fetch_sef_project_plan_timeline.py --write
 "$PY" scripts/sef/sef_project_plan_report.py --write
+"$PY" scripts/sef/publish_sef_test_plan_reports.py --write
 bash scripts/refresh_delivery_health_pages.sh "$@"
 "$PY" scripts/publish_github_pages_site_index.py
