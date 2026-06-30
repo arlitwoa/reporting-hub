@@ -17,6 +17,7 @@ from artifact.atlassian import AtlassianAdapter  # noqa: E402
 
 from extensions.twoa_programme.sef_project_plan_reporting import (  # noqa: E402
     load_sef_project_plan_reporting_config,
+    log_phase_hub_warnings,
 )
 from extensions.twoa_programme.sef_project_plan_timeline import (  # noqa: E402
     fetch_sef_project_plan_timeline,
@@ -32,6 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     config = load_sef_project_plan_reporting_config(CONFIG_PATH)
     adapter = AtlassianAdapter.from_profile("atlassian", os.environ["ARTIFACT_PROFILES_DIR"])
     payload = fetch_sef_project_plan_timeline(adapter, config)
+    log_phase_hub_warnings(list(payload.get("warnings") or []))
 
     text = json.dumps(payload, indent=2)
     print(text)

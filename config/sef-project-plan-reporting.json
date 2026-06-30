@@ -1,6 +1,8 @@
 {
   "projectKey": "PDE",
-  "phaseHubKeys": ["PDE-4072", "PDE-4108"],
+  "phaseHubDiscovery": {
+    "jql": "project = PDE AND issuetype = \"Block Level Two\" AND summary ~ \"SEF Phase\" ORDER BY rank ASC, key ASC"
+  },
   "manifestFile": "sef-project-plan-blocks.json",
   "chartWindow": {
     "start": "2026-06-01",
@@ -21,5 +23,5 @@
     "sitePath": "sef/project-plan.html",
     "pageTitle": "SEF | Integrated Project Plan"
   },
-  "notes": "Block hierarchy from scripts/sef/create_sef_project_plan_blocks.py (consumer). chartWindow is a fallback only; fetch computes the x-axis from all phase/chapter/package dates (Phase 2 through Dec 2027)."
+  "notes": "Phase hubs discovered via phaseHubDiscovery JQL (or saved filter). Children are fetched by parent + issuetype. phaseHubKeys in manifest are optional fallbacks for scripts only. chartWindow is a fallback only; fetch computes the x-axis from live dates."
 }
