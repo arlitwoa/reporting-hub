@@ -39,7 +39,7 @@ from extensions.twoa_programme.milestone_scope_chart import (
 from extensions.twoa_programme.sef_block_scope import build_block_scope_rollups
 from extensions.twoa_programme.sef_project_plan_reporting import (
     SefProjectPlanReportingConfig,
-    load_phase_hub_keys,
+    discover_phase_hub_issues,
     load_sef_project_plan_reporting_config,
 )
 
@@ -236,15 +236,15 @@ def fetch_sef_project_plan_timeline(
     fields = ["summary", "status", "issuetype", "created", "duedate", start_field]
     scope_fields = [*fields, "issuelinks"]
     story_points_field = field_aliases()["Story Points"]
-    hub_keys = load_phase_hub_keys(config)
+    hub_issues, warnings = discover_phase_hub_issues(adapter, config, fields=fields)
+    hub_keys = [str(issue.get("key") or "") for issue in hub_issues if issue.get("key")]
     phases: list[dict[str, Any]] = []
     block_issues: dict[str, dict[str, Any]] = {}
 
-    for hub_key in hub_keys:
-        hub = adapter.http.get_json(
-            f"/rest/api/3/issue/{hub_key}",
-            params={"fields": ",".join(fields)},
-        )
+    for hub in hub_issues:
+        hub_key = str(hub.get("key") or "")
+        if not hub_key:
+            continue
         hub_row = _issue_timeline_row(
             hub,
             fallback_start=fallback_start,
@@ -334,6 +334,7 @@ def fetch_sef_project_plan_timeline(
         "chartWindowStart": window_start.isoformat(),
         "chartWindowEnd": window_end.isoformat(),
         "phaseHubKeys": hub_keys,
+        "warnings": warnings,
         "phases": phases,
     }
 

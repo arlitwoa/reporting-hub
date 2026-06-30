@@ -2,10 +2,10 @@
   "projectKey": "PDE",
   "chartWindowStart": "2026-06-01",
   "chartWindowEnd": "2027-06-14",
-  "phaseHubKeys": ["PDE-4072", "PDE-4108"],
+  "phaseHubKeys": ["PDE-4249", "PDE-4250"],
   "phases": [
     {
-      "key": "PDE-4072",
+      "key": "PDE-4249",
       "summary": "SEF Phase 1 | HCM and Payroll",
       "status": "To Do",
       "startDate": "2026-06-01",
@@ -92,8 +92,8 @@
       ]
     },
     {
-      "key": "PDE-4108",
-      "summary": "SEF Phase 2 | Finance (planning placeholder)",
+      "key": "PDE-4250",
+      "summary": "SEF Phase 2 | Finance",
       "status": "To Do",
       "startDate": "2027-03-01",
       "endDate": "2027-12-03",
