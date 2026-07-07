@@ -1,6 +1,15 @@
 name: Refresh GitHub Pages reports
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - config/**
+      - extensions/**
+      - scripts/**
+      - pyproject.toml
+      - .github/workflows/github-pages-reports.yml
   schedule:
     # Top of each hour, Mon–Fri 07:00–19:00 NZ (Pacific/Auckland)
     - cron: "0 7-19 * * 1-5"
