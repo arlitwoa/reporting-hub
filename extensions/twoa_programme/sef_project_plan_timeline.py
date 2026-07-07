@@ -380,10 +380,8 @@ def _bar_tooltip(row: dict[str, Any]) -> str:
         lines.append(f"Status: {status}")
     scope = row.get("scopeRollup")
     if scope:
-        total_weight = float(scope.get("totalWeight") or 0)
-        story_points = float(scope.get("storyPoints") or 0)
-        unpointed = int(scope.get("unpointedCount") or 0)
-        lines.append(f"Scope: {total_weight:g} weight ({story_points:g} SP + {unpointed} unpointed)")
+        issue_count = int(scope.get("issueCount") or float(scope.get("totalWeight") or 0))
+        lines.append(f"Scope: {issue_count} issues (Scope links)")
     return "\n".join(lines)
 
 

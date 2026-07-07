@@ -59,9 +59,10 @@ class SefBlockScopeTests(unittest.TestCase):
             ],
             story_points_field="customfield_10026",
         )
-        self.assertEqual(rollup["storyPoints"], 7.0)
-        self.assertEqual(rollup["unpointedCount"], 1)
-        self.assertEqual(rollup["totalWeight"], 8.0)
+        self.assertEqual(rollup["issueCount"], 3)
+        self.assertEqual(rollup["storyPoints"], 3.0)
+        self.assertEqual(rollup["unpointedCount"], 0)
+        self.assertEqual(rollup["totalWeight"], 3.0)
         self.assertGreater(rollup["phases"]["Discover"], 0)
         self.assertGreater(rollup["phases"]["Deploy"], 0)
 
@@ -120,8 +121,9 @@ class SefBlockScopeTests(unittest.TestCase):
             mod.search_all = original
 
         self.assertIn("PDE-4085", rollups)
-        self.assertEqual(rollups["PDE-4085"]["storyPoints"], 5.0)
-        self.assertEqual(rollups["PDE-4085"]["totalWeight"], 5.0)
+        self.assertEqual(rollups["PDE-4085"]["issueCount"], 2)
+        self.assertEqual(rollups["PDE-4085"]["storyPoints"], 2.0)
+        self.assertEqual(rollups["PDE-4085"]["totalWeight"], 2.0)
 
 
 if __name__ == "__main__":

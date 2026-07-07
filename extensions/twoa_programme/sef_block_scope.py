@@ -1,4 +1,7 @@
-"""D-Train scope composition for SEF Block Plan Gantt bars (Scope issue link)."""
+"""D-Train scope composition for SEF Block Plan Gantt bars (Scope issue link).
+
+For SEF block planning, scope weight is issue-count based (not Story Points).
+"""
 
 from __future__ import annotations
 
@@ -39,7 +42,10 @@ def rollup_scope_issues(
     story_points_field: str,
     binding=None,
 ) -> dict[str, Any]:
-    """Single-bucket D-Train phase rollup for Story/Bug/Spike scope issues."""
+    """Single-bucket D-Train phase rollup for Story/Bug/Spike scope issues.
+
+    Each in-scope issue contributes weight 1 to its resolved D-Train phase.
+    """
     jira_binding = binding or load_jira_binding()
     bucket = _empty_scope_rollup_bucket()
     for issue in issues:
@@ -51,31 +57,25 @@ def rollup_scope_issues(
             continue
 
         issue_key = str(issue.get("key") or "")
-        sp_raw = fields.get(story_points_field)
-        if sp_raw is None or float(sp_raw) <= 0:
-            bucket["unpointedCount"] += 1
-            if issue_key:
-                bucket["unpointedIssueKeys"].append(issue_key)
-            continue
-
         status = str((fields.get("status") or {}).get("name") or "")
         phase = resolve_issue_dtrain_phase(status, jira_binding)
-        bucket["phases"][phase] += float(sp_raw)
+        bucket["phases"][phase] += 1.0
         if issue_key:
             bucket["phaseIssueKeys"][phase].append(issue_key)
 
     phase_keys = _chart_phase_keys()
-    sp_total = sum(float(bucket["phases"].get(phase) or 0) for phase in phase_keys)
-    unpointed = int(bucket["unpointedCount"] or 0)
+    issue_count = int(sum(float(bucket["phases"].get(phase) or 0) for phase in phase_keys))
     return {
         "phases": {phase: round(float(bucket["phases"].get(phase) or 0), 2) for phase in phase_keys},
         "phaseIssueKeys": {
             phase: _merge_sorted_issue_keys(bucket["phaseIssueKeys"].get(phase) or []) for phase in phase_keys
         },
-        "unpointedCount": unpointed,
-        "unpointedIssueKeys": _merge_sorted_issue_keys(bucket.get("unpointedIssueKeys") or []),
-        "storyPoints": round(sp_total, 2),
-        "totalWeight": round(sp_total + unpointed, 2),
+        "issueCount": issue_count,
+        # Legacy fields kept for compatibility with shared overlay helpers.
+        "unpointedCount": 0,
+        "unpointedIssueKeys": [],
+        "storyPoints": float(issue_count),
+        "totalWeight": float(issue_count),
     }
 
 
