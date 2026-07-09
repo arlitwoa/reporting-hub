@@ -23,5 +23,10 @@
     "sitePath": "sef/project-plan.html",
     "pageTitle": "SEF | Integrated Project Plan"
   },
-  "notes": "Phase hubs discovered via phaseHubDiscovery JQL (or saved filter). Children are fetched by parent + issuetype. phaseHubKeys in manifest are optional fallbacks for scripts only. chartWindow is a fallback only; fetch computes the x-axis from live dates."
+  "notes": "Phase hubs discovered via phaseHubDiscovery JQL (or saved filter). Children are fetched by parent + issuetype. phaseHubKeys in manifest are optional fallbacks for scripts only. chartWindow is a fallback only; fetch computes the x-axis from live dates.",
+  "scopeFilter": {
+    "filterId": "15891",
+    "filterName": "smart-sef-block-plan",
+    "note": "Jira saved filter controlling all Block issues in scope for the project plan chart. Add/remove issues from this filter to adjust report scope."
+  }
 }

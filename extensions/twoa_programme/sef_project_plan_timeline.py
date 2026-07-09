@@ -226,6 +226,101 @@ def _fetch_children(
     return search_all(adapter, jql, fields)
 
 
+def _resolve_scope_filter_jql(
+    adapter: "AtlassianAdapter",
+    config: "SefProjectPlanReportingConfig",
+) -> str | None:
+    """Return JQL for scope filter if configured, else None."""
+    if config.scope_filter_id:
+        from extensions.twoa_programme.delivery_milestones import fetch_jira_saved_filter
+        payload = fetch_jira_saved_filter(adapter, config.scope_filter_id)
+        jql = str(payload.get("jql") or "").strip()
+        return jql or f"filter = {config.scope_filter_id}"
+    if config.scope_filter_name:
+        return f"filter = {config.scope_filter_name}"
+    return None
+
+
+def _build_hierarchy_from_flat(
+    issues: list[dict[str, Any]],
+    config: "SefProjectPlanReportingConfig",
+    *,
+    fallback_start: "date",
+    fallback_end: "date",
+) -> tuple[list[dict[str, Any]], list[str], list[str]]:
+    """Build phase→chapter→package→detail hierarchy from a flat issue list.
+
+    Returns (phases, hub_keys, warnings).
+    """
+    block_types = {
+        config.chapter_issue_type,   # Block Level One
+        config.package_issue_type,   # Block Level Zero
+        config.detail_issue_type,    # Block Level Minus One
+    }
+    hub_type = "Block Level Two"
+    by_key: dict[str, dict[str, Any]] = {}
+    for issue in issues:
+        key = str(issue.get("key") or "")
+        if not key:
+            continue
+        itype = ((issue.get("fields") or {}).get("issuetype") or {}).get("name") or ""
+        if itype not in {hub_type, *block_types}:
+            continue  # skip milestone levels etc.
+        by_key[key] = issue
+
+    # Build parent→children mapping
+    children_of: dict[str, list[str]] = {}
+    for key, issue in by_key.items():
+        parent_key = ((issue.get("fields") or {}).get("parent") or {}).get("key") or ""
+        children_of.setdefault(parent_key, []).append(key)
+
+    # Hub issues are Block Level Two (parent not in our set)
+    hub_keys_found = [
+        key for key, issue in by_key.items()
+        if ((issue.get("fields") or {}).get("issuetype") or {}).get("name") == hub_type
+    ]
+    hub_keys_found.sort()
+    warnings: list[str] = []
+
+    def make_detail(key: str) -> dict[str, Any]:
+        return _issue_timeline_row(by_key[key], fallback_start=fallback_start, fallback_end=fallback_end)
+
+    def make_package(key: str) -> dict[str, Any]:
+        row = _issue_timeline_row(by_key[key], fallback_start=fallback_start, fallback_end=fallback_end)
+        detail_keys = sorted(children_of.get(key, []))
+        row["details"] = [
+            make_detail(dk)
+            for dk in detail_keys
+            if dk in by_key and ((by_key[dk].get("fields") or {}).get("issuetype") or {}).get("name") == config.detail_issue_type
+        ]
+        return row
+
+    def make_chapter(key: str) -> dict[str, Any]:
+        row = _issue_timeline_row(by_key[key], fallback_start=fallback_start, fallback_end=fallback_end)
+        pkg_keys = sorted(children_of.get(key, []))
+        row["packages"] = [
+            make_package(pk)
+            for pk in pkg_keys
+            if pk in by_key and ((by_key[pk].get("fields") or {}).get("issuetype") or {}).get("name") == config.package_issue_type
+        ]
+        return row
+
+    phases: list[dict[str, Any]] = []
+    for hub_key in hub_keys_found:
+        hub_row = _issue_timeline_row(by_key[hub_key], fallback_start=fallback_start, fallback_end=fallback_end)
+        chapter_keys = sorted(children_of.get(hub_key, []))
+        hub_row["chapters"] = [
+            make_chapter(ck)
+            for ck in chapter_keys
+            if ck in by_key and ((by_key[ck].get("fields") or {}).get("issuetype") or {}).get("name") == config.chapter_issue_type
+        ]
+        phases.append(hub_row)
+
+    if not phases:
+        warnings.append("Scope filter returned no Block Level Two (phase hub) issues.")
+    return phases, hub_keys_found, warnings
+
+
 def fetch_sef_project_plan_timeline(
     adapter: "AtlassianAdapter",
     config: SefProjectPlanReportingConfig,
@@ -236,73 +331,92 @@ def fetch_sef_project_plan_timeline(
     fields = ["summary", "status", "issuetype", "created", "duedate", start_field]
     scope_fields = [*fields, "issuelinks"]
     story_points_field = field_aliases()["Story Points"]
-    hub_issues, warnings = discover_phase_hub_issues(adapter, config, fields=fields)
-    hub_keys = [str(issue.get("key") or "") for issue in hub_issues if issue.get("key")]
-    phases: list[dict[str, Any]] = []
-    block_issues: dict[str, dict[str, Any]] = {}
 
-    for hub in hub_issues:
-        hub_key = str(hub.get("key") or "")
-        if not hub_key:
-            continue
-        hub_row = _issue_timeline_row(
-            hub,
+    scope_filter_jql = _resolve_scope_filter_jql(adapter, config)
+    if scope_filter_jql:
+        # Single flat fetch from Jira filter — hierarchy built from parent fields.
+        filter_fields = [*scope_fields, "parent"]
+        all_issues = search_all(adapter, scope_filter_jql, filter_fields)
+        phases, hub_keys, warnings = _build_hierarchy_from_flat(
+            all_issues,
+            config,
             fallback_start=fallback_start,
             fallback_end=fallback_end,
         )
-        chapters_raw = _fetch_children(
-            adapter,
-            parent_key=hub_key,
-            issue_type=config.chapter_issue_type,
-            fields=scope_fields,
-        )
-        chapters: list[dict[str, Any]] = []
-        for chapter_issue in chapters_raw:
-            chapter_key = str(chapter_issue["key"])
-            block_issues[chapter_key] = chapter_issue
-            chapter_row = _issue_timeline_row(
-                chapter_issue,
+        # Build block_issues dict for scope rollup
+        block_issues: dict[str, dict[str, Any]] = {
+            str(issue.get("key") or ""): issue
+            for issue in all_issues
+            if issue.get("key")
+        }
+    else:
+        hub_issues, warnings = discover_phase_hub_issues(adapter, config, fields=fields)
+        hub_keys = [str(issue.get("key") or "") for issue in hub_issues if issue.get("key")]
+        phases = []
+        block_issues = {}
+
+        for hub in hub_issues:
+            hub_key = str(hub.get("key") or "")
+            if not hub_key:
+                continue
+            hub_row = _issue_timeline_row(
+                hub,
                 fallback_start=fallback_start,
                 fallback_end=fallback_end,
             )
-            packages_raw = _fetch_children(
+            chapters_raw = _fetch_children(
                 adapter,
-                parent_key=chapter_key,
-                issue_type=config.package_issue_type,
+                parent_key=hub_key,
+                issue_type=config.chapter_issue_type,
                 fields=scope_fields,
             )
-            packages: list[dict[str, Any]] = []
-            for package_issue in packages_raw:
-                package_key = str(package_issue["key"])
-                block_issues[package_key] = package_issue
-                package_row = _issue_timeline_row(
-                    package_issue,
+            chapters: list[dict[str, Any]] = []
+            for chapter_issue in chapters_raw:
+                chapter_key = str(chapter_issue["key"])
+                block_issues[chapter_key] = chapter_issue
+                chapter_row = _issue_timeline_row(
+                    chapter_issue,
                     fallback_start=fallback_start,
                     fallback_end=fallback_end,
                 )
-                details_raw = _fetch_children(
+                packages_raw = _fetch_children(
                     adapter,
-                    parent_key=package_key,
-                    issue_type=config.detail_issue_type,
+                    parent_key=chapter_key,
+                    issue_type=config.package_issue_type,
                     fields=scope_fields,
                 )
-                detail_rows: list[dict[str, Any]] = []
-                for detail_issue in details_raw:
-                    detail_key = str(detail_issue["key"])
-                    block_issues[detail_key] = detail_issue
-                    detail_rows.append(
-                        _issue_timeline_row(
-                            detail_issue,
-                            fallback_start=fallback_start,
-                            fallback_end=fallback_end,
-                        )
+                packages: list[dict[str, Any]] = []
+                for package_issue in packages_raw:
+                    package_key = str(package_issue["key"])
+                    block_issues[package_key] = package_issue
+                    package_row = _issue_timeline_row(
+                        package_issue,
+                        fallback_start=fallback_start,
+                        fallback_end=fallback_end,
                     )
-                package_row["details"] = detail_rows
-                packages.append(package_row)
-            chapter_row["packages"] = packages
-            chapters.append(chapter_row)
-        hub_row["chapters"] = chapters
-        phases.append(hub_row)
+                    details_raw = _fetch_children(
+                        adapter,
+                        parent_key=package_key,
+                        issue_type=config.detail_issue_type,
+                        fields=scope_fields,
+                    )
+                    detail_rows: list[dict[str, Any]] = []
+                    for detail_issue in details_raw:
+                        detail_key = str(detail_issue["key"])
+                        block_issues[detail_key] = detail_issue
+                        detail_rows.append(
+                            _issue_timeline_row(
+                                detail_issue,
+                                fallback_start=fallback_start,
+                                fallback_end=fallback_end,
+                            )
+                        )
+                    package_row["details"] = detail_rows
+                    packages.append(package_row)
+                chapter_row["packages"] = packages
+                chapters.append(chapter_row)
+            hub_row["chapters"] = chapters
+            phases.append(hub_row)
 
     scope_rollups = build_block_scope_rollups(
         adapter,
@@ -762,10 +876,10 @@ def build_sef_project_plan_report_html(
   <style>{REPORT_CSS}{BREADCRUMB_CSS}{SEF_PROJECT_PLAN_EXTRA_CSS}</style>
 </head>
 <body>
-  <main class="report">{nav_block}
+  <main class="report-shell">{nav_block}
     <header class="report-header">
       <h1>{html.escape(title)}</h1>
-      <p class="report-meta">Generated {html.escape(generated_on)}</p>
+      <p class="report-subtitle">Generated {html.escape(generated_on)}</p>
     </header>
     <section class="chart-section">
       <h1>Project plan timeline</h1>

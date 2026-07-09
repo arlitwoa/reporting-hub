@@ -39,6 +39,8 @@ class SefProjectPlanReportingConfig:
     chapter_issue_type: str
     package_issue_type: str
     detail_issue_type: str
+    scope_filter_id: str | None
+    scope_filter_name: str | None
     timeline_artifact: str
     html_artifact: str
     pages_publish_path: str
@@ -91,6 +93,8 @@ def load_sef_project_plan_reporting_config(
         chapter_issue_type=str(issue_types.get("chapter") or "Block Level One"),
         package_issue_type=str(issue_types.get("package") or "Block Level Zero"),
         detail_issue_type=str(issue_types.get("detail") or "Block Level Minus One"),
+        scope_filter_id=str(raw.get("scopeFilter", {}).get("filterId") or "").strip() or None,
+        scope_filter_name=str(raw.get("scopeFilter", {}).get("filterName") or "").strip() or None,
         timeline_artifact=str(artifacts.get("timelineJson") or "sef-project-plan-timeline.json"),
         html_artifact=str(artifacts.get("htmlFile") or "sef-project-plan-chart.html"),
         pages_publish_path=str(pages.get("publishPath") or "docs/sef/project-plan.html"),

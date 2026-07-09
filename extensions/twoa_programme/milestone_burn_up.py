@@ -396,6 +396,14 @@ def _milestone_burn_meta_html(
     )
 
     detail_rows: list[str] = []
+    status = str(milestone.get("status") or "").strip()
+    if status:
+        detail_rows.append(_milestone_stat_row("Status", html.escape(status)))
+
+    due = str(milestone.get("dueDate") or "")[:10]
+    if due:
+        detail_rows.append(_milestone_stat_row("Due date", html.escape(due)))
+
     unpointed = _milestone_unpointed_count(milestone)
     if unpointed:
         total_weight = _milestone_total_weight(milestone, scoped_sp=scope)
@@ -405,7 +413,6 @@ def _milestone_burn_meta_html(
         )
 
     start = str(milestone.get("startDate") or "")[:10]
-    due = str(milestone.get("dueDate") or "")[:10]
     if start and due:
         window = f"{html.escape(start)} → {html.escape(due)}"
     elif start:
@@ -453,6 +460,7 @@ def _milestone_description_html(milestone: dict[str, Any]) -> str:
         body = f'<p class="milestone-description-body">{html.escape(description)}</p>'
     else:
         body = '<p class="milestone-description-body milestone-description-empty">No description in Jira.</p>'
+
     return (
         '<div class="milestone-description-card">'
         '<p class="milestone-description-label">Description</p>'
@@ -1032,6 +1040,7 @@ def build_milestone_burn_payload(
                 "startDate": milestone.get("startDate"),
                 "endDate": milestone.get("endDate"),
                 "dueDate": milestone.get("dueDate"),
+                "status": milestone.get("status") or "",
                 "scopeRollup": scope_rollup,
                 "scopeIssueKeys": sorted(scope_keys),
                 "creditedIssueKeys": credited_issue_keys,
