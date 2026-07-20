@@ -63,7 +63,7 @@
       "jiraPlanUrl": "https://twoa.atlassian.net/jira/plans/959/scenarios/959/timeline?vid=1053"
     },
     "testing-stream": {
-      "title": "SEF | Test Plan | Testing Stream",
+      "title": "SEF | Test Strategy | Testing Stream",
       "summaryPrefix": "Testing Stream |",
       "streamParents": {
         "Mobilisation": "PDE-4085",
@@ -99,10 +99,11 @@
         }
       },
       "reportingHub": {
-        "sitePath": "sef/plans/testing-stream.html",
+        "sitePath": "sef/plans/test-strategy.html",
         "siteBase": "https://arlitwoa.github.io/reporting-hub"
       },
-      "jiraPlanUrl": "https://twoa.atlassian.net/jira/plans/959/scenarios/959/timeline?vid=1053"
+      "jiraPlanUrl": "https://twoa.atlassian.net/jira/plans/959/scenarios/959/timeline?vid=1053",
+      "jiraFilterUrl": "https://twoa.atlassian.net/issues/?filter=16024"
     }
   },
   "payrollParallel": {

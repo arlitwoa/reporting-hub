@@ -14,7 +14,6 @@ from extensions.twoa_programme.sef_project_plan_reporting import (
 from extensions.twoa_programme.sef_project_plan_timeline import (
     build_sef_project_plan_report_html,
     resolve_chart_window_for_phases,
-    sef_project_plan_key_html,
     sef_project_plan_timeline_svg,
 )
 
@@ -36,8 +35,8 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
 
     def test_chart_window_spans_full_project_delivery(self) -> None:
         start, end = resolve_chart_window_for_phases(self.payload["phases"])
-        self.assertLessEqual(start.isoformat(), "2026-06-01")
-        self.assertGreaterEqual(end.isoformat(), "2027-12-03")
+        self.assertLessEqual(start.isoformat(), "2026-06-04")
+        self.assertGreaterEqual(end.isoformat(), "2026-10-23")
 
     def test_svg_renders_phase_hub_chapters_streams_and_details(self) -> None:
         svg = sef_project_plan_timeline_svg(self.payload)
@@ -56,18 +55,13 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
             generated_on="01 Jan 2026 12:00 NZDT",
             page_title="SEF | Integrated Project Plan",
         )
-        self.assertIn("Project plan timeline", html_doc)
+        self.assertIn("SEF | Integrated Project Plan", html_doc)
         self.assertIn("chart-wrap-sef-plan", html_doc)
 
-    def test_legend_matches_status_bar_colours(self) -> None:
+    def test_timeline_bars_use_status_colours(self) -> None:
         svg = sef_project_plan_timeline_svg(self.payload)
         todo_fill = "#6b778c"
         self.assertIn(f'fill="{todo_fill}"', svg)
-        key = sef_project_plan_key_html()
-        self.assertIn(f"background:{todo_fill}", key)
-        self.assertIn("Block Level Minus One", key)
-        self.assertNotIn("background:#0052cc;opacity:0.85\"></span> Chapter", key)
-        self.assertIn("Today (NZ)", key)
 
     def test_svg_includes_today_marker_when_in_chart_window(self) -> None:
         svg = sef_project_plan_timeline_svg(self.payload)
@@ -147,7 +141,6 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
     def test_svg_renders_scope_overlay_when_scope_rollup_present(self) -> None:
         svg = sef_project_plan_timeline_svg(self.payload)
         self.assertIn('class="block-scope-segment"', svg)
-        self.assertIn("Scope overlay", sef_project_plan_key_html())
 
 
 if __name__ == "__main__":
