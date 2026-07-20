@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -46,6 +47,18 @@ class TestPlanConfig:
     nip_details: dict[str, str] = field(default_factory=dict)
     reporting_hub: TestPlanReportingHub | None = None
     jira_plan_url: str = SEF_JIRA_PLAN_URL
+    jira_filter_url: str | None = None
+
+    def jira_filter_id(self) -> str | None:
+        if not self.jira_filter_url:
+            return None
+        value = str(self.jira_filter_url).strip()
+        if value.isdigit():
+            return value
+        match = re.search(r"(?:[?&]filter=)(\d+)", value)
+        if match:
+            return match.group(1)
+        return None
 
     def all_block_keys(self) -> list[str]:
         keys: list[str] = []
@@ -97,6 +110,7 @@ def _test_plan_from_raw(slug: str, raw: dict[str, Any]) -> TestPlanConfig:
         nip_details={str(k): str(v) for k, v in nip_details.items()},
         reporting_hub=_reporting_hub_from_raw(raw.get("reportingHub")),
         jira_plan_url=str(raw.get("jiraPlanUrl") or SEF_JIRA_PLAN_URL),
+        jira_filter_url=(str(raw["jiraFilterUrl"]) if raw.get("jiraFilterUrl") else None),
     )
 
 
@@ -115,11 +129,12 @@ def _legacy_test_plan(slug: str, manifest: dict[str, Any]) -> TestPlanConfig | N
             {"sitePath": "sef/plans/payroll-parallel.html"},
         )
     elif slug == "testing-stream":
-        merged.setdefault("title", "SEF | Test Plan | Testing Stream")
+        merged.setdefault("title", "SEF | Test Strategy | Testing Stream")
         merged.setdefault(
             "reportingHub",
-            {"sitePath": "sef/plans/testing-stream.html"},
+            {"sitePath": "sef/plans/test-strategy.html"},
         )
+        merged.setdefault("jiraFilterUrl", "https://twoa.atlassian.net/issues/?filter=16024")
     return _test_plan_from_raw(slug, merged)
 
 
