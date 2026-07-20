@@ -27,7 +27,6 @@ from extensions.twoa_programme.quarterly_dashboard_svg_core import (
     _chart_today_in_quarter,
     _svg_x_axis_labels,
     _svg_x_bottom_margin,
-    _today_legend_key_row,
 )
 from extensions.twoa_programme.field_maps import field_aliases
 from extensions.twoa_programme.milestone_scope_chart import (
@@ -51,6 +50,7 @@ STREAM_ROW_HEIGHT = 18
 DETAIL_ROW_HEIGHT = 16
 LABEL_WIDTH = 280
 RIGHT_PAD = 24
+MILESTONE_RIGHT_LABEL_PAD = 180
 CALENDAR_TOP = 40
 BLOCK_GAP = 12
 BLOCK_PAD_Y = 8
@@ -70,13 +70,63 @@ SUB_SCOPE_OVERLAY_OPACITY = 0.72
 DETAIL_SCOPE_OVERLAY_OPACITY = 0.62
 BLOCK_BORDER_WIDTH = 0.75
 PHASE_GAP = 20
-CHART_WINDOW_PADDING_DAYS = 14
+CHART_WINDOW_PADDING_DAYS = 0
+MILESTONE_TRIANGLE_FILL = "#de350b"
+DEPENDENCY_STROKE = MILESTONE_TRIANGLE_FILL
+DEPENDENCY_STROKE_WIDTH = 1.1
+DEPENDENCY_MIN_HORIZONTAL_RUN = 32.0
+SWIMLANE_FILLS = ["#e8f4fd", "#e8f8ee"]  # alternating light blue / light green
+
+# Map detail bar summary keywords to D-Train phase colours.
+# Test Plan = Design, Test Preparation = Develop, Test Execution = Deliver, Test Summary Report = Drive
+DETAIL_KEYWORD_FILLS: list[tuple[str, str]] = [
+    ("test summary report", "#00875a"),  # Drive
+    ("test memo", "#00875a"),             # Drive
+    ("config workbooks", "#00875a"),      # Drive
+    ("interface specs", "#00875a"),       # Drive
+    ("report specs", "#00875a"),          # Drive
+    ("test execution", "#5f6438"),        # Deliver
+    ("test preparation", "#7f582d"),      # Develop
+    ("test plan", "#9f4c22"),             # Design
+]
+
+TEST_CYCLE_BAR_FILL = "#1868db"  # Light blue for Test Cycle swimlane bars
+
+# Package-level bars with specific keyword overrides.
+PACKAGE_KEYWORD_FILLS: list[tuple[str, str]] = [
+    ("data migration", "#0747a6"),       # Dark blue
+    ("integration build", "#0747a6"),    # Dark blue
+]
+
+
+def _package_keyword_fill(summary: str) -> str | None:
+    """Return a colour override for a known package type, or None to use default."""
+    lower = summary.strip().lower()
+    for keyword, color in PACKAGE_KEYWORD_FILLS:
+        if keyword in lower:
+            return color
+    return None
+
+
+def _detail_keyword_fill(summary: str) -> str | None:
+    """Return a D-Train phase fill for a known detail type, or None to use default."""
+    lower = summary.strip().lower()
+    for keyword, color in DETAIL_KEYWORD_FILLS:
+        if keyword in lower:
+            return color
+    return None
 
 SEF_PROJECT_PLAN_EXTRA_CSS = """
+.report-shell {
+    max-width: none;
+    width: min(100vw - 8px, 2200px);
+    padding: 16px 4px 24px;
+}
 .chart-wrap-sef-plan.chart-wrap-timeline {
-  max-height: none;
-  overflow-x: auto;
-  overflow-y: visible;
+    max-height: none;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: hidden;
 }
 .chart-wrap-sef-plan svg {
   display: block;
@@ -129,15 +179,38 @@ def resolve_chart_window_for_phases(
     padding_days: int = CHART_WINDOW_PADDING_DAYS,
 ) -> tuple[date, date]:
     """Span the x-axis from earliest start through latest end across all plan rows."""
-    starts: list[date] = []
-    ends: list[date] = []
+    all_starts: list[date] = []
+    all_ends: list[date] = []
+    actionable_starts: list[date] = []
+    actionable_ends: list[date] = []
+
+    for phase in phases:
+        for chapter in phase.get("chapters") or []:
+            for package in chapter.get("packages") or []:
+                p_start = package.get("startDate")
+                p_end = package.get("endDate")
+                if p_start:
+                    actionable_starts.append(date.fromisoformat(str(p_start)[:10]))
+                if p_end:
+                    actionable_ends.append(date.fromisoformat(str(p_end)[:10]))
+                for detail in package.get("details") or []:
+                    d_start = detail.get("startDate")
+                    d_end = detail.get("endDate")
+                    if d_start:
+                        actionable_starts.append(date.fromisoformat(str(d_start)[:10]))
+                    if d_end:
+                        actionable_ends.append(date.fromisoformat(str(d_end)[:10]))
+
     for row in _iter_timeline_rows(phases):
         start_raw = row.get("startDate")
         end_raw = row.get("endDate")
         if start_raw:
-            starts.append(date.fromisoformat(str(start_raw)[:10]))
+            all_starts.append(date.fromisoformat(str(start_raw)[:10]))
         if end_raw:
-            ends.append(date.fromisoformat(str(end_raw)[:10]))
+            all_ends.append(date.fromisoformat(str(end_raw)[:10]))
+
+    starts = actionable_starts or all_starts
+    ends = actionable_ends or all_ends
     if not starts or not ends:
         return date.fromisoformat(fallback_start), date.fromisoformat(fallback_end)
     pad = timedelta(days=padding_days)
@@ -455,9 +528,23 @@ def fetch_sef_project_plan_timeline(
 
 def _truncate_label(text: str, max_chars: int = LABEL_MAX_CHARS) -> str:
     cleaned = str(text or "").strip()
-    if len(cleaned) <= max_chars:
-        return cleaned
-    return f"{cleaned[: max_chars - 1]}…"
+    return cleaned
+
+
+def _label_column_width(phases: list[dict[str, Any]]) -> float:
+    labels: list[str] = []
+    for phase in phases:
+        labels.append(str(phase.get("summary") or phase.get("key") or ""))
+        for chapter in phase.get("chapters") or []:
+            labels.append(str(chapter.get("summary") or chapter.get("key") or ""))
+            for package in chapter.get("packages") or []:
+                labels.append(str(package.get("summary") or package.get("key") or ""))
+                for detail in package.get("details") or []:
+                    labels.append(str(detail.get("summary") or detail.get("key") or ""))
+    longest = max((len(item.strip()) for item in labels if str(item).strip()), default=0)
+    # Approximate pixel width for UI font and leave padding so the longest heading is fully visible.
+    dynamic = 24 + (longest * 6.4)
+    return max(float(LABEL_WIDTH), dynamic)
 
 
 def _append_label_link(
@@ -484,6 +571,27 @@ def _append_label_link(
     parts.append("</a></g>")
 
 
+def _append_label_text(
+    parts: list[str],
+    *,
+    text: str,
+    x: float,
+    y_center: float,
+    tooltip: str,
+    font_size: int = 10,
+    font_weight: str = "600",
+    fill: str | None = None,
+) -> None:
+    text_fill = fill or ATL["ink"]
+    parts.append(f'<g clip-path="url(#sef-plan-label-col)">{_svg_embedded_title(tooltip)}')
+    parts.append(
+        f'<text x="{x:.1f}" y="{y_center:.1f}" text-anchor="start" dominant-baseline="middle" '
+        f'font-family="{SVG_FONT}" font-size="{font_size}" fill="{text_fill}" '
+        f'font-weight="{font_weight}">{html.escape(_truncate_label(text))}</text>'
+    )
+    parts.append("</g>")
+
+
 def _bar_tooltip(row: dict[str, Any]) -> str:
     lines = [
         f"{row.get('key')}: {row.get('summary')}",
@@ -497,6 +605,30 @@ def _bar_tooltip(row: dict[str, Any]) -> str:
         issue_count = int(scope.get("issueCount") or float(scope.get("totalWeight") or 0))
         lines.append(f"Scope: {issue_count} issues (Scope links)")
     return "\n".join(lines)
+
+
+def _is_milestone_row(row: dict[str, Any]) -> bool:
+    if bool(row.get("isMeetingGate")):
+        return True
+    issue_type = str(row.get("issueType") or "").strip().lower()
+    if "milestone" in issue_type:
+        return True
+    summary = str(row.get("summary") or "").upper()
+    return "MILESTONE" in summary
+
+
+def _milestone_icon_url(row: dict[str, Any]) -> str:
+    """Return an absolute Jira icon URL for Meeting Gate milestones, if available."""
+    if not bool(row.get("isMeetingGate")):
+        return ""
+    raw = str(row.get("issueTypeIconUrl") or "").strip()
+    if not raw:
+        return ""
+    if raw.startswith("http://") or raw.startswith("https://"):
+        return raw
+    if raw.startswith("/"):
+        return f"{JIRA_SERVER}{raw}"
+    return f"{JIRA_SERVER}/{raw}"
 
 
 def _append_timeline_bar(
@@ -513,6 +645,30 @@ def _append_timeline_bar(
     scope_overlay_opacity: float = SCOPE_OVERLAY_OPACITY,
 ) -> None:
     parts.append(f'<g>{_svg_embedded_title(_bar_tooltip(row))}')
+    if _is_milestone_row(row):
+        cx = x1
+        icon_url = _milestone_icon_url(row)
+        if icon_url:
+            size = max(10.0, min(16.0, bar_h + 4.0))
+            y = bar_y + max((bar_h - size) / 2.0, 0.0)
+            parts.append(
+                f'<image href="{html.escape(icon_url)}" x="{cx - size / 2.0:.1f}" y="{y:.1f}" '
+                f'width="{size:.1f}" height="{size:.1f}" preserveAspectRatio="xMidYMid meet"/>'
+            )
+        else:
+            tri_h = max(8.0, min(14.0, bar_h + 4.0))
+            tri_w = tri_h
+            top = bar_y + max((bar_h - tri_h) / 2.0, 0.0)
+            points = (
+                f"{cx:.1f},{top:.1f} "
+                f"{cx - tri_w / 2.0:.1f},{top + tri_h:.1f} "
+                f"{cx + tri_w / 2.0:.1f},{top + tri_h:.1f}"
+            )
+            parts.append(
+                f'<polygon points="{points}" fill="{MILESTONE_TRIANGLE_FILL}" opacity="0.95"/>'
+            )
+        parts.append("</g>")
+        return
     parts.append(
         f'<rect x="{x1:.1f}" y="{bar_y:.1f}" width="{bar_w:.1f}" '
         f'height="{bar_h:.1f}" rx="{rx}" fill="{fill}" opacity="{opacity}"/>'
@@ -535,6 +691,97 @@ def _append_timeline_bar(
     parts.append("</g>")
 
 
+def _iter_milestone_dependency_edges(phases: list[dict[str, Any]]) -> list[tuple[str, str]]:
+    rows_by_key: dict[str, dict[str, Any]] = {}
+    edges: list[tuple[str, str]] = []
+
+    for row in _iter_timeline_rows(phases):
+        key = str(row.get("key") or "").strip()
+        if key:
+            rows_by_key[key] = row
+
+    for row in rows_by_key.values():
+        blocked_key = str(row.get("key") or "").strip()
+        if not blocked_key:
+            continue
+        for blocker in row.get("blockedByKeys") or []:
+            blocker_key = str(blocker or "").strip()
+            if blocker_key and blocker_key != blocked_key:
+                blocker_row = rows_by_key.get(blocker_key)
+                blocked_row = rows_by_key.get(blocked_key)
+                if _is_milestone_row(blocked_row or {}) or _is_milestone_row(blocker_row or {}):
+                    edges.append((blocker_key, blocked_key))
+
+    return list(dict.fromkeys(edges))
+
+
+def _append_dependency_connectors(
+    parts: list[str],
+    *,
+    edges: list[tuple[str, str]],
+    row_positions: dict[str, tuple[float, float, float]],
+) -> None:
+    def _clamp(value: float, low: float, high: float) -> float:
+        return max(low, min(high, value))
+
+    for blocker_key, blocked_key in edges:
+        blocker = row_positions.get(blocker_key)
+        blocked = row_positions.get(blocked_key)
+        if not blocker or not blocked:
+            continue
+        blocker_start, blocker_y, blocker_end = blocker
+        blocked_start, blocked_y, _blocked_end = blocked
+
+        blocker_is_milestone = abs(blocker_end - blocker_start) < 0.1
+        sx = blocker_start if blocker_is_milestone else blocker_end
+        ex = blocked_start
+        sy = blocker_y
+        ey = blocked_y
+
+        dx = ex - sx
+        dy = ey - sy
+        direction = 1.0 if dx >= 0 else -1.0
+        abs_dx = max(6.0, abs(dx))
+        # Horizontal runway before/after the curve: fixed minimum travel for visual clarity.
+        lead_mag = _clamp(abs_dx * 0.28, DEPENDENCY_MIN_HORIZONTAL_RUN, 64.0)
+        lead = lead_mag * direction
+        run_start_x = sx + lead
+        run_end_x = ex - lead
+
+        # Match sketch intent: horizontal exit -> one easing curve -> straight diagonal -> horizontal entry.
+        span = abs(run_end_x - run_start_x)
+        tension = _clamp((span * 0.24) + 8.0, 10.0, 30.0)
+
+        join_t = 0.30
+        join_x = run_start_x + ((run_end_x - run_start_x) * join_t)
+        join_y = sy + (dy * join_t)
+
+        # Make the curve land with a tangent aligned to the straight middle segment.
+        seg_dx = run_end_x - join_x
+        seg_dy = ey - join_y
+        c1x = run_start_x + (direction * tension)
+        c1y = sy
+        c2x = join_x - (seg_dx * 0.35)
+        c2y = join_y - (seg_dy * 0.35)
+
+        path_d = (
+            f"M {sx:.1f} {sy:.1f} "
+            f"L {run_start_x:.1f} {sy:.1f} "
+            f"C {c1x:.1f} {c1y:.1f}, {c2x:.1f} {c2y:.1f}, {join_x:.1f} {join_y:.1f} "
+            f"L {run_end_x:.1f} {ey:.1f} "
+            f"L {ex:.1f} {ey:.1f}"
+        )
+        tooltip = f"Dependency: {blocker_key} blocks {blocked_key}"
+        parts.append(f'<g>{_svg_embedded_title(tooltip)}')
+        parts.append(
+            f'<path d="{path_d}" '
+            f'stroke="{DEPENDENCY_STROKE}" stroke-width="{DEPENDENCY_STROKE_WIDTH}" '
+            f'stroke-linecap="round" stroke-linejoin="round" '
+            f'fill="none" marker-end="url(#dep-arrow)"/>'
+        )
+        parts.append("</g>")
+
+
 def _package_block_height(package: dict[str, Any]) -> int:
     details = package.get("details") or []
     return STREAM_ROW_HEIGHT + len(details) * DETAIL_ROW_HEIGHT
@@ -554,7 +801,8 @@ def _plot_height(phases: list[dict[str, Any]]) -> int:
         if index > 0:
             total += PHASE_GAP
         total += PHASE_ROW_HEIGHT
-        for chapter_index, chapter in enumerate(phase.get("chapters") or []):
+        chapters = phase.get("chapters") or []
+        for chapter_index, chapter in enumerate(chapters):
             if chapter_index > 0:
                 total += BLOCK_GAP
             total += _chapter_block_height(chapter)
@@ -578,17 +826,24 @@ def sef_project_plan_timeline_svg(
     x_min, x_max = _payload_chart_window(payload)
     span_days = max(1, (x_max - x_min).days)
     plot_h = _plot_height(phases)
-    plot_top = CALENDAR_TOP
+    MILESTONE_LABEL_ZONE = 80   # px above plot for stacked milestone labels
+    plot_top = CALENDAR_TOP + MILESTONE_LABEL_ZONE
     plot_bottom = plot_top + plot_h
     svg_height = plot_bottom + _svg_x_bottom_margin()
     plot_w = _plot_width(span_days, px_per_day=px_per_day)
-    plot_left = LABEL_WIDTH
+    plot_left = _label_column_width(phases)
     plot_right = plot_left + plot_w
-    width = plot_right + RIGHT_PAD
+    width = plot_right + RIGHT_PAD + MILESTONE_RIGHT_LABEL_PAD
 
     def x_for(day: date) -> float:
         offset = max(0, min(span_days, (day - x_min).days))
         return plot_left + offset / span_days * plot_w
+
+    def _row_end_x(row: dict[str, Any], x1: float, bar_w: float) -> float:
+        return x1 if _is_milestone_row(row) else (x1 + bar_w)
+
+    row_positions: dict[str, tuple[float, float, float]] = {}
+    milestone_markers: list[tuple[float, str, date, bool]] = []  # (x, label, day, is_gate)
 
     parts: list[str] = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="{svg_height}" '
@@ -598,7 +853,10 @@ def sef_project_plan_timeline_svg(
         "<defs>"
         f'<clipPath id="sef-plan-label-col">'
         f'<rect x="0" y="{plot_top}" width="{plot_left - 8}" height="{plot_h}"/>'
-        f"</clipPath></defs>",
+        f"</clipPath>"
+        f'<marker id="dep-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">'
+        f'<path d="M 0 0 L 8 4 L 0 8 z" fill="{DEPENDENCY_STROKE}"/>'
+        f"</marker></defs>",
     ]
 
     parts.append(
@@ -609,6 +867,21 @@ def sef_project_plan_timeline_svg(
         f'<line x1="{plot_left}" y1="{plot_bottom}" x2="{plot_right}" y2="{plot_bottom}" '
         f'stroke="{ATL["line"]}" stroke-width="1"/>'
     )
+
+    # Dashed vertical lines at each month start.
+    _month = date(x_min.year, x_min.month, 1)
+    while _month <= x_max:
+        if _month >= x_min:
+            _mx = x_for(_month)
+            parts.append(
+                f'<line x1="{_mx:.1f}" y1="{plot_top}" x2="{_mx:.1f}" y2="{plot_bottom}" '
+                f'stroke="#555555" stroke-width="0.6" stroke-dasharray="4 3" opacity="0.5"/>'
+            )
+        if _month.month == 12:
+            _month = date(_month.year + 1, 1, 1)
+        else:
+            _month = date(_month.year, _month.month + 1, 1)
+
     _svg_x_axis_labels(
         parts,
         x_min=x_min,
@@ -627,23 +900,29 @@ def sef_project_plan_timeline_svg(
                 f'<rect class="sef-phase-divider" x="0" y="{y_cursor - PHASE_GAP / 2:.1f}" '
                 f'width="{plot_right:.1f}" height="{PHASE_GAP:.1f}" />'
             )
+
         phase_label = str(phase.get("summary") or phase.get("key") or "")
         phase_key = str(phase.get("key") or "")
         phase_start = date.fromisoformat(str(phase.get("startDate"))[:10])
         phase_end = date.fromisoformat(str(phase.get("endDate"))[:10])
-        phase_x1 = x_for(phase_start)
-        phase_x2 = x_for(phase_end)
-        phase_bar_w = max(phase_x2 - phase_x1, 2.0)
-        phase_row_cy = y_cursor + PHASE_ROW_HEIGHT / 2
-        phase_bar_y = y_cursor + (PHASE_ROW_HEIGHT - PHASE_BAR_HEIGHT) / 2
-        phase_fill = epic_bar_fill(str(phase.get("status") or ""))
-        parts.append(f'<g>{_svg_embedded_title(_bar_tooltip(phase))}')
-        parts.append(
-            f'<rect x="{phase_x1:.1f}" y="{phase_bar_y:.1f}" width="{phase_bar_w:.1f}" '
-            f'height="{PHASE_BAR_HEIGHT:.1f}" rx="2" fill="{phase_fill}" opacity="{BAR_OPACITY}"/>'
-        )
-        parts.append("</g>")
+
         if phase_key:
+            phase_start = date.fromisoformat(str(phase.get("startDate"))[:10])
+            phase_end = date.fromisoformat(str(phase.get("endDate"))[:10])
+            phase_x1 = x_for(phase_start)
+            phase_x2 = x_for(phase_end)
+            phase_bar_w = max(phase_x2 - phase_x1, 2.0)
+            phase_row_cy = y_cursor + PHASE_ROW_HEIGHT / 2
+            phase_bar_y = y_cursor + (PHASE_ROW_HEIGHT - PHASE_BAR_HEIGHT) / 2
+            phase_fill = epic_bar_fill(str(phase.get("status") or ""))
+
+            parts.append(f'<g>{_svg_embedded_title(_bar_tooltip(phase))}')
+            parts.append(
+                f'<rect x="{phase_x1:.1f}" y="{phase_bar_y:.1f}" width="{phase_bar_w:.1f}" '
+                f'height="{PHASE_BAR_HEIGHT:.1f}" rx="2" fill="{phase_fill}" opacity="{BAR_OPACITY}"/>'
+            )
+            parts.append("</g>")
+            row_positions[phase_key] = (phase_x1, phase_row_cy, _row_end_x(phase, phase_x1, phase_bar_w))
             _append_label_link(
                 parts,
                 text=phase_label,
@@ -654,9 +933,10 @@ def sef_project_plan_timeline_svg(
                 font_size=11,
                 font_weight="700",
             )
-        y_cursor += PHASE_ROW_HEIGHT
+            y_cursor += PHASE_ROW_HEIGHT
 
-        for chapter_index, chapter in enumerate(phase.get("chapters") or []):
+        chapters = phase.get("chapters") or []
+        for chapter_index, chapter in enumerate(chapters):
             if chapter_index > 0:
                 y_cursor += BLOCK_GAP
             block_h = _chapter_block_height(chapter)
@@ -678,32 +958,53 @@ def sef_project_plan_timeline_svg(
             fill = epic_bar_fill(str(chapter.get("status") or ""))
             key = str(chapter.get("key") or "")
             summary = str(chapter.get("summary") or key)
-            label = summary
 
-            _append_timeline_bar(
-                parts,
-                row=chapter,
-                x1=x1,
-                bar_y=bar_y,
-                bar_w=bar_w,
-                bar_h=CHAPTER_BAR_HEIGHT,
-                fill=fill,
-                opacity=BAR_OPACITY,
-                scope_overlay_opacity=SCOPE_OVERLAY_OPACITY,
+            same_window_as_phase = (
+                str(chapter.get("startDate") or "")[:10] == phase_start.isoformat()
+                and str(chapter.get("endDate") or "")[:10] == phase_end.isoformat()
             )
-
-            browse_url = f"{JIRA_SERVER}/browse/{html.escape(key)}"
-            _append_label_link(
-                parts,
-                text=label,
-                x=LABEL_PAD_X,
-                y_center=row_cy,
-                url=browse_url,
-                tooltip=_bar_tooltip(chapter),
-            )
+            draw_chapter_bar = bool(key) and not (len(chapters) == 1 and same_window_as_phase)
+            if draw_chapter_bar:
+                _append_timeline_bar(
+                    parts,
+                    row=chapter,
+                    x1=x1,
+                    bar_y=bar_y,
+                    bar_w=bar_w,
+                    bar_h=CHAPTER_BAR_HEIGHT,
+                    fill=fill,
+                    opacity=BAR_OPACITY,
+                    scope_overlay_opacity=SCOPE_OVERLAY_OPACITY,
+                )
+            if key:
+                row_positions[key] = (x1, row_cy, _row_end_x(chapter, x1, bar_w))
+                _append_label_link(
+                    parts,
+                    text=summary,
+                    x=LABEL_PAD_X,
+                    y_center=row_cy,
+                    url=f"{JIRA_SERVER}/browse/{html.escape(key)}",
+                    tooltip=_bar_tooltip(chapter),
+                )
+            else:
+                _append_label_text(
+                    parts,
+                    text=summary,
+                    x=LABEL_PAD_X,
+                    y_center=row_cy,
+                    tooltip=_bar_tooltip(chapter),
+                )
 
             sub_y = y0 + CHAPTER_ROW_HEIGHT
-            for package in chapter.get("packages") or []:
+            for pkg_index, package in enumerate(chapter.get("packages") or []):
+                # Alternating swimlane background for this package + its details.
+                pkg_lane_h = STREAM_ROW_HEIGHT + len(package.get("details") or []) * DETAIL_ROW_HEIGHT
+                lane_fill = SWIMLANE_FILLS[pkg_index % len(SWIMLANE_FILLS)]
+                parts.append(
+                    f'<rect x="0" y="{sub_y:.1f}" width="{plot_right:.1f}" '
+                    f'height="{pkg_lane_h:.1f}" fill="{lane_fill}" opacity="0.55"/>'
+                )
+
                 sub_cy = sub_y + STREAM_ROW_HEIGHT / 2
                 p_start = date.fromisoformat(str(package.get("startDate"))[:10])
                 p_end = date.fromisoformat(str(package.get("endDate"))[:10])
@@ -711,9 +1012,19 @@ def sef_project_plan_timeline_svg(
                 px2 = x_for(p_end)
                 p_bar_w = max(px2 - px1, 2.0)
                 p_bar_y = sub_y + (STREAM_ROW_HEIGHT - STREAM_BAR_HEIGHT) / 2
-                p_fill = epic_bar_fill(str(package.get("status") or ""))
                 p_key = str(package.get("key") or "")
                 p_summary = str(package.get("summary") or p_key)
+                p_issue_type = str((package.get("issueType") or "")).strip()
+                _pkg_kw_fill = _package_keyword_fill(p_summary)
+                if _pkg_kw_fill:
+                    p_fill = _pkg_kw_fill
+                    p_opacity = 0.85
+                elif p_issue_type == "Test Cycle":
+                    p_fill = TEST_CYCLE_BAR_FILL
+                    p_opacity = 0.65
+                else:
+                    p_fill = epic_bar_fill(str(package.get("status") or ""))
+                    p_opacity = SUB_BAR_OPACITY
                 _append_timeline_bar(
                     parts,
                     row=package,
@@ -722,10 +1033,14 @@ def sef_project_plan_timeline_svg(
                     bar_w=p_bar_w,
                     bar_h=STREAM_BAR_HEIGHT,
                     fill=p_fill,
-                    opacity=SUB_BAR_OPACITY,
+                    opacity=p_opacity,
                     rx=1,
                     scope_overlay_opacity=SUB_SCOPE_OVERLAY_OPACITY,
                 )
+                if p_key:
+                    row_positions[p_key] = (px1, sub_cy, _row_end_x(package, px1, p_bar_w))
+                if _is_milestone_row(package):
+                    milestone_markers.append((px1, p_summary, p_start, bool(package.get("isMeetingGate"))))
                 _append_label_link(
                     parts,
                     text=p_summary,
@@ -747,9 +1062,11 @@ def sef_project_plan_timeline_svg(
                     dx2 = x_for(d_end)
                     d_bar_w = max(dx2 - dx1, 2.0)
                     d_bar_y = sub_y + (DETAIL_ROW_HEIGHT - DETAIL_BAR_HEIGHT) / 2
-                    d_fill = epic_bar_fill(str(detail.get("status") or ""))
                     d_key = str(detail.get("key") or "")
                     d_summary = str(detail.get("summary") or d_key)
+                    _kw_fill = _detail_keyword_fill(d_summary)
+                    d_fill = _kw_fill or epic_bar_fill(str(detail.get("status") or ""))
+                    d_opacity = 0.72 if _kw_fill else DETAIL_BAR_OPACITY
                     _append_timeline_bar(
                         parts,
                         row=detail,
@@ -758,10 +1075,14 @@ def sef_project_plan_timeline_svg(
                         bar_w=d_bar_w,
                         bar_h=DETAIL_BAR_HEIGHT,
                         fill=d_fill,
-                        opacity=DETAIL_BAR_OPACITY,
+                        opacity=d_opacity,
                         rx=1,
                         scope_overlay_opacity=DETAIL_SCOPE_OVERLAY_OPACITY,
                     )
+                    if d_key:
+                        row_positions[d_key] = (dx1, detail_cy, _row_end_x(detail, dx1, d_bar_w))
+                    if _is_milestone_row(detail):
+                        milestone_markers.append((dx1, d_summary, d_start, bool(detail.get("isMeetingGate"))))
                     _append_label_link(
                         parts,
                         text=d_summary,
@@ -777,6 +1098,63 @@ def sef_project_plan_timeline_svg(
 
             y_cursor += block_h
 
+    # Milestone vertical gridlines and stacked labels.
+    if milestone_markers:
+        LABEL_FONT = 8
+        LABEL_LINE_H = 11
+        LABEL_ZONE_TOP = CALENDAR_TOP + 4
+        LABEL_BUCKET_PX = 32  # minimum px gap before stacking to next row
+
+        # Sort by x so we can assign stacking rows left-to-right.
+        sorted_markers = sorted(dict.fromkeys(  # dedupe same x+label+day+kind
+            (round(x, 1), lbl, day, is_gate) for x, lbl, day, is_gate in milestone_markers
+        ))
+        # Assign each marker a row index (0 = topmost) to avoid label overlap.
+        row_for: list[int] = []
+        row_max_x: list[float] = []  # rightmost x used per row so far
+        for mx, mlabel, mday, _is_gate in sorted_markers:
+            assigned = False
+            short_label = mlabel.split("|")[-1].strip() if "|" in mlabel else mlabel
+            short_label = short_label[:30]
+            label_text = f"{short_label} ({mday:%d/%m})"
+            for r_idx, rmax in enumerate(row_max_x):
+                if mx - rmax >= LABEL_BUCKET_PX:
+                    row_for.append(r_idx)
+                    row_max_x[r_idx] = mx + len(label_text) * 5
+                    assigned = True
+                    break
+            if not assigned:
+                row_for.append(len(row_max_x))
+                row_max_x.append(mx + len(label_text) * 5)
+
+        for i, (mx, mlabel, mday, is_gate) in enumerate(sorted_markers):
+            label_y = LABEL_ZONE_TOP + row_for[i] * LABEL_LINE_H
+            line_stroke = "#000000" if is_gate else "#ff6b6b"
+            line_opacity = "0.65" if is_gate else "0.7"
+            label_fill = "#000000" if is_gate else "#cc2200"
+            label_weight = "600" if is_gate else "500"
+            # Vertical dashed light-red line.
+            parts.append(
+                f'<line x1="{mx:.1f}" y1="{plot_top}" x2="{mx:.1f}" y2="{plot_bottom}" '
+                f'stroke="{line_stroke}" stroke-width="0.8" stroke-dasharray="4 3" opacity="{line_opacity}"/>'
+            )
+            # Small tick from label down to plot top.
+            parts.append(
+                f'<line x1="{mx:.1f}" y1="{label_y + LABEL_LINE_H:.1f}" '
+                f'x2="{mx:.1f}" y2="{plot_top}" '
+                f'stroke="{line_stroke}" stroke-width="0.6" opacity="0.4"/>'
+            )
+            # Label text — clip to plot area so it doesn't overflow left.
+            short = mlabel.split("|")[-1].strip() if "|" in mlabel else mlabel
+            short = short[:30]
+            label_text = f"{short} ({mday:%d/%m})"
+            parts.append(
+                f'<text x="{mx + 2:.1f}" y="{label_y + LABEL_FONT:.1f}" '
+                f'font-family="{SVG_FONT}" font-size="{LABEL_FONT}" '
+                f'fill="{label_fill}" font-weight="{label_weight}">'
+                f'{html.escape(label_text)}</text>'
+            )
+
     today = _chart_today_in_quarter(x_min, x_max)
     if today is not None:
         _append_today_marker(
@@ -789,47 +1167,6 @@ def sef_project_plan_timeline_svg(
 
     parts.append("</svg>")
     return "".join(parts)
-
-
-def sef_project_plan_key_html() -> str:
-    open_fill = EPIC_STATUS_FILL["open"]
-    done_fill = EPIC_STATUS_FILL["done"]
-    active_fill = EPIC_STATUS_FILL["active"]
-    return (
-        '<div class="chart-key">'
-        '<p class="chart-key-title"><strong>Key</strong></p>'
-        '<div class="chart-key-row">'
-        f'<span class="legend-swatch" style="background:{open_fill};opacity:{BAR_OPACITY}"></span> '
-        "Phase bar (Block Level Two): programme phase envelope (e.g. PDE-4072 Phase 1 HCM and Payroll)"
-        "</div>"
-        '<div class="chart-key-row">'
-        f'<span class="legend-swatch" style="background:{open_fill};opacity:{BAR_OPACITY}"></span> '
-        "Chapter bar (Block Level One): schedule window for the phase chapter"
-        "</div>"
-        '<div class="chart-key-row">'
-        f'<span class="legend-swatch" style="background:{open_fill};opacity:{SUB_BAR_OPACITY}"></span> '
-        "Stream bar (Block Level Zero): work package within the chapter (same colour, lighter)"
-        "</div>"
-        '<div class="chart-key-row">'
-        f'<span class="legend-swatch" style="background:{open_fill};opacity:{DETAIL_BAR_OPACITY}"></span> '
-        "Detail bar (Block Level Minus One): optional sub-item under a stream (same colour, lightest)"
-        "</div>"
-        '<div class="chart-key-row">'
-        "Bar colour reflects Jira status when no Scope link is set: "
-        f'<span class="legend-swatch" style="background:{done_fill};opacity:{BAR_OPACITY}"></span> Done '
-        f'<span class="legend-swatch" style="background:{open_fill};opacity:{BAR_OPACITY}"></span> To Do '
-        f'<span class="legend-swatch" style="background:{active_fill};opacity:{BAR_OPACITY}"></span> In progress'
-        "</div>"
-        '<div class="chart-key-row">'
-        "Scope overlay (Scope link in Jira): D-Train phases left to right — "
-        f'<span class="legend-swatch" style="background:{DTRAIN_PHASE_FILL["Drive"]}"></span> Drive '
-        "through "
-        f'<span class="legend-swatch" style="background:{DTRAIN_PHASE_FILL["Dream"]}"></span> Dream '
-        "(Story/Bug/Spike under linked Epics plus direct scope links; click segment for Jira filter)"
-        "</div>"
-        f'<div class="chart-key-row">{_today_legend_key_row()}</div>'
-        "</div>"
-    )
 
 
 def build_sef_project_plan_report_html(
@@ -882,10 +1219,7 @@ def build_sef_project_plan_report_html(
       <p class="report-subtitle">Generated {html.escape(generated_on)}</p>
     </header>
     <section class="chart-section">
-      <h1>Project plan timeline</h1>
-      <p class="footnote">{html.escape(footnote)}</p>
       <div class="chart-wrap chart-wrap-timeline chart-wrap-sef-plan">{chart}</div>
-      {sef_project_plan_key_html()}
     </section>
   </main>
 </body>

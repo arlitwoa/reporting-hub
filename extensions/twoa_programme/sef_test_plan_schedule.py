@@ -52,6 +52,32 @@ def _issue_bounds(fields: dict[str, Any]) -> tuple[date | None, date | None]:
     return start, due
 
 
+def _dependency_keys(fields: dict[str, Any]) -> tuple[list[str], list[str]]:
+    """Return (blocked_by_keys, blocks_keys) from Jira issue links."""
+    blocked_by: list[str] = []
+    blocks: list[str] = []
+    for link in fields.get("issuelinks") or []:
+        if not isinstance(link, dict):
+            continue
+        link_type = link.get("type") or {}
+        name = str(link_type.get("name") or "").lower()
+        inward = str(link_type.get("inward") or "").lower()
+        outward = str(link_type.get("outward") or "").lower()
+        in_key = str(((link.get("inwardIssue") or {}).get("key") or "")).strip()
+        out_key = str(((link.get("outwardIssue") or {}).get("key") or "")).strip()
+
+        is_block_type = "block" in name or "block" in inward or "block" in outward
+        if not is_block_type:
+            continue
+
+        if in_key:
+            blocked_by.append(in_key)
+        if out_key:
+            blocks.append(out_key)
+
+    return list(dict.fromkeys(blocked_by)), list(dict.fromkeys(blocks))
+
+
 def fetch_test_plan_issues(
     adapter: Any,
     plan: TestPlanConfig,
@@ -224,17 +250,65 @@ def fetch_test_plan_timeline_payload(
     """Build a phases payload for the SEF project plan Gantt renderer (reporting hub)."""
     keys = plan.all_block_keys()
     stream_keys = plan.stream_parent_keys()
-    all_keys = list(dict.fromkeys(stream_keys + keys))
-    if not all_keys:
-        return {"phases": [], "pageTitle": plan.title}
-
-    jql = f"key in ({', '.join(all_keys)}) ORDER BY rank ASC, key ASC"
-    issues = search_all(adapter, jql, ISSUE_FIELDS)
+    filter_id = plan.jira_filter_id()
+    if filter_id:
+        jql = f"filter = {filter_id} ORDER BY rank ASC, key ASC"
+        issues = search_all(adapter, jql, ISSUE_FIELDS)
+        keys = [str(issue.get("key") or "") for issue in issues if issue.get("key")]
+    else:
+        all_keys = list(dict.fromkeys(stream_keys + keys))
+        if not all_keys:
+            return {"phases": [], "pageTitle": plan.title}
+        jql = f"key in ({', '.join(all_keys)}) ORDER BY rank ASC, key ASC"
+        issues = search_all(adapter, jql, ISSUE_FIELDS)
     issues_by_key = {str(issue["key"]): issue for issue in issues}
+
+    # Meeting work items with Meeting Type = Gate should behave like milestones.
+    meeting_gate_keys: set[str] = set()
+    meeting_keys = [
+        str(issue.get("key") or "")
+        for issue in issues
+        if str((((issue.get("fields") or {}).get("issuetype") or {}).get("name") or "").strip().lower()) == "meeting"
+    ]
+    meeting_keys = [k for k in meeting_keys if k]
+    if meeting_keys:
+        try:
+            gate_meetings = search_all(
+                adapter,
+                f'key in ({", ".join(meeting_keys)}) AND "Meeting Type" = Gate',
+                ["key"],
+            )
+            meeting_gate_keys = {
+                str(issue.get("key") or "") for issue in gate_meetings if issue.get("key")
+            }
+        except Exception:
+            # If Meeting Type is unavailable in this Jira project context, continue without gating.
+            meeting_gate_keys = set()
+
+    parent_keys: list[str] = []
+    for issue in issues:
+        parent = ((issue.get("fields") or {}).get("parent") or {}).get("key")
+        if parent:
+            parent_keys.append(str(parent))
+    parent_key_set = set(parent_keys)
+    # In filter mode Jira can return both parent and child block levels; only render leaf keys as details.
+    detail_keys = [key for key in keys if key and key not in parent_key_set]
+    if filter_id:
+        missing_parent_keys = [key for key in dict.fromkeys(parent_keys) if key not in issues_by_key]
+        if missing_parent_keys:
+            parent_jql = f"key in ({', '.join(missing_parent_keys)})"
+            parent_issues = search_all(adapter, parent_jql, ISSUE_FIELDS)
+            for issue in parent_issues:
+                key = str(issue.get("key") or "")
+                if key:
+                    issues_by_key[key] = issue
+        stream_keys = list(dict.fromkeys(stream_keys + parent_keys))
+
+    rollup_keys = list(dict.fromkeys(stream_keys + detail_keys))
     story_points_field = field_aliases()["Story Points"]
     scope_rollups = build_block_scope_rollups(
         adapter,
-        block_issues={key: issues_by_key[key] for key in all_keys if key in issues_by_key},
+        block_issues={key: issues_by_key[key] for key in rollup_keys if key in issues_by_key},
         story_points_field=story_points_field,
     )
 
@@ -246,12 +320,21 @@ def fetch_test_plan_timeline_payload(
         start, end = _issue_bounds(fields_data)
         start = start or fallback_start
         end = end or fallback_end
+        issue_type_obj = fields_data.get("issuetype") or {}
+        issue_type = str((issue_type_obj.get("name") or "")).strip()
+        key = str(issue.get("key") or "")
+        blocked_by_keys, blocks_keys = _dependency_keys(fields_data)
         return {
-            "key": str(issue.get("key") or ""),
+            "key": key,
             "summary": str(fields_data.get("summary") or "").strip(),
+            "issueType": issue_type,
+            "issueTypeIconUrl": str(issue_type_obj.get("iconUrl") or "").strip(),
+            "isMeetingGate": key in meeting_gate_keys,
             "status": str((fields_data.get("status") or {}).get("name") or ""),
             "startDate": start.isoformat(),
             "endDate": end.isoformat(),
+            "blockedByKeys": blocked_by_keys,
+            "blocksKeys": blocks_keys,
             **(
                 {"scopeRollup": scope_rollups[str(issue.get("key") or "")]}
                 if str(issue.get("key") or "") in scope_rollups
@@ -259,9 +342,15 @@ def fetch_test_plan_timeline_payload(
             ),
         }
 
+    def row_sort_key(row: dict[str, Any]) -> tuple[date, date, str]:
+        start = _parse_day(str(row.get("startDate") or "")) or fallback_start
+        end = _parse_day(str(row.get("endDate") or "")) or start
+        label = str(row.get("summary") or row.get("key") or "")
+        return (start, end, label)
+
     packages: list[dict[str, Any]] = []
     parent_for_key: dict[str, str] = {}
-    for label, key in {**plan.details, **plan.nip_details}.items():
+    for key in detail_keys:
         issue = issues_by_key.get(key)
         if not issue:
             continue
@@ -271,7 +360,7 @@ def fetch_test_plan_timeline_payload(
 
     grouped: dict[str, list[str]] = {parent: [] for parent in stream_keys}
     grouped.setdefault("unassigned", [])
-    for key in keys:
+    for key in detail_keys:
         parent = parent_for_key.get(key)
         if parent and parent in grouped:
             grouped[parent].append(key)
@@ -280,11 +369,27 @@ def fetch_test_plan_timeline_payload(
         else:
             grouped["unassigned"].append(key)
 
+    def _is_container_type(issue: dict[str, Any]) -> bool:
+        itype = str(((issue.get("fields") or {}).get("issuetype") or {}).get("name") or "").strip().lower()
+        return itype in {"test strategy", "block level two"}
+
     for parent_key in stream_keys + [k for k in grouped if k not in stream_keys and k != "unassigned"]:
-        detail_keys = grouped.get(parent_key) or []
-        if not detail_keys and parent_key not in issues_by_key:
+        child_keys = grouped.get(parent_key) or []
+        if not child_keys and parent_key not in issues_by_key:
             continue
         package_issue = issues_by_key.get(parent_key)
+
+        # Container types (e.g. Test Strategy) are suppressed as bars;
+        # their children are promoted to sibling package rows.
+        if package_issue and _is_container_type(package_issue) and child_keys:
+            for child_key in child_keys:
+                if child_key not in issues_by_key:
+                    continue
+                child_row = timeline_row(issues_by_key[child_key])
+                child_row["details"] = []
+                packages.append(child_row)
+            continue
+
         if package_issue:
             package_row = timeline_row(package_issue)
         else:
@@ -295,7 +400,9 @@ def fetch_test_plan_timeline_payload(
                 "startDate": fallback_start.isoformat(),
                 "endDate": fallback_end.isoformat(),
             }
-        package_row["details"] = [timeline_row(issues_by_key[key]) for key in detail_keys if key in issues_by_key]
+        package_row["details"] = [timeline_row(issues_by_key[key]) for key in child_keys if key in issues_by_key]
+        package_row["details"].sort(key=row_sort_key)
+
         packages.append(package_row)
 
     unassigned = grouped.get("unassigned") or []
@@ -311,9 +418,12 @@ def fetch_test_plan_timeline_payload(
             }
         )
 
+    # Sort all packages by start date once all rows are assembled.
+    packages.sort(key=row_sort_key)
+
     chapter = {
         "key": "",
-        "summary": plan.title,
+        "summary": "",
         "status": "",
         "startDate": fallback_start.isoformat(),
         "endDate": fallback_end.isoformat(),
