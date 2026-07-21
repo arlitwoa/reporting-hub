@@ -7,17 +7,17 @@
     "startDate": "2026-04-01",
     "endDate": "2026-08-20",
     "initiativeKey": "EPCE-3897",
-    "currentQuarterFilter": "smart-current-quarter",
+    "currentQuarterFilter": "16090",
     "quarterlyReportingFilter": "smart-quarterly-reporting"
   },
   "scope": {
     "parentInitiative": "EPCE-3897",
-    "quarterFilter": "smart-current-quarter",
+    "quarterFilter": "16090",
     "unassignedFilter": "smart-quarterly-unassigned",
     "overlapPolicy": "priority_exclusive",
     "scopeIssueTypes": ["Story", "Bug", "Spike"],
     "burnIssueTypes": ["Story", "Bug"],
-    "notes": "Global scope = smart-current-quarter (EPCE-3897). All quarterly JQL and sizing exclude status Rejected. Lane JQL generated exclusively (L3→L2→L1→unassigned). Jira hygiene filter smart-quarterly-unassigned = board-inverse within global."
+    "notes": "Global scope = filter 16090 (EPCE-3897). All quarterly JQL and sizing exclude status Rejected. Lane JQL generated exclusively (L3→L2→L1→unassigned). Jira hygiene filter smart-quarterly-unassigned = board-inverse within global."
   },
   "quarterGoal": {
     "plannedStoryPoints": null,
@@ -118,5 +118,5 @@
     "outputDir": "output/quarterly",
     "notes": "goalTargetDate = when the linear goal line reaches 100% SP. Chart x-axis still runs to quarter.endDate. idealCurve linear_to_quarter_end ignores goalTargetDate."
   },
-  "notes": "Scaffolding for EPCE-6745 three-lane model. Scope parent EPCE-3897; global filter smart-current-quarter; headline burn on global scope."
+  "notes": "Scaffolding for EPCE-6745 three-lane model. Scope parent EPCE-3897; global filter 16090; headline burn on global scope."
 }
