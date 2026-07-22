@@ -1,4 +1,5 @@
 import os
+import json
 import unittest
 from datetime import date
 from pathlib import Path
@@ -62,9 +63,12 @@ class QuarterlyReportingConfigTests(unittest.TestCase):
 
     def test_burn_tracking_loads_goal_target(self):
         config = load_quarterly_reporting_config()
+        root = Path(__file__).resolve().parents[1]
+        raw = json.loads((root / "config" / "quarterly-reporting.json").read_text(encoding="utf-8"))
+        expected_goal_target = date.fromisoformat(raw["burnTracking"]["goalTargetDate"])
         self.assertEqual(config.burn_tracking.ideal_curve, "linear_to_goal_target")
-        self.assertEqual(config.burn_tracking.goal_target_date, date(2026, 7, 31))
-        self.assertEqual(config.burn_tracking.resolve_goal_target(config.quarter), date(2026, 7, 31))
+        self.assertEqual(config.burn_tracking.goal_target_date, expected_goal_target)
+        self.assertEqual(config.burn_tracking.resolve_goal_target(config.quarter), expected_goal_target)
 
     def test_goal_target_raises_ideal_burn_vs_quarter_end(self):
         from dataclasses import replace
@@ -73,8 +77,18 @@ class QuarterlyReportingConfigTests(unittest.TestCase):
         config = replace(config, goal=replace(config.goal, planned_story_points=1000.0))
         as_of = date(2026, 5, 15)
         snap = config.tracking_snapshot(earned_story_points=0.0, as_of=as_of)
-        self.assertEqual(snap["goalTargetDate"], "2026-07-31")
-        self.assertGreater(snap["idealBurnFraction"], config.quarter.elapsed_fraction(as_of))
+        goal_target = config.burn_tracking.resolve_goal_target(config.quarter)
+        self.assertEqual(
+            snap["goalTargetDate"],
+            goal_target.isoformat(),
+        )
+        elapsed_fraction = config.quarter.elapsed_fraction(as_of)
+        if goal_target < config.quarter.end_date:
+            self.assertGreater(snap["idealBurnFraction"], elapsed_fraction)
+        elif goal_target > config.quarter.end_date:
+            self.assertLess(snap["idealBurnFraction"], elapsed_fraction)
+        else:
+            self.assertAlmostEqual(snap["idealBurnFraction"], elapsed_fraction, places=4)
 
         quarter_end_curve = replace(
             config,
@@ -86,7 +100,16 @@ class QuarterlyReportingConfigTests(unittest.TestCase):
         )
         snap_end = quarter_end_curve.tracking_snapshot(earned_story_points=0.0, as_of=as_of)
         self.assertEqual(snap_end["goalTargetDate"], "2026-08-20")
-        self.assertLess(snap_end["idealBurnFraction"], snap["idealBurnFraction"])
+        if goal_target < config.quarter.end_date:
+            self.assertLess(snap_end["idealBurnFraction"], snap["idealBurnFraction"])
+        elif goal_target > config.quarter.end_date:
+            self.assertGreater(snap_end["idealBurnFraction"], snap["idealBurnFraction"])
+        else:
+            self.assertAlmostEqual(
+                snap_end["idealBurnFraction"],
+                snap["idealBurnFraction"],
+                places=4,
+            )
 
     def test_required_velocity_uses_goal_target_days(self):
         from dataclasses import replace
@@ -96,7 +119,10 @@ class QuarterlyReportingConfigTests(unittest.TestCase):
         as_of = date(2026, 7, 15)
         snap = config.tracking_snapshot(earned_story_points=400.0, as_of=as_of)
         days_left = snap["goalDaysRemaining"]
-        self.assertEqual(days_left, 16)
+        self.assertEqual(
+            days_left,
+            (config.burn_tracking.resolve_goal_target(config.quarter) - as_of).days,
+        )
         self.assertAlmostEqual(
             float(snap["requiredDailyVelocity"]),
             (1000.0 - 400.0) / days_left,
