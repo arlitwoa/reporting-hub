@@ -113,7 +113,7 @@
   "burnTracking": {
     "earnedAt": "deploy_phase",
     "idealCurve": "linear_to_goal_target",
-    "goalTargetDate": "2026-07-31",
+    "goalTargetDate": "2026-09-30",
     "compareAgainst": "quarterGoal.plannedStoryPoints",
     "outputDir": "output/quarterly",
     "notes": "goalTargetDate = when the linear goal line reaches 100% SP. Chart x-axis still runs to quarter.endDate. idealCurve linear_to_quarter_end ignores goalTargetDate."
