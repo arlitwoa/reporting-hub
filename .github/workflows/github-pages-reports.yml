@@ -10,6 +10,16 @@ on:
       - scripts/**
       - pyproject.toml
       - .github/workflows/github-pages-reports.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - config/**
+      - extensions/**
+      - scripts/**
+      - tests/**
+      - pyproject.toml
+      - .github/workflows/github-pages-reports.yml
   schedule:
     # Top of each hour, Mon–Fri 07:00–19:00 NZ (Pacific/Auckland)
     - cron: "0 7-19 * * 1-5"
@@ -24,7 +34,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout reporting-hub
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install packages
+        env:
+          GH_TOKEN: ${{ secrets.ARTIFACT_CORE_PAT }}
+        run: |
+          gh release download v0.2.1 \
+            --repo barlconz/artifact \
+            --pattern "barlconz_artifact_core-0.2.1-py3-none-any.whl" \
+            --dir /tmp
+          pip install /tmp/barlconz_artifact_core-0.2.1-py3-none-any.whl
+          pip install -e . --no-deps
+
+      - name: Run unit tests
+        env:
+          ARTIFACT_PROGRAMME_REGISTRY: ${{ github.workspace }}/config/programme-registry.json
+          ARTIFACT_PROFILES_DIR: ${{ github.workspace }}/config/profiles
+          ARTIFACT_ROLE_REGISTRY: ${{ github.workspace }}/config/role-registry.json
+        run: python -m unittest discover -s tests -v
+
   refresh:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout reporting-hub
