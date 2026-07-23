@@ -3,6 +3,7 @@ import json
 import unittest
 from datetime import date
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from extensions.twoa_programme.quarterly_reporting import (
     aggregate_daily_burn,
@@ -216,6 +217,102 @@ class QuarterlyReportingConfigTests(unittest.TestCase):
             mock_dt.side_effect = lambda *a, **k: datetime(*a, **k)
             resolved = resolve_chart_as_of("2026-06-10", quarter_end="2026-08-20")
         self.assertEqual(resolved, date(2026, 6, 12))
+
+    def test_dynamic_dates_derive_from_milestone_timeline_artifact(self):
+        root = Path(__file__).resolve().parents[1]
+        source_cfg = json.loads(
+            (root / "config" / "quarterly-reporting.json").read_text(encoding="utf-8")
+        )
+        with TemporaryDirectory() as tmp:
+            tmp_root = Path(tmp)
+            cfg_dir = tmp_root / "config"
+            cfg_dir.mkdir(parents=True, exist_ok=True)
+            cfg_path = cfg_dir / "quarterly-reporting.json"
+            cfg_path.write_text(json.dumps(source_cfg), encoding="utf-8")
+
+            out_dir = tmp_root / "output" / "quarterly" / source_cfg["quarter"]["slug"]
+            out_dir.mkdir(parents=True, exist_ok=True)
+            timeline_payload = {
+                "milestones": [
+                    {"startDate": "2026-05-10", "dueDate": "2026-06-20"},
+                    {"created": "2026-05-01", "dueDate": "2026-07-15"},
+                ]
+            }
+            (out_dir / "milestone-timeline.json").write_text(
+                json.dumps(timeline_payload),
+                encoding="utf-8",
+            )
+
+            config = load_quarterly_reporting_config(
+                cfg_path,
+                dynamic_dates=True,
+                repo_root=tmp_root,
+            )
+
+        self.assertEqual(config.quarter.start_date, date(2026, 5, 1))
+        self.assertEqual(config.quarter.end_date, date(2026, 7, 15))
+        self.assertEqual(config.burn_tracking.goal_target_date, date(2026, 7, 15))
+
+    def test_dynamic_dates_fall_back_to_config_when_artifacts_missing(self):
+        root = Path(__file__).resolve().parents[1]
+        source_cfg = json.loads(
+            (root / "config" / "quarterly-reporting.json").read_text(encoding="utf-8")
+        )
+        with TemporaryDirectory() as tmp:
+            tmp_root = Path(tmp)
+            cfg_dir = tmp_root / "config"
+            cfg_dir.mkdir(parents=True, exist_ok=True)
+            cfg_path = cfg_dir / "quarterly-reporting.json"
+            cfg_path.write_text(json.dumps(source_cfg), encoding="utf-8")
+
+            config = load_quarterly_reporting_config(
+                cfg_path,
+                dynamic_dates=True,
+                repo_root=tmp_root,
+            )
+
+        self.assertEqual(config.quarter.start_date, date(2026, 4, 1))
+        self.assertEqual(config.quarter.end_date, date(2026, 8, 20))
+        self.assertEqual(config.burn_tracking.goal_target_date, date(2026, 9, 30))
+
+    def test_dynamic_dates_prefer_milestone_goal_target_date(self):
+        root = Path(__file__).resolve().parents[1]
+        source_cfg = json.loads(
+            (root / "config" / "quarterly-reporting.json").read_text(encoding="utf-8")
+        )
+        with TemporaryDirectory() as tmp:
+            tmp_root = Path(tmp)
+            cfg_dir = tmp_root / "config"
+            cfg_dir.mkdir(parents=True, exist_ok=True)
+            cfg_path = cfg_dir / "quarterly-reporting.json"
+            cfg_path.write_text(json.dumps(source_cfg), encoding="utf-8")
+
+            out_dir = tmp_root / "output" / "quarterly" / source_cfg["quarter"]["slug"]
+            out_dir.mkdir(parents=True, exist_ok=True)
+            timeline_payload = {
+                "milestones": [
+                    {
+                        "startDate": "2026-05-10",
+                        "dueDate": "2026-06-20",
+                        "goalTargetDate": "2026-07-25",
+                    },
+                    {"created": "2026-05-01", "dueDate": "2026-07-15"},
+                ]
+            }
+            (out_dir / "milestone-timeline.json").write_text(
+                json.dumps(timeline_payload),
+                encoding="utf-8",
+            )
+
+            config = load_quarterly_reporting_config(
+                cfg_path,
+                dynamic_dates=True,
+                repo_root=tmp_root,
+            )
+
+        self.assertEqual(config.quarter.start_date, date(2026, 5, 1))
+        self.assertEqual(config.quarter.end_date, date(2026, 7, 15))
+        self.assertEqual(config.burn_tracking.goal_target_date, date(2026, 7, 25))
 
 
 if __name__ == "__main__":

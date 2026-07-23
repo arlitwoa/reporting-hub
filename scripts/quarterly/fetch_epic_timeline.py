@@ -44,6 +44,10 @@ EPIC_FIELDS = [
 ]
 
 
+def _chunked(values: list[str], size: int) -> list[list[str]]:
+    return [values[index : index + size] for index in range(0, len(values), size)]
+
+
 def _issue_type_name(issue: dict) -> str:
     return ((issue.get("fields") or {}).get("issuetype") or {}).get("name") or ""
 
@@ -90,33 +94,46 @@ def fetch_epic_timeline(
     deploy_statuses: set[str],
     done_statuses: set[str],
 ) -> dict:
-    epic_jql = f"project = EPCE AND issuetype = Epic AND parent = {initiative_key} ORDER BY key ASC"
-    epics = _search_all(adapter, epic_jql, EPIC_FIELDS + [delivery_squad_field, change_types_field, platform_field])
-    epic_keys = [e["key"] for e in epics]
+    child_fields = [
+        "fixVersions",
+        "parent",
+        "issuetype",
+        "status",
+        story_points_field,
+        delivery_squad_field,
+        change_types_field,
+        platform_field,
+        "issuelinks",
+    ]
+    child_jql = f"{global_scope_jql(quarter_filter=quarter_filter)} AND parent is not EMPTY"
+    scoped_children = _search_all(adapter, child_jql, child_fields)
+
+    epic_keys = sorted(
+        {
+            str(((issue.get("fields") or {}).get("parent") or {}).get("key") or "").strip()
+            for issue in scoped_children
+            if ((issue.get("fields") or {}).get("parent") or {}).get("key")
+        }
+    )
+    epic_keys = [key for key in epic_keys if key]
+
+    epics: list[dict] = []
+    epic_fields = EPIC_FIELDS + [delivery_squad_field, change_types_field, platform_field]
+    for batch in _chunked(epic_keys, 100):
+        keys_csv = ", ".join(batch)
+        epic_jql = f"project = EPCE AND issuetype = Epic AND key in ({keys_csv}) ORDER BY key ASC"
+        epics.extend(_search_all(adapter, epic_jql, epic_fields))
+
     child_fix: dict[str, list[str]] = defaultdict(list)
     children_by_epic: dict[str, list[dict]] = defaultdict(list)
 
-    if epic_keys:
-        keys_csv = ", ".join(epic_keys)
-        child_jql = f"{global_scope_jql(quarter_filter=quarter_filter)} AND parent in ({keys_csv})"
-        child_fields = [
-            "fixVersions",
-            "parent",
-            "issuetype",
-            "status",
-            story_points_field,
-            delivery_squad_field,
-            change_types_field,
-            platform_field,
-            "issuelinks",
-        ]
-        for issue in _search_all(adapter, child_jql, child_fields):
-            parent = (issue.get("fields") or {}).get("parent") or {}
-            parent_key = parent.get("key")
-            if not parent_key:
-                continue
-            child_fix[parent_key].extend(_fix_version_names(issue.get("fields") or {}))
-            children_by_epic[parent_key].append(issue)
+    for issue in scoped_children:
+        parent = (issue.get("fields") or {}).get("parent") or {}
+        parent_key = parent.get("key")
+        if not parent_key:
+            continue
+        child_fix[parent_key].extend(_fix_version_names(issue.get("fields") or {}))
+        children_by_epic[parent_key].append(issue)
 
     rows: list[dict] = []
     for issue in epics:
@@ -200,6 +217,8 @@ def fetch_epic_timeline(
 
     return {
         "initiativeKey": initiative_key,
+        "quarterFilter": quarter_filter,
+        "source": "quarter_filter_epic_parents",
         "quarterStart": quarter_start.isoformat(),
         "quarterEnd": quarter_end.isoformat(),
         "lanePartition": "python_exclusive (same as Story Points Achieved by Lane)",

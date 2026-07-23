@@ -316,14 +316,42 @@ def build_dashboard_html(
         if global_burn_jql
         else _section_l2_html("Cumulative Deploy | Earned SP")
     )
+    epic_quarter_filter = str(
+        (epic_timeline.get("quarterFilter") if isinstance(epic_timeline, dict) else "")
+        or (burn.get("scope") or {}).get("quarterFilter")
+        or ""
+    ).strip()
+    epic_timeline_jql = (
+        f"filter = {epic_quarter_filter} AND parent is not EMPTY"
+        if epic_quarter_filter
+        else f'project = EPCE AND issuetype = Epic AND parent = {goal_initiative or "EPCE-3897"}'
+    )
     epic_section_title = _section_l2_link(
-        f'project = EPCE AND issuetype = Epic AND parent = {goal_initiative or "EPCE-3897"}',
+        epic_timeline_jql,
         "Epic Timeline",
     )
 
     goal_target_note = ""
     if status.get("goalTargetDate") and status.get("goalTargetDate") != status.get("quarterEnd"):
         goal_target_note = f" | Goal target {html.escape(str(status.get('goalTargetDate')))}"
+
+    parent_initiative_subtitle = (
+        f'Parent Initiative <a href="{JIRA_SERVER}/browse/{html.escape(initiative_key)}">'
+        f"{html.escape(initiative_key)}</a>"
+    )
+
+    update_guide_html = (
+        '<section class="report-card">'
+        '<h2 class="section-l2">How to update this report</h2>'
+        "<ol>"
+        '<li>Update the Jira saved filter '
+        '<a href="https://twoa.atlassian.net/issues/?filter=13880" target="_blank" rel="noopener">'
+        "smart-current-quarter</a>.</li>"
+        "<li>Dates are derived from returned Epic Start/Due dates.</li>"
+        "<li>Goal target uses the Initiative Goal Target date when present (otherwise latest due date).</li>"
+        "</ol>"
+        "</section>"
+    )
 
     return f"""<!doctype html>
 <html lang="en">
@@ -339,13 +367,14 @@ def build_dashboard_html(
     <header class="report-header">
       <h1>{html.escape(page_title)}</h1>
       <p class="report-subtitle">
-        Initiative <a href="{JIRA_SERVER}/browse/{html.escape(initiative_key)}">{html.escape(initiative_key)}</a>
+                {parent_initiative_subtitle}
         | {html.escape(status.get("quarterStart", ""))} - {html.escape(status.get("quarterEnd", ""))}{goal_target_note}
         | {html.escape(generated_on)}
       </p>
       <p>{_track_pill(status.get("onTrack"), goal_target=goal_target)}</p>
       <dl class="report-meta-grid">{meta_html}</dl>
     </header>
+        {update_guide_html}
     <section class="report-card">
       {chart_section_title}
       <div class="chart-wrap">{chart}</div>

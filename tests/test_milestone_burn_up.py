@@ -301,6 +301,11 @@ class MilestoneBurnUpTests(unittest.TestCase):
         )
         self.assertNotIn("Out-of-cycle / other release", html_doc)
         self.assertIn("In-cycle engine release", html_doc)
+        self.assertIn("How to update this report", html_doc)
+        self.assertIn("smart-milestone-report", html_doc)
+        self.assertIn("https://twoa.atlassian.net/issues/?filter=15858", html_doc)
+        self.assertIn("Report dates are derived from the Milestones returned by that filter", html_doc)
+        self.assertIn("credited from Deploy/Done status transitions", html_doc)
 
 
 if __name__ == "__main__":

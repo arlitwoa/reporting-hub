@@ -9,7 +9,8 @@ config in scripts/quarterly/ (consumer) and artifact.delivery_health (core, late
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+import os
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -423,10 +424,88 @@ def _parse_date(value: str) -> date:
     return date.fromisoformat(value)
 
 
+def _parse_optional_date(value: object) -> date | None:
+    if value is None:
+        return None
+    raw = str(value).strip()
+    if not raw:
+        return None
+    try:
+        return date.fromisoformat(raw[:10])
+    except ValueError:
+        return None
+
+
+def _truthy(value: str | None) -> bool:
+    if value is None:
+        return False
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _dynamic_reporting_window_from_artifacts(
+    config: QuarterlyReportingConfig,
+    *,
+    repo_root: Path,
+) -> tuple[date, date, date] | None:
+    output_dir = config.output_root(repo_root)
+    timeline_path = output_dir / "milestone-timeline.json"
+    milestones_path = output_dir / config.delivery_milestones.artifact_file
+
+    milestones: list[dict] = []
+    if timeline_path.is_file():
+        payload = json.loads(timeline_path.read_text(encoding="utf-8"))
+        milestones = payload.get("milestones") or []
+    elif milestones_path.is_file():
+        payload = json.loads(milestones_path.read_text(encoding="utf-8"))
+        milestones = payload.get("milestones") or []
+
+    if not milestones:
+        return None
+
+    start_candidates: list[date] = []
+    end_candidates: list[date] = []
+    due_candidates: list[date] = []
+
+    for row in milestones:
+        start = _parse_optional_date(row.get("startDate")) or _parse_optional_date(row.get("created"))
+        goal_target = (
+            _parse_optional_date(row.get("goalTargetDate"))
+            or _parse_optional_date(row.get("goalTarget"))
+            or _parse_optional_date(row.get("targetDate"))
+        )
+        due = _parse_optional_date(row.get("dueDate")) or _parse_optional_date(row.get("endDate"))
+        if start is not None:
+            start_candidates.append(start)
+        if goal_target is not None:
+            due_candidates.append(goal_target)
+        if due is not None:
+            if goal_target is None:
+                due_candidates.append(due)
+            end_candidates.append(due)
+        elif start is not None:
+            end_candidates.append(start)
+
+    if not end_candidates:
+        return None
+
+    start_date = min(start_candidates) if start_candidates else min(end_candidates)
+    end_date = max(end_candidates)
+    goal_target_date = max(due_candidates) if due_candidates else end_date
+    if end_date < start_date:
+        start_date, end_date = end_date, start_date
+    if goal_target_date < start_date:
+        goal_target_date = end_date
+    return start_date, end_date, goal_target_date
+
+
 def load_quarterly_reporting_config(
     path: Path | None = None,
+    *,
+    dynamic_dates: bool | None = None,
+    repo_root: Path | None = None,
 ) -> QuarterlyReportingConfig:
     config_file = path or _DEFAULT_CONFIG
+    root = repo_root or config_file.parent.parent
     payload = json.loads(config_file.read_text(encoding="utf-8"))
 
     quarter = payload["quarter"]
@@ -481,7 +560,7 @@ def load_quarterly_reporting_config(
     )
     lane_jql = planned_scope_jqls(quarter_filter=quarter_filter)
 
-    return QuarterlyReportingConfig(
+    config = QuarterlyReportingConfig(
         story_key=str(payload.get("storyKey", "EPCE-6745")),
         quarter=QuarterPeriod(
             slug=str(quarter["slug"]),
@@ -555,4 +634,28 @@ def load_quarterly_reporting_config(
         standup_primary_view=str(standup["primaryView"]),
         standup_throw_out_lanes=tuple(str(lane) for lane in standup["throwOutLanes"]),
         engine_board_id=int(standup["engineBoardId"]),
+    )
+
+    dynamic_enabled = dynamic_dates if dynamic_dates is not None else _truthy(
+        os.environ.get("ARTIFACT_DYNAMIC_DATES")
+    )
+    if not dynamic_enabled:
+        return config
+
+    dynamic_window = _dynamic_reporting_window_from_artifacts(config, repo_root=root)
+    if dynamic_window is None:
+        return config
+
+    start_date, end_date, goal_target_date = dynamic_window
+    return replace(
+        config,
+        quarter=replace(
+            config.quarter,
+            start_date=start_date,
+            end_date=end_date,
+        ),
+        burn_tracking=replace(
+            config.burn_tracking,
+            goal_target_date=goal_target_date,
+        ),
     )
