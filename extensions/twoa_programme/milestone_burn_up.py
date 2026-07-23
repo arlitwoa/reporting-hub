@@ -1495,6 +1495,20 @@ def build_milestone_scope_report_html(
         chart_as_of=chart_as_of,
     )
 
+    update_guide_html = (
+        '<section class="chart-section">'
+        "<h1>How to update this report</h1>"
+        "<ol>"
+        '<li>Update the Jira saved filter '
+        '<a href="https://twoa.atlassian.net/issues/?filter=15858" target="_blank" rel="noopener">'
+        "smart-milestone-report</a>.</li>"
+        "<li>Report dates are derived from the Milestones returned by that filter (Start/Due window).</li>"
+        "<li>Scope and burn-up are calculated from issues linked to those milestone Epics, with earned progress "
+        "credited from Deploy/Done status transitions.</li>"
+        "</ol>"
+        "</section>"
+    )
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1510,6 +1524,7 @@ def build_milestone_scope_report_html(
       <h1>{html.escape(page_title)}</h1>
       <p class="report-meta">Generated {html.escape(generated_on)}</p>
     </header>
+        {update_guide_html}
     <section class="chart-section">
       <h1>Milestone timeline</h1>
       <p class="footnote">{html.escape(timeline_footnote)}</p>

@@ -37,6 +37,8 @@ def main(argv: list[str] | None = None) -> int:
         dm,
         config.quarter,
     )
+    # Prefer the immutable filter ID so report scope survives filter renames.
+    filter_ref = str(dm.in_scope_filter_id or "").strip() or filter_name
     aliases = adapter._resolve_field_aliases()
     delivery_squad_field = aliases.get("Delivery Squad") or "customfield_11102"
     change_types_field = aliases.get("Change Types") or "customfield_10079"
@@ -51,7 +53,7 @@ def main(argv: list[str] | None = None) -> int:
         adapter,
         initiative_key=config.quarter.initiative_key,
         quarter_filter=config.scope.quarter_filter,
-        in_scope_filter=filter_name,
+        in_scope_filter=filter_ref,
         milestone_report_project=dm.milestone_report_project,
         delivery_squad_field=delivery_squad_field,
         change_types_field=change_types_field,

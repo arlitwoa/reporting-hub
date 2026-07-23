@@ -273,6 +273,15 @@ def _milestone_notes_field_id(adapter: AtlassianAdapter) -> str:
     return aliases.get("Notes") or "customfield_10475"
 
 
+def _milestone_goal_target_field_id(adapter: AtlassianAdapter) -> str | None:
+    aliases = adapter._resolve_field_aliases()
+    for name in ("Goal Target", "Goal target", "Target date", "Target Date"):
+        field_id = aliases.get(name)
+        if field_id:
+            return field_id
+    return None
+
+
 def fetch_milestone_timeline(
     adapter: AtlassianAdapter,
     *,
@@ -309,6 +318,7 @@ def fetch_milestone_timeline(
     hub_fields = hub.get("fields") or {}
     start_field = _milestone_start_field_id(adapter)
     notes_field = _milestone_notes_field_id(adapter)
+    goal_target_field = _milestone_goal_target_field_id(adapter)
     fields = [
         "summary",
         "description",
@@ -319,6 +329,8 @@ def fetch_milestone_timeline(
         start_field,
         notes_field,
     ]
+    if goal_target_field:
+        fields.append(goal_target_field)
     if quarter_filter:
         fields.append("issuelinks")
 
@@ -344,6 +356,7 @@ def fetch_milestone_timeline(
         created = (issue_fields.get("created") or "")[:10]
         due_raw = issue_fields.get("duedate")
         start_raw = issue_fields.get(start_field)
+        goal_target_raw = issue_fields.get(goal_target_field) if goal_target_field else None
         if isinstance(start_raw, str):
             start_s = start_raw[:10]
         else:
@@ -375,6 +388,8 @@ def fetch_milestone_timeline(
                 else "quarter_start"
             ),
         }
+        if goal_target_raw:
+            row["goalTargetDate"] = str(goal_target_raw)[:10]
         if description:
             row["description"] = description
         if notes:
