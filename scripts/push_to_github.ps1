@@ -1,5 +1,7 @@
 # Push reporting-hub to GitHub (arlitwoa) using a TWoA PAT.
-# Requires: TWOA_GITHUB_PAT user env var (run scripts/setup_twoa_github_pat.ps1 once)
+# Token resolution order:
+#   1. TWOA_GITHUB_PAT environment variable
+#   2. config/credentials.local.json -> github.pat  (git-ignored, local only)
 #
 # Usage:
 #   .\scripts\push_to_github.ps1
@@ -16,21 +18,27 @@ $Root = Split-Path $PSScriptRoot -Parent
 Set-Location $Root
 
 $token = $env:TWOA_GITHUB_PAT
+
+if ([string]::IsNullOrWhiteSpace($token)) {
+    $credsPath = Join-Path $Root "config\credentials.local.json"
+    if (Test-Path $credsPath) {
+        $creds = Get-Content $credsPath -Raw | ConvertFrom-Json
+        $token = $creds.github.pat
+    }
+}
+
 if ([string]::IsNullOrWhiteSpace($token)) {
     throw @"
-TWOA_GITHUB_PAT is not set.
+No GitHub PAT found.
 
-Create a fine-grained PAT on the TWoA GitHub account/org (arlitwoa):
+Set one via either:
+  1. config/credentials.local.json -> github.pat  (preferred, git-ignored)
+  2. `$env:TWOA_GITHUB_PAT = '<token>'
+
+Create a fine-grained PAT (log in as arlitwoa):
   https://github.com/settings/tokens?type=beta
-  Repository access: arlitwoa/reporting-hub
+  Repository: arlitwoa/reporting-hub
   Permissions: Contents (Read and write)
-
-Then in PowerShell:
-  `$env:TWOA_GITHUB_PAT = '<token>'
-  .\scripts\push_to_github.ps1
-
-To persist for your user profile (optional):
-  [Environment]::SetEnvironmentVariable('TWOA_GITHUB_PAT', '<token>', 'User')
 "@
 }
 
