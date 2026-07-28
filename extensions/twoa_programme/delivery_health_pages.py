@@ -135,6 +135,40 @@ def ensure_epc_report_breadcrumb(
     return patched
 
 
+_FIX_VERSION_SECTION_RE = re.compile(
+    r'\s*<section class="report-section">\s*<h2>FixVersion join timeline</h2>[\s\S]*?</section>',
+    flags=re.IGNORECASE,
+)
+_ONTRACK_SECTION_RE = re.compile(
+    r'\s*<section class="report-section risk-ontrack">[\s\S]*?</section>',
+    flags=re.IGNORECASE,
+)
+
+
+def reorder_dev_done_fix_version_section(html_doc: str) -> str:
+    """Move FixVersion join timeline after the Already past Dev Done section.
+
+    barlconz-artifact-core 0.2.1 renders the timeline before the risk buckets.
+    Reorder published HTML so severity sections read top-to-bottom before scope history.
+    """
+    fix_match = _FIX_VERSION_SECTION_RE.search(html_doc)
+    ontrack_match = _ONTRACK_SECTION_RE.search(html_doc)
+    if not fix_match or not ontrack_match:
+        return html_doc
+
+    if fix_match.start() > ontrack_match.start():
+        return html_doc
+
+    fix_section = fix_match.group(0)
+    without_fix = html_doc[: fix_match.start()] + html_doc[fix_match.end() :]
+    ontrack_match = _ONTRACK_SECTION_RE.search(without_fix)
+    if not ontrack_match:
+        return html_doc
+
+    insert_at = ontrack_match.end()
+    return without_fix[:insert_at] + fix_section + without_fix[insert_at:]
+
+
 def build_sprint_health_landing_html(
     squads: dict[str, SquadConfig],
     pages: DeliveryHealthPagesConfig,

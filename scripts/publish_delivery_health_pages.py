@@ -28,6 +28,7 @@ from extensions.twoa_programme.delivery_health_pages import (  # noqa: E402
     build_sprint_health_landing_html,
     ensure_epc_report_breadcrumb,
     load_delivery_health_pages_config,
+    reorder_dev_done_fix_version_section,
     resolve_in_cycle_fix_version,
 )
 from extensions.twoa_programme.github_pages_publish import write_pages_snapshot  # noqa: E402
@@ -137,6 +138,7 @@ def publish_snapshots(
                 publish_path=f"{pages.dev_done_risk.site_path}/{pages.dev_done_risk.index_file}",
                 report_title="EPCE Dev Done Risk",
             )
+            html_doc = reorder_dev_done_fix_version_section(html_doc)
             write_pages_snapshot(html_doc, dest)
             written.append(dest)
 

@@ -12,6 +12,7 @@ from extensions.twoa_programme.delivery_health_pages import (
     build_sprint_health_landing_html,
     ensure_epc_report_breadcrumb,
     load_delivery_health_pages_config,
+    reorder_dev_done_fix_version_section,
 )
 from extensions.twoa_programme.github_pages_publish import write_pages_snapshot
 
@@ -104,6 +105,26 @@ class DeliveryHealthPagesTests(unittest.TestCase):
         self.assertIn('href="../../index.html"', html_doc)
         self.assertIn('href="../../epc/index.html"', html_doc)
         self.assertIn("No active sprint is currently configured", html_doc)
+
+    def test_reorder_dev_done_fix_version_section_moves_after_ontrack(self):
+        html_doc = """
+<section class="report-section"><h2>Summary</h2></section>
+<section class="report-section"><h2>FixVersion join timeline</h2><p>timeline</p></section>
+<section class="report-section risk-critical"><h2>Critical</h2></section>
+<section class="report-section risk-ontrack"><h2>Already past Dev Done</h2><p>on track</p></section>
+<section class="report-section"><h2>Recommended actions</h2></section>
+"""
+        reordered = reorder_dev_done_fix_version_section(html_doc)
+        self.assertLess(reordered.index("Already past Dev Done"), reordered.index("FixVersion join timeline"))
+        self.assertLess(reordered.index("FixVersion join timeline"), reordered.index("Recommended actions"))
+
+    def test_reorder_dev_done_fix_version_section_is_idempotent(self):
+        html_doc = """
+<section class="report-section risk-ontrack"><h2>Already past Dev Done</h2></section>
+<section class="report-section"><h2>FixVersion join timeline</h2><p>timeline</p></section>
+<section class="report-section"><h2>Recommended actions</h2></section>
+"""
+        self.assertEqual(reorder_dev_done_fix_version_section(html_doc), html_doc)
 
 
 if __name__ == "__main__":
