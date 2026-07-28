@@ -63,9 +63,35 @@ bash scripts/refresh_github_pages_reports.sh
 
 Commit changed files under `docs/` when snapshots update.
 
+## Credential management (local)
+
+GitHub identities are split by account. Do not rely on one global `gh` login for all repos.
+
+| Concern | Location |
+|---------|----------|
+| GitHub PATs (multi-account) | `C:\development\config\credentials.local.json` |
+| GitHub PAT template | `C:\development\config\credentials.local.template.json` |
+| Shared resolver / push helpers | `scripts/lib/Resolve-GitHubPat.ps1` (or `C:\development\scripts\` override) |
+| Atlassian / Jira | `C:\development\artifact\artifact-core\config\credentials.local.json` via `ARTIFACT_LOCAL_CREDENTIALS` |
+
+Central GitHub file shape:
+
+```json
+{
+  "github": {
+    "barlconz": { "pat": "..." },
+    "arlitwoa": { "pat": "..." }
+  }
+}
+```
+
+Resolution order for pushes: account env var → central credentials file → repo-local legacy fallback.
+
+Optional overrides: `DEV_ROOT`, `DEV_SCRIPTS_DIR`, `DEV_CREDENTIALS_PATH`.
+
 ## Push to GitHub (TWoA / arlitwoa)
 
-Local `gh` may be logged in as a personal account (`barlconz`). Use a **TWoA org PAT** for programmatic push.
+Local `gh` may be logged in as a personal account (`barlconz`). Use a **TWoA org PAT** for programmatic push to this repo.
 
 ### 1. Create a fine-grained PAT
 
@@ -80,26 +106,23 @@ On the TWoA GitHub account that can access `arlitwoa/reporting-hub`:
 ### 2. Push from this machine
 
 ```powershell
-cd C:\development\reporting-hub
+cd C:\development\clients\twoa\reporting-hub
 
-# One-time: save PAT to Windows user profile (prompts securely)
+# One-time: save PAT to central credentials + TWOA_GITHUB_PAT
 powershell -ExecutionPolicy Bypass -File .\scripts\setup_twoa_github_pat.ps1
 # Restart Cursor after this
-
-# Or one session only:
-# $env:TWOA_GITHUB_PAT = "<paste token>"
 
 powershell -ExecutionPolicy Bypass -File .\scripts\push_to_github.ps1
 ```
 
-The script commits staged files if needed, pushes to `main`, and does **not** store the token in `.git/config` (only used for the push URL).
+The script commits staged files if needed, pushes with `-c credential.helper=''`, and does **not** store the token in `.git/config`.
 
-**Feature branches:** `push_to_github.ps1` always pushes to `main`. For a feature branch, use the same PAT inline (see also `artifact-consumer-twoa/docs/execution-notes.md` → *reporting-hub git push*):
+**Feature branches:**
 
 ```powershell
-$auth = "https://x-access-token:$env:TWOA_GITHUB_PAT@github.com/arlitwoa/reporting-hub.git"
-git push $auth HEAD:feature/my-branch
-git remote set-url origin https://github.com/arlitwoa/reporting-hub.git
+powershell -ExecutionPolicy Bypass -File .\scripts\push_to_github.ps1 `
+  -Branch feature/my-branch `
+  -NoCommit
 ```
 
 Open PRs against **`main`** in the GitHub UI if `gh pr create` fails with the TWoA PAT.
