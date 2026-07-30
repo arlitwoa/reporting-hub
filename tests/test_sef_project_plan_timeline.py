@@ -32,6 +32,7 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
         assert config.phase_hub_discovery is not None
         self.assertIn("Block Level Two", config.phase_hub_discovery.jql or "")
         self.assertEqual(config.detail_issue_type, "Block Level Minus One")
+        self.assertEqual(config.test_cycle_issue_type, "Test Cycle")
         self.assertEqual(config.pages_publish_path, "docs/sef/project-plan.html")
 
     def test_chart_window_spans_full_project_delivery(self) -> None:
@@ -84,6 +85,7 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
             chapter_issue_type="Block Level One",
             package_issue_type="Block Level Zero",
             detail_issue_type="Block Level Minus One",
+            test_cycle_issue_type="Test Cycle",
             scope_filter_id=None,
             scope_filter_name=None,
             timeline_artifact="sef-project-plan-timeline.json",
@@ -122,6 +124,7 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
             chapter_issue_type="Block Level One",
             package_issue_type="Block Level Zero",
             detail_issue_type="Block Level Minus One",
+            test_cycle_issue_type="Test Cycle",
             scope_filter_id=None,
             scope_filter_name=None,
             timeline_artifact="sef-project-plan-timeline.json",
@@ -187,6 +190,99 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
         )
         chapter_keys = [chapter["key"] for chapter in phases[0]["chapters"]]
         self.assertEqual(chapter_keys, ["PDE-5001", "PDE-5002"])
+
+    def test_build_hierarchy_places_test_cycles_under_parent(self) -> None:
+        from datetime import date
+
+        from extensions.twoa_programme.sef_project_plan_reporting import load_sef_project_plan_reporting_config
+
+        config = load_sef_project_plan_reporting_config(_REPO / "config" / "sef-project-plan-reporting.json")
+        issues = [
+            {
+                "key": "PDE-4249",
+                "fields": {
+                    "summary": "SEF Phase 1",
+                    "issuetype": {"name": "Block Level Two"},
+                    "customfield_10015": "2026-05-01",
+                    "duedate": "2027-04-19",
+                    "status": {"name": "To Do"},
+                },
+            },
+            {
+                "key": "PDE-4609",
+                "fields": {
+                    "summary": "Testing | Parallel Testing",
+                    "issuetype": {"name": "Block Level One"},
+                    "parent": {"key": "PDE-4249"},
+                    "customfield_10015": "2027-02-12",
+                    "duedate": "2027-03-18",
+                    "status": {"name": "To Do"},
+                },
+            },
+            {
+                "key": "PDE-4616",
+                "fields": {
+                    "summary": "Testing | Parallel Testing",
+                    "issuetype": {"name": "Test Cycle"},
+                    "parent": {"key": "PDE-4249"},
+                    "customfield_10015": "2027-02-12",
+                    "duedate": "2027-03-18",
+                    "status": {"name": "To Do"},
+                },
+            },
+            {
+                "key": "PDE-5000",
+                "fields": {
+                    "summary": "Testing Stream",
+                    "issuetype": {"name": "Block Level Zero"},
+                    "parent": {"key": "PDE-4609"},
+                    "customfield_10015": "2027-01-01",
+                    "duedate": "2027-01-31",
+                    "status": {"name": "To Do"},
+                },
+            },
+            {
+                "key": "PDE-5001",
+                "fields": {
+                    "summary": "Cycle A",
+                    "issuetype": {"name": "Test Cycle"},
+                    "parent": {"key": "PDE-4609"},
+                    "customfield_10015": "2027-02-01",
+                    "duedate": "2027-02-14",
+                    "status": {"name": "To Do"},
+                },
+            },
+            {
+                "key": "PDE-5002",
+                "fields": {
+                    "summary": "Cycle B",
+                    "issuetype": {"name": "Test Cycle"},
+                    "parent": {"key": "PDE-5000"},
+                    "customfield_10015": "2027-01-10",
+                    "duedate": "2027-01-20",
+                    "status": {"name": "To Do"},
+                },
+            },
+        ]
+        phases, _, _ = _build_hierarchy_from_flat(
+            issues,
+            config,
+            fallback_start=date(2026, 6, 1),
+            fallback_end=date(2027, 12, 31),
+        )
+        chapters = phases[0]["chapters"]
+        chapter_keys = [chapter["key"] for chapter in chapters]
+        self.assertEqual(chapter_keys, ["PDE-4609", "PDE-4616"])
+        parallel_chapter = chapters[0]
+        self.assertEqual(
+            [row["key"] for row in parallel_chapter["packages"]],
+            ["PDE-5000", "PDE-5001"],
+        )
+        self.assertEqual(parallel_chapter["packages"][0]["details"][0]["key"], "PDE-5002")
+        self.assertEqual(parallel_chapter["packages"][0]["details"][0]["issueType"], "Test Cycle")
+        hub_test_cycle = chapters[1]
+        self.assertEqual(hub_test_cycle["issueType"], "Test Cycle")
+        self.assertEqual(hub_test_cycle["packages"], [])
 
     def test_svg_renders_scope_overlay_when_scope_rollup_present(self) -> None:
         svg = sef_project_plan_timeline_svg(self.payload)

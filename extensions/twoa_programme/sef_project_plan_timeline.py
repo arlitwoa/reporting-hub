@@ -276,6 +276,7 @@ def _issue_timeline_row(
     status = str((fields.get("status") or {}).get("name") or "")
     summary = str(fields.get("summary") or "").strip()
     key = str(issue.get("key") or "")
+    issue_type = str((fields.get("issuetype") or {}).get("name") or "")
     row: dict[str, Any] = {
         "key": key,
         "summary": summary,
@@ -283,6 +284,8 @@ def _issue_timeline_row(
         "startDate": start.isoformat(),
         "endDate": end.isoformat(),
     }
+    if issue_type:
+        row["issueType"] = issue_type
     if due_s:
         row["dueDate"] = due_s
     return row
@@ -302,6 +305,22 @@ def _sort_sibling_keys(keys: list[str], by_key: dict[str, dict[str, Any]]) -> li
     return sorted(keys, key=lambda key: _issue_start_sort_key(by_key[key]))
 
 
+def _issue_type_name(issue: dict[str, Any]) -> str:
+    return str(((issue.get("fields") or {}).get("issuetype") or {}).get("name") or "")
+
+
+def _child_keys_for_types(
+    parent_key: str,
+    *,
+    children_of: dict[str, list[str]],
+    by_key: dict[str, dict[str, Any]],
+    issue_types: set[str],
+) -> list[str]:
+    keys = children_of.get(parent_key, [])
+    matched = [key for key in keys if key in by_key and _issue_type_name(by_key[key]) in issue_types]
+    return _sort_sibling_keys(matched, by_key)
+
+
 def _fetch_children(
     adapter: "AtlassianAdapter",
     *,
@@ -314,6 +333,48 @@ def _fetch_children(
         f'ORDER BY "Start date" ASC, key ASC'
     )
     return search_all(adapter, jql, fields)
+
+
+def _fetch_package_children(
+    adapter: "AtlassianAdapter",
+    *,
+    parent_key: str,
+    config: SefProjectPlanReportingConfig,
+    fields: list[str],
+) -> list[dict[str, Any]]:
+    """Fetch Block Level Zero and Test Cycle children under a parent."""
+    rows: list[dict[str, Any]] = []
+    for issue_type in (config.package_issue_type, config.test_cycle_issue_type):
+        rows.extend(
+            _fetch_children(
+                adapter,
+                parent_key=parent_key,
+                issue_type=issue_type,
+                fields=fields,
+            )
+        )
+    return sorted(rows, key=lambda issue: _issue_start_sort_key(issue))
+
+
+def _fetch_detail_children(
+    adapter: "AtlassianAdapter",
+    *,
+    parent_key: str,
+    config: SefProjectPlanReportingConfig,
+    fields: list[str],
+) -> list[dict[str, Any]]:
+    """Fetch Block Level Minus One and Test Cycle children under a package."""
+    rows: list[dict[str, Any]] = []
+    for issue_type in (config.detail_issue_type, config.test_cycle_issue_type):
+        rows.extend(
+            _fetch_children(
+                adapter,
+                parent_key=parent_key,
+                issue_type=issue_type,
+                fields=fields,
+            )
+        )
+    return sorted(rows, key=lambda issue: _issue_start_sort_key(issue))
 
 
 def _resolve_scope_filter_jql(
@@ -348,13 +409,16 @@ def _build_hierarchy_from_flat(
         config.detail_issue_type,    # Block Level Minus One
     }
     hub_type = "Block Level Two"
+    package_types = {config.package_issue_type, config.test_cycle_issue_type}
+    detail_types = {config.detail_issue_type, config.test_cycle_issue_type}
+    chapter_types = {config.chapter_issue_type, config.test_cycle_issue_type}
     by_key: dict[str, dict[str, Any]] = {}
     for issue in issues:
         key = str(issue.get("key") or "")
         if not key:
             continue
-        itype = ((issue.get("fields") or {}).get("issuetype") or {}).get("name") or ""
-        if itype not in {hub_type, *block_types}:
+        itype = _issue_type_name(issue)
+        if itype not in {hub_type, *block_types, config.test_cycle_issue_type}:
             continue  # skip milestone levels etc.
         by_key[key] = issue
 
@@ -367,7 +431,7 @@ def _build_hierarchy_from_flat(
     # Hub issues are Block Level Two (parent not in our set)
     hub_keys_found = [
         key for key, issue in by_key.items()
-        if ((issue.get("fields") or {}).get("issuetype") or {}).get("name") == hub_type
+        if _issue_type_name(issue) == hub_type
     ]
     hub_keys_found = _sort_sibling_keys(hub_keys_found, by_key)
     warnings: list[str] = []
@@ -377,32 +441,47 @@ def _build_hierarchy_from_flat(
 
     def make_package(key: str) -> dict[str, Any]:
         row = _issue_timeline_row(by_key[key], fallback_start=fallback_start, fallback_end=fallback_end)
-        detail_keys = _sort_sibling_keys(children_of.get(key, []), by_key)
+        detail_keys = _child_keys_for_types(
+            key,
+            children_of=children_of,
+            by_key=by_key,
+            issue_types=detail_types,
+        )
         row["details"] = [
             make_detail(dk)
             for dk in detail_keys
-            if dk in by_key and ((by_key[dk].get("fields") or {}).get("issuetype") or {}).get("name") == config.detail_issue_type
+            if dk in by_key and _issue_type_name(by_key[dk]) in detail_types
         ]
         return row
 
     def make_chapter(key: str) -> dict[str, Any]:
         row = _issue_timeline_row(by_key[key], fallback_start=fallback_start, fallback_end=fallback_end)
-        pkg_keys = _sort_sibling_keys(children_of.get(key, []), by_key)
+        pkg_keys = _child_keys_for_types(
+            key,
+            children_of=children_of,
+            by_key=by_key,
+            issue_types=package_types,
+        )
         row["packages"] = [
             make_package(pk)
             for pk in pkg_keys
-            if pk in by_key and ((by_key[pk].get("fields") or {}).get("issuetype") or {}).get("name") == config.package_issue_type
+            if pk in by_key and _issue_type_name(by_key[pk]) in package_types
         ]
         return row
 
     phases: list[dict[str, Any]] = []
     for hub_key in hub_keys_found:
         hub_row = _issue_timeline_row(by_key[hub_key], fallback_start=fallback_start, fallback_end=fallback_end)
-        chapter_keys = _sort_sibling_keys(children_of.get(hub_key, []), by_key)
+        chapter_keys = _child_keys_for_types(
+            hub_key,
+            children_of=children_of,
+            by_key=by_key,
+            issue_types=chapter_types,
+        )
         hub_row["chapters"] = [
             make_chapter(ck)
             for ck in chapter_keys
-            if ck in by_key and ((by_key[ck].get("fields") or {}).get("issuetype") or {}).get("name") == config.chapter_issue_type
+            if ck in by_key and _issue_type_name(by_key[ck]) in chapter_types
         ]
         phases.append(hub_row)
 
@@ -460,6 +539,16 @@ def fetch_sef_project_plan_timeline(
                 issue_type=config.chapter_issue_type,
                 fields=scope_fields,
             )
+            test_cycles_raw = _fetch_children(
+                adapter,
+                parent_key=hub_key,
+                issue_type=config.test_cycle_issue_type,
+                fields=scope_fields,
+            )
+            chapters_raw = sorted(
+                [*chapters_raw, *test_cycles_raw],
+                key=_issue_start_sort_key,
+            )
             chapters: list[dict[str, Any]] = []
             for chapter_issue in chapters_raw:
                 chapter_key = str(chapter_issue["key"])
@@ -469,10 +558,10 @@ def fetch_sef_project_plan_timeline(
                     fallback_start=fallback_start,
                     fallback_end=fallback_end,
                 )
-                packages_raw = _fetch_children(
+                packages_raw = _fetch_package_children(
                     adapter,
                     parent_key=chapter_key,
-                    issue_type=config.package_issue_type,
+                    config=config,
                     fields=scope_fields,
                 )
                 packages: list[dict[str, Any]] = []
@@ -484,10 +573,10 @@ def fetch_sef_project_plan_timeline(
                         fallback_start=fallback_start,
                         fallback_end=fallback_end,
                     )
-                    details_raw = _fetch_children(
+                    details_raw = _fetch_detail_children(
                         adapter,
                         parent_key=package_key,
-                        issue_type=config.detail_issue_type,
+                        config=config,
                         fields=scope_fields,
                     )
                     detail_rows: list[dict[str, Any]] = []
@@ -975,6 +1064,9 @@ def sef_project_plan_timeline_svg(
             fill = epic_bar_fill(str(chapter.get("status") or ""))
             key = str(chapter.get("key") or "")
             summary = str(chapter.get("summary") or key)
+            chapter_issue_type = str((chapter.get("issueType") or "")).strip()
+            if chapter_issue_type == "Test Cycle":
+                fill = TEST_CYCLE_BAR_FILL
 
             same_window_as_phase = (
                 str(chapter.get("startDate") or "")[:10] == phase_start.isoformat()
@@ -1081,9 +1173,14 @@ def sef_project_plan_timeline_svg(
                     d_bar_y = sub_y + (DETAIL_ROW_HEIGHT - DETAIL_BAR_HEIGHT) / 2
                     d_key = str(detail.get("key") or "")
                     d_summary = str(detail.get("summary") or d_key)
+                    d_issue_type = str((detail.get("issueType") or "")).strip()
                     _kw_fill = _detail_keyword_fill(d_summary)
-                    d_fill = _kw_fill or epic_bar_fill(str(detail.get("status") or ""))
-                    d_opacity = 0.72 if _kw_fill else DETAIL_BAR_OPACITY
+                    if d_issue_type == "Test Cycle":
+                        d_fill = TEST_CYCLE_BAR_FILL
+                        d_opacity = 0.65
+                    else:
+                        d_fill = _kw_fill or epic_bar_fill(str(detail.get("status") or ""))
+                        d_opacity = 0.72 if _kw_fill else DETAIL_BAR_OPACITY
                     _append_timeline_bar(
                         parts,
                         row=detail,

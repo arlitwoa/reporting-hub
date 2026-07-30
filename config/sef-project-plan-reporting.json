@@ -11,7 +11,8 @@
   "issueTypes": {
     "chapter": "Block Level One",
     "package": "Block Level Zero",
-    "detail": "Block Level Minus One"
+    "detail": "Block Level Minus One",
+    "testCycle": "Test Cycle"
   },
   "scopeLinkType": "Scope",
   "artifacts": {
