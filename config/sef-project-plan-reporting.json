@@ -29,5 +29,6 @@
     "filterId": "15891",
     "filterName": "smart-sef-block-plan",
     "note": "Jira saved filter controlling all Block issues in scope for the project plan chart. Add/remove issues from this filter to adjust report scope."
-  }
+  },
+  "componentColorsFile": "sef-project-plan-component-colors.json"
 }

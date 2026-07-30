@@ -36,6 +36,12 @@ from extensions.twoa_programme.milestone_scope_chart import (
     timeline_bar_segment_order,
 )
 from extensions.twoa_programme.sef_block_scope import build_block_scope_rollups
+from extensions.twoa_programme.sef_project_plan_component_colors import (
+    SefProjectPlanComponentColors,
+    component_names_from_issue,
+    load_sef_project_plan_component_colors,
+    sef_project_plan_component_legend_html,
+)
 from extensions.twoa_programme.sef_project_plan_reporting import (
     SefProjectPlanReportingConfig,
     discover_phase_hub_issues,
@@ -134,6 +140,27 @@ SEF_PROJECT_PLAN_EXTRA_CSS = """
   height: auto;
   min-width: 0;
   max-width: 100%;
+}
+.sef-plan-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  margin: 12px 0 4px;
+  font-size: 12px;
+  color: #42526e;
+}
+.sef-plan-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.sef-plan-legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  border: 1px solid rgba(9, 30, 66, 0.14);
+  flex: 0 0 14px;
 }
 .chart-wrap-sef-plan svg a text {
   text-decoration: none;
@@ -286,6 +313,9 @@ def _issue_timeline_row(
     }
     if issue_type:
         row["issueType"] = issue_type
+    components = component_names_from_issue(issue)
+    if components:
+        row["components"] = components
     if due_s:
         row["dueDate"] = due_s
     return row
@@ -497,7 +527,7 @@ def fetch_sef_project_plan_timeline(
     fallback_start = date.fromisoformat(config.chart_window_start)
     fallback_end = date.fromisoformat(config.chart_window_end)
     start_field = START_DATE_FIELD
-    fields = ["summary", "status", "issuetype", "created", "duedate", start_field]
+    fields = ["summary", "status", "issuetype", "created", "duedate", start_field, "components"]
     scope_fields = [*fields, "issuelinks"]
     story_points_field = field_aliases()["Story Points"]
 
@@ -706,6 +736,9 @@ def _bar_tooltip(row: dict[str, Any]) -> str:
     status = row.get("status")
     if status:
         lines.append(f"Status: {status}")
+    components = row.get("components") or []
+    if components:
+        lines.append(f"Component: {', '.join(str(name) for name in components)}")
     scope = row.get("scopeRollup")
     if scope:
         issue_count = int(scope.get("issueCount") or float(scope.get("totalWeight") or 0))
@@ -924,10 +957,16 @@ def sef_project_plan_timeline_svg(
     payload: dict[str, Any],
     *,
     px_per_day: float = EPIC_CHART_PX_PER_DAY,
+    component_colors: SefProjectPlanComponentColors | None = None,
 ) -> str:
     phases = payload.get("phases") or []
     if not phases:
         return '<p class="footnote">No plan blocks. Run fetch_sef_project_plan_timeline.py --write.</p>'
+
+    colors = component_colors or load_sef_project_plan_component_colors()
+
+    def row_fill(row: dict[str, Any]) -> str:
+        return colors.fill_for_row(row)
 
     x_min, x_max = _payload_chart_window(payload)
     span_days = max(1, (x_max - x_min).days)
@@ -1020,7 +1059,7 @@ def sef_project_plan_timeline_svg(
             phase_bar_w = max(phase_x2 - phase_x1, 2.0)
             phase_row_cy = y_cursor + PHASE_ROW_HEIGHT / 2
             phase_bar_y = y_cursor + (PHASE_ROW_HEIGHT - PHASE_BAR_HEIGHT) / 2
-            phase_fill = epic_bar_fill(str(phase.get("status") or ""))
+            phase_fill = row_fill(phase)
 
             parts.append(f'<g>{_svg_embedded_title(_bar_tooltip(phase))}')
             parts.append(
@@ -1061,12 +1100,9 @@ def sef_project_plan_timeline_svg(
             x2 = x_for(end_day)
             bar_w = max(x2 - x1, 2.0)
             bar_y = y0 + (CHAPTER_ROW_HEIGHT - CHAPTER_BAR_HEIGHT) / 2
-            fill = epic_bar_fill(str(chapter.get("status") or ""))
+            fill = row_fill(chapter)
             key = str(chapter.get("key") or "")
             summary = str(chapter.get("summary") or key)
-            chapter_issue_type = str((chapter.get("issueType") or "")).strip()
-            if chapter_issue_type == "Test Cycle":
-                fill = TEST_CYCLE_BAR_FILL
 
             same_window_as_phase = (
                 str(chapter.get("startDate") or "")[:10] == phase_start.isoformat()
@@ -1123,17 +1159,8 @@ def sef_project_plan_timeline_svg(
                 p_bar_y = sub_y + (STREAM_ROW_HEIGHT - STREAM_BAR_HEIGHT) / 2
                 p_key = str(package.get("key") or "")
                 p_summary = str(package.get("summary") or p_key)
-                p_issue_type = str((package.get("issueType") or "")).strip()
-                _pkg_kw_fill = _package_keyword_fill(p_summary)
-                if _pkg_kw_fill:
-                    p_fill = _pkg_kw_fill
-                    p_opacity = 0.85
-                elif p_issue_type == "Test Cycle":
-                    p_fill = TEST_CYCLE_BAR_FILL
-                    p_opacity = 0.65
-                else:
-                    p_fill = epic_bar_fill(str(package.get("status") or ""))
-                    p_opacity = SUB_BAR_OPACITY
+                p_fill = row_fill(package)
+                p_opacity = BAR_OPACITY
                 _append_timeline_bar(
                     parts,
                     row=package,
@@ -1173,14 +1200,8 @@ def sef_project_plan_timeline_svg(
                     d_bar_y = sub_y + (DETAIL_ROW_HEIGHT - DETAIL_BAR_HEIGHT) / 2
                     d_key = str(detail.get("key") or "")
                     d_summary = str(detail.get("summary") or d_key)
-                    d_issue_type = str((detail.get("issueType") or "")).strip()
-                    _kw_fill = _detail_keyword_fill(d_summary)
-                    if d_issue_type == "Test Cycle":
-                        d_fill = TEST_CYCLE_BAR_FILL
-                        d_opacity = 0.65
-                    else:
-                        d_fill = _kw_fill or epic_bar_fill(str(detail.get("status") or ""))
-                        d_opacity = 0.72 if _kw_fill else DETAIL_BAR_OPACITY
+                    d_fill = row_fill(detail)
+                    d_opacity = BAR_OPACITY
                     _append_timeline_bar(
                         parts,
                         row=detail,
@@ -1313,9 +1334,12 @@ def build_sef_project_plan_report_html(
     footnote = (
         f"{', '.join(footnote_parts)} from PDE Block work items "
         f"({window_start.isoformat()} to {window_end.isoformat()}). "
-        "Each bar runs from start date through due date."
+        "Each bar runs from start date through due date. "
+        "Bar colours follow Jira Plans Component mapping."
     )
-    chart = sef_project_plan_timeline_svg(payload)
+    colors = load_sef_project_plan_component_colors()
+    legend = sef_project_plan_component_legend_html(colors)
+    chart = sef_project_plan_timeline_svg(payload, component_colors=colors)
     nav_block = f"\n    {breadcrumb_nav}" if breadcrumb_nav else ""
 
     return f"""<!DOCTYPE html>
@@ -1333,7 +1357,9 @@ def build_sef_project_plan_report_html(
       <p class="report-subtitle">Generated {html.escape(generated_on)}</p>
     </header>
     <section class="chart-section">
+      {legend}
       <div class="chart-wrap chart-wrap-timeline chart-wrap-sef-plan">{chart}</div>
+      <p class="footnote">{html.escape(footnote)}</p>
     </section>
   </main>
 </body>
