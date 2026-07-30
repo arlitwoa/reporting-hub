@@ -60,10 +60,12 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
         self.assertIn("SEF | Integrated Project Plan", html_doc)
         self.assertIn("chart-wrap-sef-plan", html_doc)
 
-    def test_timeline_bars_use_status_colours(self) -> None:
-        svg = sef_project_plan_timeline_svg(self.payload)
-        todo_fill = "#6b778c"
-        self.assertIn(f'fill="{todo_fill}"', svg)
+    def test_timeline_bars_use_component_colours(self) -> None:
+        payload = json.loads(json.dumps(self.payload))
+        payload["phases"][0]["chapters"][1]["components"] = ["Testing"]
+        svg = sef_project_plan_timeline_svg(payload)
+        self.assertIn('fill="#00875A"', svg)
+        self.assertIn('fill="#7A869A"', svg)
 
     def test_svg_includes_today_marker_when_in_chart_window(self) -> None:
         svg = sef_project_plan_timeline_svg(self.payload)
