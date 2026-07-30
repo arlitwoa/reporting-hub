@@ -1,7 +1,7 @@
 {
   "projectKey": "PDE",
   "phaseHubDiscovery": {
-    "jql": "project = PDE AND issuetype = \"Block Level Two\" AND summary ~ \"SEF Phase\" ORDER BY rank ASC, key ASC"
+    "jql": "project = PDE AND issuetype = \"Block Level Two\" AND summary ~ \"SEF Phase\" ORDER BY \"Start date\" ASC, key ASC"
   },
   "manifestFile": "sef-project-plan-blocks.json",
   "chartWindow": {

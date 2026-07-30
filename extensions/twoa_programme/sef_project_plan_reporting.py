@@ -17,7 +17,7 @@ _MANIFEST_NAME = "sef-project-plan-blocks.json"
 
 DEFAULT_PHASE_HUB_JQL = (
     'project = PDE AND issuetype = "Block Level Two" '
-    'AND summary ~ "SEF Phase" ORDER BY rank ASC, key ASC'
+    'AND summary ~ "SEF Phase" ORDER BY "Start date" ASC, key ASC'
 )
 
 
@@ -160,7 +160,7 @@ def discover_phase_hub_issues(
         warnings.append("No phaseHubDiscovery configured and no phaseHubKeys available.")
         return [], warnings
 
-    jql = f"key in ({', '.join(keys)}) ORDER BY rank ASC, key ASC"
+    jql = f"key in ({', '.join(keys)}) ORDER BY \"Start date\" ASC, key ASC"
     issues = search_all(adapter, jql, fields)
     found = {str(issue.get("key") or "") for issue in issues}
     for key in keys:

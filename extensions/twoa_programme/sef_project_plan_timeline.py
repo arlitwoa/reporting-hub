@@ -288,6 +288,20 @@ def _issue_timeline_row(
     return row
 
 
+def _issue_start_sort_key(issue: dict[str, Any]) -> tuple[date, str]:
+    """Sort siblings by Start date, then issue key."""
+    fields = issue.get("fields") or {}
+    start_raw = fields.get(START_DATE_FIELD)
+    start = _parse_day(start_raw[:10] if isinstance(start_raw, str) else None)
+    if start is None:
+        start = _parse_day(str(fields.get("created") or "")[:10]) or date.max
+    return start, str(issue.get("key") or "")
+
+
+def _sort_sibling_keys(keys: list[str], by_key: dict[str, dict[str, Any]]) -> list[str]:
+    return sorted(keys, key=lambda key: _issue_start_sort_key(by_key[key]))
+
+
 def _fetch_children(
     adapter: "AtlassianAdapter",
     *,
@@ -295,7 +309,10 @@ def _fetch_children(
     issue_type: str,
     fields: list[str],
 ) -> list[dict[str, Any]]:
-    jql = f'parent = {parent_key} AND issuetype = "{issue_type}" ORDER BY rank ASC, key ASC'
+    jql = (
+        f'parent = {parent_key} AND issuetype = "{issue_type}" '
+        f'ORDER BY "Start date" ASC, key ASC'
+    )
     return search_all(adapter, jql, fields)
 
 
@@ -352,7 +369,7 @@ def _build_hierarchy_from_flat(
         key for key, issue in by_key.items()
         if ((issue.get("fields") or {}).get("issuetype") or {}).get("name") == hub_type
     ]
-    hub_keys_found.sort()
+    hub_keys_found = _sort_sibling_keys(hub_keys_found, by_key)
     warnings: list[str] = []
 
     def make_detail(key: str) -> dict[str, Any]:
@@ -360,7 +377,7 @@ def _build_hierarchy_from_flat(
 
     def make_package(key: str) -> dict[str, Any]:
         row = _issue_timeline_row(by_key[key], fallback_start=fallback_start, fallback_end=fallback_end)
-        detail_keys = sorted(children_of.get(key, []))
+        detail_keys = _sort_sibling_keys(children_of.get(key, []), by_key)
         row["details"] = [
             make_detail(dk)
             for dk in detail_keys
@@ -370,7 +387,7 @@ def _build_hierarchy_from_flat(
 
     def make_chapter(key: str) -> dict[str, Any]:
         row = _issue_timeline_row(by_key[key], fallback_start=fallback_start, fallback_end=fallback_end)
-        pkg_keys = sorted(children_of.get(key, []))
+        pkg_keys = _sort_sibling_keys(children_of.get(key, []), by_key)
         row["packages"] = [
             make_package(pk)
             for pk in pkg_keys
@@ -381,7 +398,7 @@ def _build_hierarchy_from_flat(
     phases: list[dict[str, Any]] = []
     for hub_key in hub_keys_found:
         hub_row = _issue_timeline_row(by_key[hub_key], fallback_start=fallback_start, fallback_end=fallback_end)
-        chapter_keys = sorted(children_of.get(hub_key, []))
+        chapter_keys = _sort_sibling_keys(children_of.get(hub_key, []), by_key)
         hub_row["chapters"] = [
             make_chapter(ck)
             for ck in chapter_keys

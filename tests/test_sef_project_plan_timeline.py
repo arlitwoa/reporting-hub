@@ -12,6 +12,7 @@ from extensions.twoa_programme.sef_project_plan_reporting import (
     load_sef_project_plan_reporting_config,
 )
 from extensions.twoa_programme.sef_project_plan_timeline import (
+    _build_hierarchy_from_flat,
     build_sef_project_plan_report_html,
     resolve_chart_window_for_phases,
     sef_project_plan_timeline_svg,
@@ -137,6 +138,55 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
             payload = fetch_sef_project_plan_timeline(adapter, config)
         self.assertEqual(payload["phases"], [])
         self.assertTrue(payload["warnings"])
+
+    def test_build_hierarchy_orders_siblings_by_start_date(self) -> None:
+        from datetime import date
+
+        from extensions.twoa_programme.sef_project_plan_reporting import load_sef_project_plan_reporting_config
+
+        config = load_sef_project_plan_reporting_config(_REPO / "config" / "sef-project-plan-reporting.json")
+        issues = [
+            {
+                "key": "PDE-4249",
+                "fields": {
+                    "summary": "SEF Phase 1",
+                    "issuetype": {"name": "Block Level Two"},
+                    "customfield_10015": "2026-05-01",
+                    "duedate": "2027-04-19",
+                    "status": {"name": "To Do"},
+                },
+            },
+            {
+                "key": "PDE-5002",
+                "fields": {
+                    "summary": "Later chapter",
+                    "issuetype": {"name": "Block Level One"},
+                    "parent": {"key": "PDE-4249"},
+                    "customfield_10015": "2026-08-01",
+                    "duedate": "2026-09-01",
+                    "status": {"name": "To Do"},
+                },
+            },
+            {
+                "key": "PDE-5001",
+                "fields": {
+                    "summary": "Earlier chapter",
+                    "issuetype": {"name": "Block Level One"},
+                    "parent": {"key": "PDE-4249"},
+                    "customfield_10015": "2026-06-01",
+                    "duedate": "2026-07-01",
+                    "status": {"name": "To Do"},
+                },
+            },
+        ]
+        phases, _, _ = _build_hierarchy_from_flat(
+            issues,
+            config,
+            fallback_start=date(2026, 6, 1),
+            fallback_end=date(2027, 12, 31),
+        )
+        chapter_keys = [chapter["key"] for chapter in phases[0]["chapters"]]
+        self.assertEqual(chapter_keys, ["PDE-5001", "PDE-5002"])
 
     def test_svg_renders_scope_overlay_when_scope_rollup_present(self) -> None:
         svg = sef_project_plan_timeline_svg(self.payload)
