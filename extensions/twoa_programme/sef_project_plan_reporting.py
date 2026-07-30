@@ -17,7 +17,7 @@ _MANIFEST_NAME = "sef-project-plan-blocks.json"
 
 DEFAULT_PHASE_HUB_JQL = (
     'project = PDE AND issuetype = "Block Level Two" '
-    'AND summary ~ "SEF Phase" ORDER BY rank ASC, key ASC'
+    'AND summary ~ "SEF Phase" ORDER BY "Start date" ASC, key ASC'
 )
 
 
@@ -39,6 +39,7 @@ class SefProjectPlanReportingConfig:
     chapter_issue_type: str
     package_issue_type: str
     detail_issue_type: str
+    test_cycle_issue_type: str
     scope_filter_id: str | None
     scope_filter_name: str | None
     timeline_artifact: str
@@ -93,6 +94,7 @@ def load_sef_project_plan_reporting_config(
         chapter_issue_type=str(issue_types.get("chapter") or "Block Level One"),
         package_issue_type=str(issue_types.get("package") or "Block Level Zero"),
         detail_issue_type=str(issue_types.get("detail") or "Block Level Minus One"),
+        test_cycle_issue_type=str(issue_types.get("testCycle") or "Test Cycle"),
         scope_filter_id=str(raw.get("scopeFilter", {}).get("filterId") or "").strip() or None,
         scope_filter_name=str(raw.get("scopeFilter", {}).get("filterName") or "").strip() or None,
         timeline_artifact=str(artifacts.get("timelineJson") or "sef-project-plan-timeline.json"),
@@ -160,7 +162,7 @@ def discover_phase_hub_issues(
         warnings.append("No phaseHubDiscovery configured and no phaseHubKeys available.")
         return [], warnings
 
-    jql = f"key in ({', '.join(keys)}) ORDER BY rank ASC, key ASC"
+    jql = f"key in ({', '.join(keys)}) ORDER BY \"Start date\" ASC, key ASC"
     issues = search_all(adapter, jql, fields)
     found = {str(issue.get("key") or "") for issue in issues}
     for key in keys:

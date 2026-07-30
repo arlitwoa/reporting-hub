@@ -1,7 +1,7 @@
 {
   "projectKey": "PDE",
   "phaseHubDiscovery": {
-    "jql": "project = PDE AND issuetype = \"Block Level Two\" AND summary ~ \"SEF Phase\" ORDER BY rank ASC, key ASC"
+    "jql": "project = PDE AND issuetype = \"Block Level Two\" AND summary ~ \"SEF Phase\" ORDER BY \"Start date\" ASC, key ASC"
   },
   "manifestFile": "sef-project-plan-blocks.json",
   "chartWindow": {
@@ -11,7 +11,8 @@
   "issueTypes": {
     "chapter": "Block Level One",
     "package": "Block Level Zero",
-    "detail": "Block Level Minus One"
+    "detail": "Block Level Minus One",
+    "testCycle": "Test Cycle"
   },
   "scopeLinkType": "Scope",
   "artifacts": {
