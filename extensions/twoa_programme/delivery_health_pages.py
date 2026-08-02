@@ -169,6 +169,17 @@ def reorder_dev_done_fix_version_section(html_doc: str) -> str:
     return without_fix[:insert_at] + fix_section + without_fix[insert_at:]
 
 
+def ensure_dev_done_generated_timestamp(html_doc: str, *, generated_on: str) -> str:
+    """Force Dev Done subtitle to include a full generated timestamp.
+
+    The core report can emit date-only text (for example, "Generated Monday 03 August 2026").
+    For GitHub Pages delivery reports we require NZ local time as well.
+    """
+
+    stamp = f"· Generated {generated_on}"
+    return re.sub(r"·\s*Generated[^<\n]*", stamp, html_doc, count=1)
+
+
 def build_sprint_health_landing_html(
     squads: dict[str, SquadConfig],
     pages: DeliveryHealthPagesConfig,

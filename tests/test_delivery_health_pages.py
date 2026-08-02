@@ -10,6 +10,7 @@ from extensions.twoa_programme.delivery_health import load_delivery_health_confi
 from extensions.twoa_programme.delivery_health_pages import (
     build_no_active_sprint_html,
     build_sprint_health_landing_html,
+    ensure_dev_done_generated_timestamp,
     ensure_epc_report_breadcrumb,
     load_delivery_health_pages_config,
     reorder_dev_done_fix_version_section,
@@ -125,6 +126,33 @@ class DeliveryHealthPagesTests(unittest.TestCase):
 <section class="report-section"><h2>Recommended actions</h2></section>
 """
         self.assertEqual(reorder_dev_done_fix_version_section(html_doc), html_doc)
+
+    def test_dev_done_generated_timestamp_upgrades_date_only_subtitle(self):
+        html_doc = (
+            '<p class="report-subtitle">\n'
+            '  Engine <strong>20260801-engine</strong>\n'
+            '  · Generated Monday 03 August 2026\n'
+            '</p>'
+        )
+        updated = ensure_dev_done_generated_timestamp(
+            html_doc,
+            generated_on="03 Aug 2026 15:42 NZST",
+        )
+        self.assertIn("· Generated 03 Aug 2026 15:42 NZST", updated)
+
+    def test_dev_done_generated_timestamp_replaces_existing_time(self):
+        html_doc = (
+            '<p class="report-subtitle">\n'
+            '  Engine <strong>20260801-engine</strong>\n'
+            '  · Generated 03 Aug 2026 13:00 NZST\n'
+            '</p>'
+        )
+        updated = ensure_dev_done_generated_timestamp(
+            html_doc,
+            generated_on="03 Aug 2026 15:42 NZST",
+        )
+        self.assertIn("· Generated 03 Aug 2026 15:42 NZST", updated)
+        self.assertNotIn("· Generated 03 Aug 2026 13:00 NZST", updated)
 
 
 if __name__ == "__main__":
