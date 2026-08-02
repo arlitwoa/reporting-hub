@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import itertools
 import json
 from datetime import date, timedelta
 from pathlib import Path
@@ -43,6 +44,7 @@ from extensions.twoa_programme.sef_project_plan_component_colors import (
     sef_project_plan_component_legend_html,
 )
 from extensions.twoa_programme.sef_project_plan_reporting import (
+    SefFilterDimensionConfig,
     SefProjectPlanReportingConfig,
     discover_phase_hub_issues,
     load_sef_project_plan_reporting_config,
@@ -154,6 +156,31 @@ SEF_PROJECT_PLAN_EXTRA_CSS = """
   align-items: center;
   gap: 6px;
   white-space: nowrap;
+}
+.sef-plan-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    margin: 8px 0 12px;
+    align-items: end;
+}
+.sef-plan-filter {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: #42526e;
+}
+.sef-plan-filter select {
+    min-width: 220px;
+    padding: 6px 8px;
+    border: 1px solid #dfe1e6;
+    border-radius: 4px;
+    background: #fff;
+    color: #172b4d;
+}
+.sef-plan-variant[hidden] {
+    display: none;
 }
 .sef-plan-legend-swatch {
   width: 14px;
@@ -283,6 +310,7 @@ def _issue_timeline_row(
     *,
     fallback_start: date,
     fallback_end: date,
+    milestone_issue_types: tuple[str, ...],
 ) -> dict[str, Any]:
     fields = issue.get("fields") or {}
     start_raw = fields.get(START_DATE_FIELD)
@@ -304,6 +332,7 @@ def _issue_timeline_row(
     summary = str(fields.get("summary") or "").strip()
     key = str(issue.get("key") or "")
     issue_type = str((fields.get("issuetype") or {}).get("name") or "")
+    issue_type_icon_url = str((fields.get("issuetype") or {}).get("iconUrl") or "").strip()
     row: dict[str, Any] = {
         "key": key,
         "summary": summary,
@@ -313,6 +342,11 @@ def _issue_timeline_row(
     }
     if issue_type:
         row["issueType"] = issue_type
+    if _is_milestone_issue_type(issue_type, milestone_issue_types):
+        if "meeting gate" in issue_type.strip().lower():
+            row["isMeetingGate"] = True
+        if issue_type_icon_url:
+            row["issueTypeIconUrl"] = issue_type_icon_url
     components = component_names_from_issue(issue)
     if components:
         row["components"] = components
@@ -337,6 +371,27 @@ def _sort_sibling_keys(keys: list[str], by_key: dict[str, dict[str, Any]]) -> li
 
 def _issue_type_name(issue: dict[str, Any]) -> str:
     return str(((issue.get("fields") or {}).get("issuetype") or {}).get("name") or "")
+
+
+def _is_milestone_issue_type(issue_type: str, milestone_issue_types: tuple[str, ...]) -> bool:
+    normalized = issue_type.strip().lower()
+    if not normalized:
+        return False
+    if any(normalized == name.strip().lower() for name in milestone_issue_types):
+        return True
+    return "milestone" in normalized
+
+
+def _unique_issue_types(issue_types: list[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for issue_type in issue_types:
+        token = issue_type.strip()
+        if not token or token in seen:
+            continue
+        seen.add(token)
+        ordered.append(token)
+    return ordered
 
 
 def _child_keys_for_types(
@@ -374,7 +429,10 @@ def _fetch_package_children(
 ) -> list[dict[str, Any]]:
     """Fetch Block Level Zero and Test Cycle children under a parent."""
     rows: list[dict[str, Any]] = []
-    for issue_type in (config.package_issue_type, config.test_cycle_issue_type):
+    issue_types = _unique_issue_types(
+        [config.package_issue_type, config.test_cycle_issue_type, *list(config.milestone_issue_types)]
+    )
+    for issue_type in issue_types:
         rows.extend(
             _fetch_children(
                 adapter,
@@ -395,7 +453,10 @@ def _fetch_detail_children(
 ) -> list[dict[str, Any]]:
     """Fetch Block Level Minus One and Test Cycle children under a package."""
     rows: list[dict[str, Any]] = []
-    for issue_type in (config.detail_issue_type, config.test_cycle_issue_type):
+    issue_types = _unique_issue_types(
+        [config.detail_issue_type, config.test_cycle_issue_type, *list(config.milestone_issue_types)]
+    )
+    for issue_type in issue_types:
         rows.extend(
             _fetch_children(
                 adapter,
@@ -439,16 +500,21 @@ def _build_hierarchy_from_flat(
         config.detail_issue_type,    # Block Level Minus One
     }
     hub_type = "Block Level Two"
-    package_types = {config.package_issue_type, config.test_cycle_issue_type}
-    detail_types = {config.detail_issue_type, config.test_cycle_issue_type}
-    chapter_types = {config.chapter_issue_type, config.test_cycle_issue_type}
+    milestone_types = set(config.milestone_issue_types)
+    package_types = {config.package_issue_type, config.test_cycle_issue_type, *milestone_types}
+    detail_types = {config.detail_issue_type, config.test_cycle_issue_type, *milestone_types}
+    chapter_types = {config.chapter_issue_type, config.test_cycle_issue_type, *milestone_types}
     by_key: dict[str, dict[str, Any]] = {}
     for issue in issues:
         key = str(issue.get("key") or "")
         if not key:
             continue
         itype = _issue_type_name(issue)
-        if itype not in {hub_type, *block_types, config.test_cycle_issue_type}:
+        allowed_type = itype in {hub_type, *block_types, config.test_cycle_issue_type} or _is_milestone_issue_type(
+            itype,
+            config.milestone_issue_types,
+        )
+        if not allowed_type:
             continue  # skip milestone levels etc.
         by_key[key] = issue
 
@@ -467,10 +533,20 @@ def _build_hierarchy_from_flat(
     warnings: list[str] = []
 
     def make_detail(key: str) -> dict[str, Any]:
-        return _issue_timeline_row(by_key[key], fallback_start=fallback_start, fallback_end=fallback_end)
+        return _issue_timeline_row(
+            by_key[key],
+            fallback_start=fallback_start,
+            fallback_end=fallback_end,
+            milestone_issue_types=config.milestone_issue_types,
+        )
 
     def make_package(key: str) -> dict[str, Any]:
-        row = _issue_timeline_row(by_key[key], fallback_start=fallback_start, fallback_end=fallback_end)
+        row = _issue_timeline_row(
+            by_key[key],
+            fallback_start=fallback_start,
+            fallback_end=fallback_end,
+            milestone_issue_types=config.milestone_issue_types,
+        )
         detail_keys = _child_keys_for_types(
             key,
             children_of=children_of,
@@ -485,7 +561,12 @@ def _build_hierarchy_from_flat(
         return row
 
     def make_chapter(key: str) -> dict[str, Any]:
-        row = _issue_timeline_row(by_key[key], fallback_start=fallback_start, fallback_end=fallback_end)
+        row = _issue_timeline_row(
+            by_key[key],
+            fallback_start=fallback_start,
+            fallback_end=fallback_end,
+            milestone_issue_types=config.milestone_issue_types,
+        )
         pkg_keys = _child_keys_for_types(
             key,
             children_of=children_of,
@@ -501,7 +582,12 @@ def _build_hierarchy_from_flat(
 
     phases: list[dict[str, Any]] = []
     for hub_key in hub_keys_found:
-        hub_row = _issue_timeline_row(by_key[hub_key], fallback_start=fallback_start, fallback_end=fallback_end)
+        hub_row = _issue_timeline_row(
+            by_key[hub_key],
+            fallback_start=fallback_start,
+            fallback_end=fallback_end,
+            milestone_issue_types=config.milestone_issue_types,
+        )
         chapter_keys = _child_keys_for_types(
             hub_key,
             children_of=children_of,
@@ -532,10 +618,29 @@ def fetch_sef_project_plan_timeline(
     story_points_field = field_aliases()["Story Points"]
 
     scope_filter_jql = _resolve_scope_filter_jql(adapter, config)
+    milestones: list[dict[str, Any]] = []
     if scope_filter_jql:
         # Single flat fetch from Jira filter — hierarchy built from parent fields.
         filter_fields = [*scope_fields, "parent"]
         all_issues = search_all(adapter, scope_filter_jql, filter_fields)
+        milestones = [
+            _issue_timeline_row(
+                issue,
+                fallback_start=fallback_start,
+                fallback_end=fallback_end,
+                milestone_issue_types=config.milestone_issue_types,
+            )
+            for issue in all_issues
+            if _is_milestone_issue_type(_issue_type_name(issue), config.milestone_issue_types)
+        ]
+        milestones = sorted(
+            [row for row in milestones if row.get("key")],
+            key=lambda row: (str(row.get("startDate") or ""), str(row.get("key") or "")),
+        )
+        deduped: dict[str, dict[str, Any]] = {}
+        for row in milestones:
+            deduped[str(row.get("key") or "")] = row
+        milestones = list(deduped.values())
         phases, hub_keys, warnings = _build_hierarchy_from_flat(
             all_issues,
             config,
@@ -562,6 +667,7 @@ def fetch_sef_project_plan_timeline(
                 hub,
                 fallback_start=fallback_start,
                 fallback_end=fallback_end,
+                milestone_issue_types=config.milestone_issue_types,
             )
             chapters_raw = _fetch_children(
                 adapter,
@@ -575,8 +681,18 @@ def fetch_sef_project_plan_timeline(
                 issue_type=config.test_cycle_issue_type,
                 fields=scope_fields,
             )
+            milestone_rows_raw: list[dict[str, Any]] = []
+            for milestone_issue_type in _unique_issue_types(list(config.milestone_issue_types)):
+                milestone_rows_raw.extend(
+                    _fetch_children(
+                        adapter,
+                        parent_key=hub_key,
+                        issue_type=milestone_issue_type,
+                        fields=scope_fields,
+                    )
+                )
             chapters_raw = sorted(
-                [*chapters_raw, *test_cycles_raw],
+                [*chapters_raw, *test_cycles_raw, *milestone_rows_raw],
                 key=_issue_start_sort_key,
             )
             chapters: list[dict[str, Any]] = []
@@ -587,6 +703,7 @@ def fetch_sef_project_plan_timeline(
                     chapter_issue,
                     fallback_start=fallback_start,
                     fallback_end=fallback_end,
+                    milestone_issue_types=config.milestone_issue_types,
                 )
                 packages_raw = _fetch_package_children(
                     adapter,
@@ -602,6 +719,7 @@ def fetch_sef_project_plan_timeline(
                         package_issue,
                         fallback_start=fallback_start,
                         fallback_end=fallback_end,
+                        milestone_issue_types=config.milestone_issue_types,
                     )
                     details_raw = _fetch_detail_children(
                         adapter,
@@ -618,6 +736,7 @@ def fetch_sef_project_plan_timeline(
                                 detail_issue,
                                 fallback_start=fallback_start,
                                 fallback_end=fallback_end,
+                                milestone_issue_types=config.milestone_issue_types,
                             )
                         )
                     package_row["details"] = detail_rows
@@ -652,14 +771,177 @@ def fetch_sef_project_plan_timeline(
         fallback_end=config.chart_window_end,
     )
 
+    filter_dimensions = _build_filter_dimensions(phases, config.filter_dimensions)
+
     return {
         "projectKey": config.project_key,
         "chartWindowStart": window_start.isoformat(),
         "chartWindowEnd": window_end.isoformat(),
         "phaseHubKeys": hub_keys,
         "warnings": warnings,
+        "filterDimensions": filter_dimensions,
+        "milestones": milestones,
         "phases": phases,
     }
+
+
+def _iter_dimension_values(row: dict[str, Any], *, source_field: str) -> list[str]:
+    raw = row.get(source_field)
+    if isinstance(raw, list):
+        return [str(item).strip() for item in raw if str(item).strip()]
+    if raw is None:
+        return []
+    text = str(raw).strip()
+    return [text] if text else []
+
+
+def _build_filter_dimensions(
+    phases: list[dict[str, Any]],
+    dimensions: tuple[SefFilterDimensionConfig, ...],
+) -> list[dict[str, Any]]:
+    rows = _iter_timeline_rows(phases)
+    result: list[dict[str, Any]] = []
+    for dimension in dimensions:
+        values: set[str] = set()
+        for row in rows:
+            values.update(_iter_dimension_values(row, source_field=dimension.source_field))
+        result.append(
+            {
+                "id": dimension.id,
+                "label": dimension.label,
+                "sourceField": dimension.source_field,
+                "options": sorted(values),
+            }
+        )
+    return result
+
+
+def filter_payload_by_dimension_value(
+    payload: dict[str, Any],
+    *,
+    dimension_id: str,
+    value: str,
+) -> dict[str, Any]:
+    """Return a filtered payload copy for one dimension/value pair.
+
+    The hierarchy is preserved by keeping ancestors of matching rows.
+    """
+    dimensions = payload.get("filterDimensions") or []
+    mapping = {
+        str(row.get("id") or ""): str(row.get("sourceField") or "")
+        for row in dimensions
+        if str(row.get("id") or "") and str(row.get("sourceField") or "")
+    }
+    source_field = mapping.get(dimension_id)
+    if not source_field or not value:
+        return json.loads(json.dumps(payload))
+
+    def _keep_row(
+        row: dict[str, Any],
+        *,
+        child_key: str,
+        parent_included: bool,
+    ) -> tuple[dict[str, Any] | None, bool]:
+        vals = _iter_dimension_values(row, source_field=source_field)
+        row_match = value in vals
+        current_parent_included = parent_included or row_match
+
+        row_copy = dict(row)
+        children = row.get(child_key) or []
+        kept_children: list[dict[str, Any]] = []
+        child_match = False
+
+        if child_key == "details":
+            for detail in children:
+                detail_vals = _iter_dimension_values(detail, source_field=source_field)
+                detail_match = value in detail_vals
+                include_detail = detail_match or (current_parent_included and not detail_vals)
+                if include_detail:
+                    kept_children.append(dict(detail))
+                child_match = child_match or detail_match
+        else:
+            next_child_key = {"chapters": "packages", "packages": "details"}[child_key]
+            for child in children:
+                kept, matched = _keep_row(
+                    child,
+                    child_key=next_child_key,
+                    parent_included=current_parent_included,
+                )
+                if kept is not None:
+                    kept_children.append(kept)
+                child_match = child_match or matched
+
+        include_row = row_match or child_match or (parent_included and not vals)
+        if not include_row:
+            return None, False
+        row_copy[child_key] = kept_children
+        return row_copy, row_match or child_match
+
+    kept_phases: list[dict[str, Any]] = []
+    for phase in payload.get("phases") or []:
+        kept, _matched = _keep_row(phase, child_key="chapters", parent_included=False)
+        if kept is not None:
+            kept_phases.append(kept)
+
+    filtered = json.loads(json.dumps(payload))
+    filtered["phases"] = kept_phases
+    start, end = resolve_chart_window_for_phases(
+        kept_phases,
+        fallback_start=str(payload.get("chartWindowStart") or "2026-06-01")[:10],
+        fallback_end=str(payload.get("chartWindowEnd") or "2027-12-03")[:10],
+    )
+    filtered["chartWindowStart"] = start.isoformat()
+    filtered["chartWindowEnd"] = end.isoformat()
+    return filtered
+
+
+def _variant_key(filters: dict[str, str]) -> str:
+    selected = [f"{dim_id}:{filters[dim_id]}" for dim_id in filters if filters[dim_id]]
+    if not selected:
+        return "__all__"
+    return "|".join(selected)
+
+
+def build_payload_filter_variants(payload: dict[str, Any], *, max_variants: int = 300) -> list[dict[str, Any]]:
+    """Build pre-rendered payload variants for all filter combinations.
+
+    The variant model is generic and supports additional dimensions configured in
+    sef-project-plan-reporting.json.
+    """
+    dimensions = payload.get("filterDimensions") or []
+    if not dimensions:
+        return [{"key": "__all__", "filters": {}, "payload": json.loads(json.dumps(payload))}]
+
+    dim_ids = [str(d.get("id") or "") for d in dimensions if str(d.get("id") or "")]
+    option_sets: list[list[str]] = []
+    for dimension in dimensions:
+        options = [""] + [str(opt) for opt in (dimension.get("options") or []) if str(opt)]
+        option_sets.append(options)
+
+    variants: list[dict[str, Any]] = []
+    for picks in itertools.product(*option_sets):
+        filters = {dim_id: pick for dim_id, pick in zip(dim_ids, picks)}
+        filtered_payload = json.loads(json.dumps(payload))
+        for dim_id, selected in filters.items():
+            if selected:
+                filtered_payload = filter_payload_by_dimension_value(
+                    filtered_payload,
+                    dimension_id=dim_id,
+                    value=selected,
+                )
+        variants.append(
+            {
+                "key": _variant_key(filters),
+                "filters": filters,
+                "payload": filtered_payload,
+            }
+        )
+        if len(variants) >= max_variants:
+            break
+
+    if not variants:
+        return [{"key": "__all__", "filters": {}, "payload": json.loads(json.dumps(payload))}]
+    return variants
 
 
 def _truncate_label(text: str, max_chars: int = LABEL_MAX_CHARS) -> str:
@@ -990,6 +1272,14 @@ def sef_project_plan_timeline_svg(
     row_positions: dict[str, tuple[float, float, float]] = {}
     milestone_markers: list[tuple[float, str, date, bool]] = []  # (x, label, day, is_gate)
 
+    for milestone in payload.get("milestones") or []:
+        m_start = _parse_day(str(milestone.get("startDate") or "")[:10])
+        if m_start is None:
+            continue
+        m_label = str(milestone.get("summary") or milestone.get("key") or "Milestone")
+        m_x = x_for(m_start)
+        milestone_markers.append((m_x, m_label, m_start, bool(milestone.get("isMeetingGate"))))
+
     parts: list[str] = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="{svg_height}" '
         f'viewBox="0 0 {width} {svg_height}" preserveAspectRatio="xMinYMin meet" '
@@ -1312,34 +1602,133 @@ def build_sef_project_plan_report_html(
     breadcrumb_nav: str = "",
 ) -> str:
     title = page_title or str(payload.get("pageTitle") or "SEF | Integrated Project Plan")
-    chapter_count = sum(len(phase.get("chapters") or []) for phase in payload.get("phases") or [])
-    package_count = sum(
-        len(chapter.get("packages") or [])
-        for phase in payload.get("phases") or []
-        for chapter in phase.get("chapters") or []
-    )
-    detail_count = sum(
-        len(package.get("details") or [])
-        for phase in payload.get("phases") or []
-        for chapter in phase.get("chapters") or []
-        for package in chapter.get("packages") or []
-    )
-    footnote_parts = [
-        f"{chapter_count} schedule chapters",
-        f"{package_count} stream packages",
-    ]
-    if detail_count:
-        footnote_parts.append(f"{detail_count} detail items")
-    window_start, window_end = _payload_chart_window(payload)
-    footnote = (
-        f"{', '.join(footnote_parts)} from PDE Block work items "
-        f"({window_start.isoformat()} to {window_end.isoformat()}). "
-        "Each bar runs from start date through due date. "
-        "Bar colours follow Jira Plans Component mapping."
-    )
+
+    def _footnote_for(active_payload: dict[str, Any]) -> str:
+        chapter_count = sum(len(phase.get("chapters") or []) for phase in active_payload.get("phases") or [])
+        package_count = sum(
+            len(chapter.get("packages") or [])
+            for phase in active_payload.get("phases") or []
+            for chapter in phase.get("chapters") or []
+        )
+        detail_count = sum(
+            len(package.get("details") or [])
+            for phase in active_payload.get("phases") or []
+            for chapter in phase.get("chapters") or []
+            for package in chapter.get("packages") or []
+        )
+        milestone_keys: set[str] = set()
+        for row in _iter_timeline_rows(active_payload.get("phases") or []):
+            if _is_milestone_row(row) and row.get("key"):
+                milestone_keys.add(str(row.get("key")))
+        for row in active_payload.get("milestones") or []:
+            if row.get("key"):
+                milestone_keys.add(str(row.get("key")))
+        milestone_count = len(milestone_keys)
+        footnote_parts = [
+            f"{chapter_count} schedule chapters",
+            f"{package_count} stream packages",
+        ]
+        if detail_count:
+            footnote_parts.append(f"{detail_count} detail items")
+        if milestone_count:
+            footnote_parts.append(f"{milestone_count} milestones")
+        window_start, window_end = _payload_chart_window(active_payload)
+        return (
+            f"{', '.join(footnote_parts)} from PDE Block work items "
+            f"({window_start.isoformat()} to {window_end.isoformat()}). "
+            "Each bar runs from start date through due date. "
+            "Milestones are shown as meeting-gate icons or red triangles. "
+            "Bar colours follow Jira Plans Component mapping."
+        )
+
     colors = load_sef_project_plan_component_colors()
     legend = sef_project_plan_component_legend_html(colors)
-    chart = sef_project_plan_timeline_svg(payload, component_colors=colors)
+    dimensions = payload.get("filterDimensions") or []
+    if not dimensions:
+        dimensions = _build_filter_dimensions(
+            payload.get("phases") or [],
+            (SefFilterDimensionConfig(id="component", label="Component", source_field="components"),),
+        )
+        payload = json.loads(json.dumps(payload))
+        payload["filterDimensions"] = dimensions
+    variants = build_payload_filter_variants(payload)
+
+    controls_html = ""
+    if dimensions:
+        controls: list[str] = ['<div class="sef-plan-filters" aria-label="Report filters">']
+        for dimension in dimensions:
+            dim_id = html.escape(str(dimension.get("id") or ""))
+            dim_label = html.escape(str(dimension.get("label") or dim_id.title()))
+            options = [str(opt) for opt in (dimension.get("options") or []) if str(opt)]
+            option_html = ['<option value="">All</option>']
+            option_html.extend(
+                f'<option value="{html.escape(opt)}">{html.escape(opt)}</option>' for opt in options
+            )
+            controls.append(
+                "<label class=\"sef-plan-filter\">"
+                f"<span>{dim_label}</span>"
+                f"<select data-sef-filter=\"{dim_id}\">"
+                f"{''.join(option_html)}"
+                "</select>"
+                "</label>"
+            )
+        controls.append("</div>")
+        controls_html = "".join(controls)
+
+    variant_blocks: list[str] = []
+    for index, variant in enumerate(variants):
+        variant_payload = variant["payload"]
+        chart = sef_project_plan_timeline_svg(variant_payload, component_colors=colors)
+        footnote = _footnote_for(variant_payload)
+        key = html.escape(str(variant["key"] or "__all__"))
+        hidden_attr = "" if index == 0 else " hidden"
+        variant_blocks.append(
+            f'<section class="sef-plan-variant" data-variant-key="{key}"{hidden_attr}>'
+            f'<div class="chart-wrap chart-wrap-timeline chart-wrap-sef-plan">{chart}</div>'
+            f'<p class="footnote">{html.escape(footnote)}</p>'
+            "</section>"
+        )
+
+    variant_script = ""
+    if dimensions:
+        dimension_ids = [str(d.get("id") or "") for d in dimensions if str(d.get("id") or "")]
+        ids_json = json.dumps(dimension_ids)
+        variant_script = f"""
+<script>
+(() => {{
+  const dimensionIds = {ids_json};
+  const filters = document.querySelectorAll('[data-sef-filter]');
+  const variants = document.querySelectorAll('[data-variant-key]');
+
+  function currentKey() {{
+    const parts = [];
+    for (const id of dimensionIds) {{
+      const sel = document.querySelector(`[data-sef-filter="${{id}}"]`);
+      const val = (sel && sel.value ? sel.value.trim() : "");
+      if (val) parts.push(`${{id}}:${{val}}`);
+    }}
+    return parts.length ? parts.join('|') : '__all__';
+  }}
+
+  function apply() {{
+    const key = currentKey();
+    let shown = false;
+    variants.forEach((node) => {{
+      const match = node.getAttribute('data-variant-key') === key;
+      node.hidden = !match;
+      shown = shown || match;
+    }});
+    if (!shown) {{
+      variants.forEach((node, idx) => {{ node.hidden = idx !== 0; }});
+    }}
+  }}
+
+  filters.forEach((sel) => sel.addEventListener('change', apply));
+  apply();
+}})();
+</script>
+"""
+
     nav_block = f"\n    {breadcrumb_nav}" if breadcrumb_nav else ""
 
     return f"""<!DOCTYPE html>
@@ -1358,10 +1747,11 @@ def build_sef_project_plan_report_html(
     </header>
     <section class="chart-section">
       {legend}
-      <div class="chart-wrap chart-wrap-timeline chart-wrap-sef-plan">{chart}</div>
-      <p class="footnote">{html.escape(footnote)}</p>
+            {controls_html}
+            {''.join(variant_blocks)}
     </section>
   </main>
+    {variant_script}
 </body>
 </html>
 """

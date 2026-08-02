@@ -12,8 +12,19 @@
     "chapter": "Block Level One",
     "package": "Block Level Zero",
     "detail": "Block Level Minus One",
-    "testCycle": "Test Cycle"
+    "testCycle": "Test Cycle",
+    "milestones": [
+      "Meeting Gate",
+      "Milestone"
+    ]
   },
+  "filterDimensions": [
+    {
+      "id": "component",
+      "label": "Component",
+      "sourceField": "components"
+    }
+  ],
   "scopeLinkType": "Scope",
   "artifacts": {
     "timelineJson": "sef-project-plan-timeline.json",

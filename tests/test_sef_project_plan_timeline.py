@@ -13,7 +13,9 @@ from extensions.twoa_programme.sef_project_plan_reporting import (
 )
 from extensions.twoa_programme.sef_project_plan_timeline import (
     _build_hierarchy_from_flat,
+    build_payload_filter_variants,
     build_sef_project_plan_report_html,
+    filter_payload_by_dimension_value,
     resolve_chart_window_for_phases,
     sef_project_plan_timeline_svg,
 )
@@ -33,6 +35,8 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
         self.assertIn("Block Level Two", config.phase_hub_discovery.jql or "")
         self.assertEqual(config.detail_issue_type, "Block Level Minus One")
         self.assertEqual(config.test_cycle_issue_type, "Test Cycle")
+        self.assertIn("Meeting Gate", config.milestone_issue_types)
+        self.assertEqual(config.filter_dimensions[0].id, "component")
         self.assertEqual(config.pages_publish_path, "docs/sef/project-plan.html")
 
     def test_chart_window_spans_full_project_delivery(self) -> None:
@@ -95,6 +99,8 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
             pages_publish_path="docs/sef/project-plan.html",
             pages_site_path="sef/project-plan.html",
             page_title="SEF | Integrated Project Plan",
+            milestone_issue_types=("Meeting Gate", "Milestone"),
+            filter_dimensions=(),
         )
         adapter = MagicMock()
         with patch(
@@ -134,6 +140,8 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
             pages_publish_path="docs/sef/project-plan.html",
             pages_site_path="sef/project-plan.html",
             page_title="SEF | Integrated Project Plan",
+            milestone_issue_types=("Meeting Gate", "Milestone"),
+            filter_dimensions=(),
         )
         adapter = MagicMock()
         with patch(
@@ -289,6 +297,139 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
     def test_svg_renders_scope_overlay_when_scope_rollup_present(self) -> None:
         svg = sef_project_plan_timeline_svg(self.payload)
         self.assertIn('class="block-scope-segment"', svg)
+
+    def test_svg_renders_payload_milestone_overlays(self) -> None:
+        payload = json.loads(json.dumps(self.payload))
+        payload["milestones"] = [
+            {
+                "key": "PDE-9999",
+                "summary": "Gate Alpha",
+                "startDate": "2026-07-14",
+                "isMeetingGate": True,
+            }
+        ]
+        svg = sef_project_plan_timeline_svg(payload)
+        self.assertIn("Gate Alpha", svg)
+        self.assertIn("(14/07)", svg)
+
+    def test_build_hierarchy_includes_meeting_gate_milestones(self) -> None:
+        from datetime import date
+
+        config = load_sef_project_plan_reporting_config(_REPO / "config" / "sef-project-plan-reporting.json")
+        issues = [
+            {
+                "key": "PDE-4249",
+                "fields": {
+                    "summary": "SEF Phase 1",
+                    "issuetype": {"name": "Block Level Two"},
+                    "customfield_10015": "2026-06-01",
+                    "duedate": "2026-12-31",
+                    "status": {"name": "To Do"},
+                },
+            },
+            {
+                "key": "PDE-5000",
+                "fields": {
+                    "summary": "Testing Stream",
+                    "issuetype": {"name": "Block Level One"},
+                    "parent": {"key": "PDE-4249"},
+                    "customfield_10015": "2026-06-10",
+                    "duedate": "2026-07-15",
+                    "status": {"name": "To Do"},
+                },
+            },
+            {
+                "key": "PDE-5001",
+                "fields": {
+                    "summary": "Gate 1",
+                    "issuetype": {"name": "Meeting Gate", "iconUrl": "/images/icons/mg.svg"},
+                    "parent": {"key": "PDE-5000"},
+                    "customfield_10015": "2026-06-20",
+                    "duedate": "2026-06-20",
+                    "status": {"name": "To Do"},
+                },
+            },
+        ]
+        phases, _, _ = _build_hierarchy_from_flat(
+            issues,
+            config,
+            fallback_start=date(2026, 6, 1),
+            fallback_end=date(2026, 12, 31),
+        )
+        milestone = phases[0]["chapters"][0]["packages"][0]
+        self.assertEqual(milestone["issueType"], "Meeting Gate")
+        self.assertTrue(milestone["isMeetingGate"])
+        self.assertEqual(milestone["issueTypeIconUrl"], "/images/icons/mg.svg")
+
+    def test_component_filter_preserves_matching_hierarchy(self) -> None:
+        payload = {
+            "chartWindowStart": "2026-06-01",
+            "chartWindowEnd": "2026-12-31",
+            "filterDimensions": [
+                {"id": "component", "label": "Component", "sourceField": "components", "options": ["HCM", "Payroll"]}
+            ],
+            "phases": [
+                {
+                    "key": "PDE-1",
+                    "summary": "Phase",
+                    "startDate": "2026-06-01",
+                    "endDate": "2026-12-31",
+                    "chapters": [
+                        {
+                            "key": "PDE-2",
+                            "summary": "Chapter",
+                            "startDate": "2026-06-01",
+                            "endDate": "2026-09-01",
+                            "components": ["HCM"],
+                            "packages": [
+                                {
+                                    "key": "PDE-3",
+                                    "summary": "Package",
+                                    "startDate": "2026-06-10",
+                                    "endDate": "2026-08-01",
+                                    "components": ["HCM"],
+                                    "details": [
+                                        {
+                                            "key": "PDE-4",
+                                            "summary": "Detail",
+                                            "startDate": "2026-06-12",
+                                            "endDate": "2026-06-30",
+                                            "components": ["HCM"],
+                                        }
+                                    ],
+                                },
+                                {
+                                    "key": "PDE-5",
+                                    "summary": "Payroll Package",
+                                    "startDate": "2026-07-01",
+                                    "endDate": "2026-08-15",
+                                    "components": ["Payroll"],
+                                    "details": [],
+                                },
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+        filtered = filter_payload_by_dimension_value(payload, dimension_id="component", value="Payroll")
+        packages = filtered["phases"][0]["chapters"][0]["packages"]
+        self.assertEqual([row["key"] for row in packages], ["PDE-5"])
+
+    def test_filter_variants_include_all_and_component_values(self) -> None:
+        payload = {
+            "chartWindowStart": "2026-06-01",
+            "chartWindowEnd": "2026-12-31",
+            "filterDimensions": [
+                {"id": "component", "label": "Component", "sourceField": "components", "options": ["HCM", "Payroll"]}
+            ],
+            "phases": self.payload.get("phases") or [],
+        }
+        variants = build_payload_filter_variants(payload)
+        keys = {variant["key"] for variant in variants}
+        self.assertIn("__all__", keys)
+        self.assertIn("component:HCM", keys)
+        self.assertIn("component:Payroll", keys)
 
 
 if __name__ == "__main__":
