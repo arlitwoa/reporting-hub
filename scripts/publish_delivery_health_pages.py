@@ -26,6 +26,7 @@ from extensions.twoa_programme.delivery_health_pages import (  # noqa: E402
     DeliveryHealthPagesConfig,
     build_no_active_sprint_html,
     build_sprint_health_landing_html,
+    ensure_dev_done_generated_timestamp,
     ensure_epc_report_breadcrumb,
     load_delivery_health_pages_config,
     reorder_dev_done_fix_version_section,
@@ -139,6 +140,7 @@ def publish_snapshots(
                 report_title="EPCE Dev Done Risk",
             )
             html_doc = reorder_dev_done_fix_version_section(html_doc)
+            html_doc = ensure_dev_done_generated_timestamp(html_doc, generated_on=generated_on)
             write_pages_snapshot(html_doc, dest)
             written.append(dest)
 
