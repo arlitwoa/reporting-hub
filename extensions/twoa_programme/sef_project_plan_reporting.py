@@ -29,6 +29,13 @@ class PhaseHubDiscovery:
 
 
 @dataclass(frozen=True)
+class SefFilterDimensionConfig:
+    id: str
+    label: str
+    source_field: str
+
+
+@dataclass(frozen=True)
 class SefProjectPlanReportingConfig:
     project_key: str
     phase_hub_keys: tuple[str, ...]
@@ -47,6 +54,10 @@ class SefProjectPlanReportingConfig:
     pages_publish_path: str
     pages_site_path: str
     page_title: str
+    milestone_issue_types: tuple[str, ...] = ("Meeting Gate", "Milestone")
+    filter_dimensions: tuple[SefFilterDimensionConfig, ...] = (
+        SefFilterDimensionConfig(id="component", label="Component", source_field="components"),
+    )
     def output_root(self, repo_root: Path | None = None) -> Path:
         from extensions.twoa_programme.quarterly_reporting import load_quarterly_reporting_config
 
@@ -74,6 +85,38 @@ def load_sef_project_plan_reporting_config(
     hubs = raw.get("phaseHubKeys") or []
     window = raw.get("chartWindow") or {}
     issue_types = raw.get("issueTypes") or {}
+    milestone_issue_types_raw = issue_types.get("milestones")
+    milestone_issue_types: list[str]
+    if isinstance(milestone_issue_types_raw, list):
+        milestone_issue_types = [
+            str(name).strip() for name in milestone_issue_types_raw if str(name).strip()
+        ]
+    elif milestone_issue_types_raw:
+        milestone_issue_types = [str(milestone_issue_types_raw).strip()]
+    else:
+        milestone_issue_types = ["Meeting Gate", "Milestone"]
+
+    filter_dimensions_raw = raw.get("filterDimensions") or []
+    filter_dimensions: list[SefFilterDimensionConfig] = []
+    for row in filter_dimensions_raw:
+        if not isinstance(row, dict):
+            continue
+        dim_id = str(row.get("id") or "").strip()
+        source_field = str(row.get("sourceField") or "").strip()
+        if not dim_id or not source_field:
+            continue
+        label = str(row.get("label") or dim_id.title()).strip()
+        filter_dimensions.append(
+            SefFilterDimensionConfig(
+                id=dim_id,
+                label=label,
+                source_field=source_field,
+            )
+        )
+    if not filter_dimensions:
+        filter_dimensions = [
+            SefFilterDimensionConfig(id="component", label="Component", source_field="components")
+        ]
     artifacts = raw.get("artifacts") or {}
     pages = raw.get("githubPages") or {}
     discovery_raw = raw.get("phaseHubDiscovery")
@@ -95,6 +138,8 @@ def load_sef_project_plan_reporting_config(
         package_issue_type=str(issue_types.get("package") or "Block Level Zero"),
         detail_issue_type=str(issue_types.get("detail") or "Block Level Minus One"),
         test_cycle_issue_type=str(issue_types.get("testCycle") or "Test Cycle"),
+        milestone_issue_types=tuple(milestone_issue_types),
+        filter_dimensions=tuple(filter_dimensions),
         scope_filter_id=str(raw.get("scopeFilter", {}).get("filterId") or "").strip() or None,
         scope_filter_name=str(raw.get("scopeFilter", {}).get("filterName") or "").strip() or None,
         timeline_artifact=str(artifacts.get("timelineJson") or "sef-project-plan-timeline.json"),
