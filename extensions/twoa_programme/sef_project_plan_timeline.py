@@ -614,6 +614,38 @@ def _build_hierarchy_from_flat(
     return phases, hub_keys_found, warnings
 
 
+def _fetch_nz_auckland_holidays(window_start: date, window_end: date) -> list[dict[str, Any]]:
+    """Fetch NZ Auckland public holidays from Enrico API for the chart window."""
+    from urllib.request import Request as _Request
+    from urllib.request import urlopen as _urlopen
+    import json as _json
+
+    url = (
+        "https://kayaposoft.com/enrico/json/v2.0/?action=getHolidaysForDateRange"
+        f"&fromDate={window_start.strftime('%d-%m-%Y')}"
+        f"&toDate={window_end.strftime('%d-%m-%Y')}"
+        "&country=nzl&region=auckland&holidayType=public_holiday"
+    )
+    try:
+        req = _Request(url, headers={"Accept": "application/json"})
+        with _urlopen(req, timeout=15) as resp:  # nosec B310 — fixed trusted host
+            data = _json.loads(resp.read().decode())
+    except Exception:
+        return []
+    holidays: list[dict[str, Any]] = []
+    for h in data:
+        d = h.get("date") or {}
+        try:
+            hdate = date(d["year"], d["month"], d["day"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        name_raw = h.get("localName") or h.get("name") or "Public Holiday"
+        if isinstance(name_raw, list):
+            name_raw = name_raw[0].get("text") if name_raw else "Public Holiday"
+        holidays.append({"date": hdate.isoformat(), "name": str(name_raw)})
+    return sorted(holidays, key=lambda x: x["date"])
+
+
 def fetch_sef_project_plan_timeline(
     adapter: "AtlassianAdapter",
     config: SefProjectPlanReportingConfig,
@@ -781,6 +813,8 @@ def fetch_sef_project_plan_timeline(
 
     filter_dimensions = _build_filter_dimensions(phases, config.filter_dimensions)
 
+    holidays = _fetch_nz_auckland_holidays(window_start, window_end)
+
     return {
         "projectKey": config.project_key,
         "chartWindowStart": window_start.isoformat(),
@@ -790,6 +824,7 @@ def fetch_sef_project_plan_timeline(
         "filterDimensions": filter_dimensions,
         "milestones": milestones,
         "phases": phases,
+        "holidays": holidays,
     }
 
 
@@ -1335,7 +1370,41 @@ def sef_project_plan_timeline_svg(
         x_for=x_for,
     )
 
+    chapter_manifest: list[dict] = []
     y_cursor = plot_top
+
+    # Render Auckland public holiday bands before chart content.
+    holidays = payload.get("holidays") or []
+    for hol in holidays:
+        hol_str = str(hol.get("date") or "")[:10]
+        if not hol_str:
+            continue
+        try:
+            hol_date = date.fromisoformat(hol_str)
+        except ValueError:
+            continue
+        if not (x_min <= hol_date <= x_max) or hol_date.weekday() >= 5:
+            continue
+        hx = x_for(hol_date)
+        next_x = x_for(hol_date + timedelta(days=1))
+        band_w = max(next_x - hx, 1.0)
+        hol_name = html.escape(str(hol.get("name") or "Public Holiday"))
+        parts.append(
+            f'<rect x="{hx:.1f}" y="{plot_top}" width="{band_w:.1f}" '
+            f'height="{plot_h:.1f}" fill="#fff3e0" opacity="0.55">'
+            f'<title>{hol_name}</title></rect>'
+        )
+        parts.append(
+            f'<line x1="{hx + band_w / 2:.1f}" y1="{plot_bottom - 10}" '
+            f'x2="{hx + band_w / 2:.1f}" y2="{plot_bottom}" '
+            f'stroke="#e65100" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.7"/>'
+        )
+        parts.append(
+            f'<text x="{hx + band_w / 2:.1f}" y="{plot_bottom + 12:.1f}" '
+            f'text-anchor="middle" font-family="{SVG_FONT}" font-size="8" '
+            f'fill="#e65100" opacity="0.8">PH</text>'
+        )
+
     for phase_index, phase in enumerate(phases):
         if phase_index > 0:
             y_cursor += PHASE_GAP
@@ -1387,8 +1456,22 @@ def sef_project_plan_timeline_svg(
             y0 = block_y + BLOCK_PAD_Y
             row_cy = y0 + CHAPTER_ROW_HEIGHT / 2
 
+            key = str(chapter.get("key") or "")
+            summary = str(chapter.get("summary") or key)
+            has_packages = bool(chapter.get("packages"))
+            sub_h = block_h - BLOCK_PAD_Y * 2 - CHAPTER_ROW_HEIGHT
+
+            if key:
+                parts.append(
+                    f'<g id="sef-ch-{html.escape(key)}" transform="translate(0,0)" '
+                    f'data-sub-h="{int(sub_h)}" '
+                    f'data-collapsed-h="{BLOCK_PAD_Y * 2 + CHAPTER_ROW_HEIGHT}">'
+                )
+
+            border_id_attr = f'id="sef-bd-{html.escape(key)}" ' if key else ""
             parts.append(
-                f'<rect x="0" y="{block_y:.1f}" width="{plot_right:.1f}" height="{block_h:.1f}" '
+                f'<rect {border_id_attr}'
+                f'x="0" y="{block_y:.1f}" width="{plot_right:.1f}" height="{block_h:.1f}" '
                 f'fill="none" stroke="{ATL["ink"]}" stroke-width="{BLOCK_BORDER_WIDTH}"/>'
             )
 
@@ -1399,8 +1482,6 @@ def sef_project_plan_timeline_svg(
             bar_w = max(x2 - x1, 2.0)
             bar_y = y0 + (CHAPTER_ROW_HEIGHT - CHAPTER_BAR_HEIGHT) / 2
             fill = row_fill(chapter)
-            key = str(chapter.get("key") or "")
-            summary = str(chapter.get("summary") or key)
 
             same_window_as_phase = (
                 str(chapter.get("startDate") or "")[:10] == phase_start.isoformat()
@@ -1437,6 +1518,17 @@ def sef_project_plan_timeline_svg(
                     y_center=row_cy,
                     tooltip=_bar_tooltip(chapter),
                 )
+
+            if has_packages and key:
+                chev_x = max(LABEL_PAD_X - 3, 6)
+                parts.append(
+                    f'<text id="sef-chev-{html.escape(key)}" '
+                    f'x="{chev_x:.1f}" y="{row_cy + 4:.1f}" '
+                    f'font-family="{SVG_FONT}" font-size="10" fill="{ATL["ink"]}" '
+                    f'style="cursor:pointer;user-select:none" text-anchor="end" '
+                    f'onclick="sefToggleChapter(event,&apos;{html.escape(key)}&apos;)">&#x25BC;</text>'
+                )
+                parts.append(f'<g id="sef-sub-{html.escape(key)}">')
 
             sub_y = y0 + CHAPTER_ROW_HEIGHT
             for pkg_index, package in enumerate(chapter.get("packages") or []):
@@ -1529,7 +1621,25 @@ def sef_project_plan_timeline_svg(
                     )
                     sub_y += DETAIL_ROW_HEIGHT
 
+            if has_packages and key:
+                parts.append('</g>')  # close sub-rows group
+            if key:
+                chapter_manifest.append({
+                    "key": key,
+                    "subH": int(sub_h),
+                    "collapsedH": BLOCK_PAD_Y * 2 + CHAPTER_ROW_HEIGHT,
+                })
+                parts.append('</g>')  # close chapter group
             y_cursor += block_h
+
+    # Embed chapter manifest for collapse/expand JS.
+    if chapter_manifest:
+        import json as _json
+        manifest_str = _json.dumps(chapter_manifest).replace('"', '&quot;')
+        parts.append(
+            f'<text id="sef-cm" data-chapters="{manifest_str}" '
+            f'visibility="hidden" fill="none">.</text>'
+        )
 
     # Milestone vertical gridlines and stacked labels.
     if milestone_markers:
@@ -1760,6 +1870,65 @@ def build_sef_project_plan_report_html(
     </section>
   </main>
     {variant_script}
+<script>
+(function () {{
+  'use strict';
+  window.sefToggleChapter = function (evt, key) {{
+    evt.stopPropagation();
+    var sub = document.getElementById('sef-sub-' + key);
+    var border = document.getElementById('sef-bd-' + key);
+    var chev = document.getElementById('sef-chev-' + key);
+    var chGroup = document.getElementById('sef-ch-' + key);
+    if (!sub || !chGroup) return;
+
+    var isOpen = sub.getAttribute('visibility') !== 'hidden' && sub.style.display !== 'none';
+    var subH = parseInt(chGroup.getAttribute('data-sub-h'), 10) || 0;
+
+    if (isOpen) {{
+      sub.setAttribute('visibility', 'hidden');
+      if (chev) chev.textContent = '\u25B6';
+      var collH = parseInt(chGroup.getAttribute('data-collapsed-h'), 10) || 0;
+      if (border) border.setAttribute('height', collH);
+    }} else {{
+      sub.setAttribute('visibility', 'visible');
+      if (chev) chev.textContent = '\u25BC';
+      if (border) {{
+        var ch = parseInt(chGroup.getAttribute('data-collapsed-h'), 10) || 0;
+        border.setAttribute('height', ch + subH);
+      }}
+    }}
+
+    var cmEl = document.getElementById('sef-cm');
+    if (!cmEl) return;
+    var chapters;
+    try {{ chapters = JSON.parse(cmEl.getAttribute('data-chapters').replace(/&quot;/g, '"')); }}
+    catch (e) {{ return; }}
+
+    var cumulativeShift = 0;
+    chapters.forEach(function (ch) {{
+      var g = document.getElementById('sef-ch-' + ch.key);
+      if (!g) return;
+      if (cumulativeShift !== 0) {{
+        g.setAttribute('transform', 'translate(0,' + cumulativeShift + ')');
+      }} else {{
+        g.setAttribute('transform', 'translate(0,0)');
+      }}
+      var s = document.getElementById('sef-sub-' + ch.key);
+      var collapsed = s && (s.getAttribute('visibility') === 'hidden' || s.style.display === 'none');
+      if (collapsed) cumulativeShift -= ch.subH;
+    }});
+
+    var svg = chGroup.closest('svg');
+    if (svg) {{
+      var vb = svg.getAttribute('viewBox').split(' ').map(Number);
+      var delta = isOpen ? -subH : subH;
+      vb[3] = Math.max(100, vb[3] + delta);
+      svg.setAttribute('viewBox', vb.join(' '));
+      svg.setAttribute('height', Math.max(100, parseFloat(svg.getAttribute('height')) + delta));
+    }}
+  }};
+}})();
+</script>
 </body>
 </html>
 """
