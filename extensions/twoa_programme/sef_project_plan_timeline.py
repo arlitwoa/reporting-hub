@@ -1624,18 +1624,18 @@ def sef_project_plan_timeline_svg(
             continue
         hx = x_for(hol_date)
         next_x = x_for(hol_date + timedelta(days=1))
-        band_w = max(next_x - hx, 1.0)
+        band_w = max(next_x - hx, 4.0)
         hol_name = html.escape(str(hol.get("name") or "Public Holiday"))
         parts.append(
             f'<rect x="{hx:.1f}" y="{plot_top}" width="{band_w:.1f}" '
-            f'height="{plot_h:.1f}" fill="#ff6d00" opacity="0.08">'
+            f'height="{plot_h:.1f}" fill="#ff6d00" opacity="0.15">'
             f'<title>{hol_name}</title></rect>'
         )
         # Solid orange rule at left edge of band.
         parts.append(
             f'<line x1="{hx:.1f}" y1="{plot_top}" '
             f'x2="{hx:.1f}" y2="{plot_bottom}" '
-            f'stroke="#e65100" stroke-width="1" stroke-dasharray="4 3" opacity="0.45"/>'
+            f'stroke="#e65100" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.65"/>'
         )
         # Small PH label below the x-axis.
         parts.append(
