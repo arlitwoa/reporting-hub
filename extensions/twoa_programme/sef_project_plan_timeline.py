@@ -430,7 +430,7 @@ def _fetch_package_children(
     """Fetch Block Level Zero and Test Cycle children under a parent."""
     rows: list[dict[str, Any]] = []
     issue_types = _unique_issue_types(
-        [config.package_issue_type, config.test_cycle_issue_type, *list(config.milestone_issue_types)]
+        [config.package_issue_type, config.test_cycle_issue_type, *list(config.milestone_issue_types), *list(config.extra_package_issue_types)]
     )
     for issue_type in issue_types:
         rows.extend(
@@ -501,16 +501,16 @@ def _build_hierarchy_from_flat(
     }
     hub_type = "Block Level Two"
     milestone_types = set(config.milestone_issue_types)
-    package_types = {config.package_issue_type, config.test_cycle_issue_type, *milestone_types}
+    package_types = {config.package_issue_type, config.test_cycle_issue_type, *milestone_types, *config.extra_package_issue_types}
     detail_types = {config.detail_issue_type, config.test_cycle_issue_type, *milestone_types}
-    chapter_types = {config.chapter_issue_type, config.test_cycle_issue_type, *milestone_types}
+    chapter_types = {config.chapter_issue_type, config.test_cycle_issue_type, *milestone_types, *config.extra_chapter_issue_types}
     by_key: dict[str, dict[str, Any]] = {}
     for issue in issues:
         key = str(issue.get("key") or "")
         if not key:
             continue
         itype = _issue_type_name(issue)
-        allowed_type = itype in {hub_type, *block_types, config.test_cycle_issue_type} or _is_milestone_issue_type(
+        allowed_type = itype in {hub_type, *block_types, config.test_cycle_issue_type, *config.extra_package_issue_types} or _is_milestone_issue_type(
             itype,
             config.milestone_issue_types,
         )

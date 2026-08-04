@@ -15,7 +15,15 @@
     "testCycle": "Test Cycle",
     "milestones": [
       "Meeting Gate",
-      "Milestone"
+      "Milestone",
+      "Milestone Level One"
+    ],
+    "additionalPackageTypes": [
+      "Pre Requisite",
+      "Story"
+    ],
+    "additionalChapterTypes": [
+      "Pre Requisite"
     ]
   },
   "filterDimensions": [

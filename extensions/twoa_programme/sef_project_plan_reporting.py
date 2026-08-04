@@ -55,6 +55,8 @@ class SefProjectPlanReportingConfig:
     pages_site_path: str
     page_title: str
     milestone_issue_types: tuple[str, ...] = ("Meeting Gate", "Milestone")
+    extra_package_issue_types: tuple[str, ...] = ()
+    extra_chapter_issue_types: tuple[str, ...] = ()
     filter_dimensions: tuple[SefFilterDimensionConfig, ...] = (
         SefFilterDimensionConfig(id="component", label="Component", source_field="components"),
     )
@@ -139,6 +141,16 @@ def load_sef_project_plan_reporting_config(
         detail_issue_type=str(issue_types.get("detail") or "Block Level Minus One"),
         test_cycle_issue_type=str(issue_types.get("testCycle") or "Test Cycle"),
         milestone_issue_types=tuple(milestone_issue_types),
+        extra_package_issue_types=tuple(
+            str(t).strip()
+            for t in (issue_types.get("additionalPackageTypes") or [])
+            if str(t).strip()
+        ),
+        extra_chapter_issue_types=tuple(
+            str(t).strip()
+            for t in (issue_types.get("additionalChapterTypes") or [])
+            if str(t).strip()
+        ),
         filter_dimensions=tuple(filter_dimensions),
         scope_filter_id=str(raw.get("scopeFilter", {}).get("filterId") or "").strip() or None,
         scope_filter_name=str(raw.get("scopeFilter", {}).get("filterName") or "").strip() or None,
