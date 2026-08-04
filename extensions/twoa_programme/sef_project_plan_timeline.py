@@ -52,17 +52,17 @@ from extensions.twoa_programme.sef_project_plan_reporting import (
 
 START_DATE_FIELD = "customfield_10015"
 
-CHAPTER_ROW_HEIGHT = 28
-PHASE_ROW_HEIGHT = 32
-STREAM_ROW_HEIGHT = 18
-DETAIL_ROW_HEIGHT = 16
-LABEL_WIDTH = 280
-RIGHT_PAD = 24
-MILESTONE_RIGHT_LABEL_PAD = 180
-CALENDAR_TOP = 40
-BLOCK_GAP = 12
-BLOCK_PAD_Y = 8
-LABEL_PAD_X = 8
+CHAPTER_ROW_HEIGHT = 36
+PHASE_ROW_HEIGHT = 44
+STREAM_ROW_HEIGHT = 24
+DETAIL_ROW_HEIGHT = 20
+LABEL_WIDTH = 300
+RIGHT_PAD = 32
+MILESTONE_RIGHT_LABEL_PAD = 200
+CALENDAR_TOP = 48
+BLOCK_GAP = 14
+BLOCK_PAD_Y = 10
+LABEL_PAD_X = 10
 LABEL_MAX_CHARS = 42
 SUB_LABEL_INDENT = 20
 DETAIL_LABEL_INDENT = 36
@@ -131,16 +131,15 @@ SEF_PROJECT_PLAN_EXTRA_CSS = """
     padding: 16px 4px 24px;
 }
 .chart-wrap-sef-plan.chart-wrap-timeline {
-    max-height: none;
-    min-height: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
+    max-height: 82vh;
+    min-height: 400px;
+    overflow: auto;
+    border: 1px solid #dfe1e6;
+    border-radius: 4px;
 }
 .chart-wrap-sef-plan svg {
   display: block;
-  height: auto;
-  min-width: 0;
-  max-width: none;
+  /* No width/height CSS — SVG renders at its intrinsic pixel dimensions (1:1 scale). */
 }
 .sef-plan-legend {
   display: flex;
@@ -1273,7 +1272,7 @@ def _plot_height(phases: list[dict[str, Any]]) -> int:
 
 
 # Project plan uses a wider per-day scale and is horizontally scrollable.
-SEF_PLAN_PX_PER_DAY = 4.5
+SEF_PLAN_PX_PER_DAY = 8.0
 
 
 def _plot_width(span_days: int, *, px_per_day: float = EPIC_CHART_PX_PER_DAY) -> float:
@@ -1448,7 +1447,7 @@ def sef_project_plan_timeline_svg(
                 y_center=phase_row_cy,
                 url=f"{JIRA_SERVER}/browse/{html.escape(phase_key)}",
                 tooltip=_bar_tooltip(phase),
-                font_size=11,
+                font_size=13,
                 font_weight="700",
             )
             y_cursor += PHASE_ROW_HEIGHT
@@ -1580,7 +1579,7 @@ def sef_project_plan_timeline_svg(
                     y_center=sub_cy,
                     url=f"{JIRA_SERVER}/browse/{html.escape(p_key)}",
                     tooltip=_bar_tooltip(package),
-                    font_size=9,
+                    font_size=10,
                     font_weight="400",
                     fill=ATL["text_subtle"],
                 )
@@ -1621,13 +1620,11 @@ def sef_project_plan_timeline_svg(
                         y_center=detail_cy,
                         url=f"{JIRA_SERVER}/browse/{html.escape(d_key)}",
                         tooltip=_bar_tooltip(detail),
-                        font_size=8,
+                        font_size=9,
                         font_weight="400",
                         fill=ATL["text_subtle"],
                     )
                     sub_y += DETAIL_ROW_HEIGHT
-
-            if has_packages and key:
                 parts.append('</g>')  # close sub-rows group
             if key:
                 chapter_manifest.append({
