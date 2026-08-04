@@ -1371,39 +1371,8 @@ def sef_project_plan_timeline_svg(
     )
 
     chapter_manifest: list[dict] = []
-    y_cursor = plot_top
-
-    # Render Auckland public holiday bands before chart content.
     holidays = payload.get("holidays") or []
-    for hol in holidays:
-        hol_str = str(hol.get("date") or "")[:10]
-        if not hol_str:
-            continue
-        try:
-            hol_date = date.fromisoformat(hol_str)
-        except ValueError:
-            continue
-        if not (x_min <= hol_date <= x_max) or hol_date.weekday() >= 5:
-            continue
-        hx = x_for(hol_date)
-        next_x = x_for(hol_date + timedelta(days=1))
-        band_w = max(next_x - hx, 1.0)
-        hol_name = html.escape(str(hol.get("name") or "Public Holiday"))
-        parts.append(
-            f'<rect x="{hx:.1f}" y="{plot_top}" width="{band_w:.1f}" '
-            f'height="{plot_h:.1f}" fill="#fff3e0" opacity="0.55">'
-            f'<title>{hol_name}</title></rect>'
-        )
-        parts.append(
-            f'<line x1="{hx + band_w / 2:.1f}" y1="{plot_bottom - 10}" '
-            f'x2="{hx + band_w / 2:.1f}" y2="{plot_bottom}" '
-            f'stroke="#e65100" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.7"/>'
-        )
-        parts.append(
-            f'<text x="{hx + band_w / 2:.1f}" y="{plot_bottom + 12:.1f}" '
-            f'text-anchor="middle" font-family="{SVG_FONT}" font-size="8" '
-            f'fill="#e65100" opacity="0.8">PH</text>'
-        )
+    y_cursor = plot_top
 
     for phase_index, phase in enumerate(phases):
         if phase_index > 0:
@@ -1639,6 +1608,40 @@ def sef_project_plan_timeline_svg(
         parts.append(
             f'<text id="sef-cm" data-chapters="{manifest_str}" '
             f'visibility="hidden" fill="none">.</text>'
+        )
+
+    # Auckland public holiday bands — rendered after chart content so they
+    # appear on top of swimlane fills but use low opacity to keep bars readable.
+    for hol in holidays:
+        hol_str = str(hol.get("date") or "")[:10]
+        if not hol_str:
+            continue
+        try:
+            hol_date = date.fromisoformat(hol_str)
+        except ValueError:
+            continue
+        if not (x_min <= hol_date <= x_max) or hol_date.weekday() >= 5:
+            continue
+        hx = x_for(hol_date)
+        next_x = x_for(hol_date + timedelta(days=1))
+        band_w = max(next_x - hx, 1.0)
+        hol_name = html.escape(str(hol.get("name") or "Public Holiday"))
+        parts.append(
+            f'<rect x="{hx:.1f}" y="{plot_top}" width="{band_w:.1f}" '
+            f'height="{plot_h:.1f}" fill="#ff6d00" opacity="0.08">'
+            f'<title>{hol_name}</title></rect>'
+        )
+        # Solid orange rule at left edge of band.
+        parts.append(
+            f'<line x1="{hx:.1f}" y1="{plot_top}" '
+            f'x2="{hx:.1f}" y2="{plot_bottom}" '
+            f'stroke="#e65100" stroke-width="1" stroke-dasharray="4 3" opacity="0.45"/>'
+        )
+        # Small PH label below the x-axis.
+        parts.append(
+            f'<text x="{hx + band_w / 2:.1f}" y="{plot_bottom + 14:.1f}" '
+            f'text-anchor="middle" font-family="{SVG_FONT}" font-size="8" '
+            f'fill="#e65100" font-weight="600">PH</text>'
         )
 
     # Milestone vertical gridlines and stacked labels.
