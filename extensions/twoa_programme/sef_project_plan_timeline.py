@@ -133,15 +133,14 @@ SEF_PROJECT_PLAN_EXTRA_CSS = """
 .chart-wrap-sef-plan.chart-wrap-timeline {
     max-height: none;
     min-height: 0;
-    overflow-x: hidden;
+    overflow-x: auto;
     overflow-y: hidden;
 }
 .chart-wrap-sef-plan svg {
   display: block;
-  width: 100%;
   height: auto;
   min-width: 0;
-  max-width: 100%;
+  max-width: none;
 }
 .sef-plan-legend {
   display: flex;
@@ -1273,15 +1272,24 @@ def _plot_height(phases: list[dict[str, Any]]) -> int:
     return total
 
 
+# Project plan uses a wider per-day scale and is horizontally scrollable.
+SEF_PLAN_PX_PER_DAY = 4.5
+
+
 def _plot_width(span_days: int, *, px_per_day: float = EPIC_CHART_PX_PER_DAY) -> float:
     raw = span_days * px_per_day
     return max(float(QUARTERLY_REPORT_MIN_PLOT_WIDTH), min(float(QUARTERLY_REPORT_MAX_SVG_WIDTH), raw))
 
 
+def _sef_plan_plot_width(span_days: int, *, px_per_day: float = SEF_PLAN_PX_PER_DAY) -> float:
+    """Uncapped plot width for the project plan — container scrolls instead."""
+    return max(float(QUARTERLY_REPORT_MIN_PLOT_WIDTH), span_days * px_per_day)
+
+
 def sef_project_plan_timeline_svg(
     payload: dict[str, Any],
     *,
-    px_per_day: float = EPIC_CHART_PX_PER_DAY,
+    px_per_day: float = SEF_PLAN_PX_PER_DAY,
     component_colors: SefProjectPlanComponentColors | None = None,
 ) -> str:
     phases = payload.get("phases") or []
@@ -1300,7 +1308,7 @@ def sef_project_plan_timeline_svg(
     plot_top = CALENDAR_TOP + MILESTONE_LABEL_ZONE
     plot_bottom = plot_top + plot_h
     svg_height = plot_bottom + _svg_x_bottom_margin()
-    plot_w = _plot_width(span_days, px_per_day=px_per_day)
+    plot_w = _sef_plan_plot_width(span_days, px_per_day=px_per_day)
     plot_left = _label_column_width(phases)
     plot_right = plot_left + plot_w
     width = plot_right + RIGHT_PAD + MILESTONE_RIGHT_LABEL_PAD
@@ -1324,7 +1332,7 @@ def sef_project_plan_timeline_svg(
         milestone_markers.append((m_x, m_label, m_start, bool(milestone.get("isMeetingGate"))))
 
     parts: list[str] = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="{svg_height}" '
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width:.0f}" height="{svg_height}" '
         f'viewBox="0 0 {width} {svg_height}" preserveAspectRatio="xMinYMin meet" '
         f'role="img" aria-label="SEF integrated project plan timeline">',
         f'<rect x="0" y="0" width="{width}" height="{svg_height}" fill="#ffffff"/>',
