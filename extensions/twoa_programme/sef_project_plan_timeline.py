@@ -240,6 +240,14 @@ def resolve_chart_window_for_phases(
 
     for phase in phases:
         for chapter in phase.get("chapters") or []:
+            # Include chapter dates so the window always spans the full plan,
+            # even when package/detail rows exist with narrower date ranges.
+            c_start = chapter.get("startDate")
+            c_end = chapter.get("endDate")
+            if c_start:
+                actionable_starts.append(date.fromisoformat(str(c_start)[:10]))
+            if c_end:
+                actionable_ends.append(date.fromisoformat(str(c_end)[:10]))
             for package in chapter.get("packages") or []:
                 p_start = package.get("startDate")
                 p_end = package.get("endDate")
