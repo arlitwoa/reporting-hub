@@ -393,9 +393,18 @@ td.pending-metric a {
     border: 1px solid #dfe1e6;
     border-radius: 4px;
 }
-.chart-wrap-sef-plan svg {
+/* Override .report-shell .chart-wrap (overflow-x: hidden) */
+.report-shell .chart-wrap-sef-plan {
+    overflow: auto;
+}
+/* Override .report-shell .chart-wrap svg (width:100%, max-width:100%, height:auto)
+   — SVG must render at its intrinsic pixel size so text is readable. */
+.report-shell .chart-wrap-sef-plan svg {
   display: block;
-  /* No width/height CSS — SVG renders at its intrinsic pixel dimensions (1:1 scale). */
+  width: auto;
+  height: auto;
+  min-width: unset;
+  max-width: unset;
 }
 .sef-plan-legend {
   display: flex;
@@ -459,7 +468,7 @@ td.pending-metric a {
     <nav class="report-nav" aria-label="Breadcrumb"><a href="../index.html">TWoA reporting hub</a> <span class="sep">›</span> <a href="index.html">SEF</a> <span class="sep">›</span> <span class="current">SEF | Integrated Project Plan</span></nav>
     <header class="report-header">
       <h1>SEF | Integrated Project Plan</h1>
-      <p class="report-subtitle">Generated 04 Aug 2026 15:32 NZST</p>
+      <p class="report-subtitle">Generated 04 Aug 2026 15:37 NZST</p>
     </header>
     <section class="chart-section">
       <div class="sef-plan-legend"><span class="sef-plan-legend-item"><span class="sef-plan-legend-swatch" style="background:#7A869A"></span>All other work items</span><span class="sef-plan-legend-item"><span class="sef-plan-legend-swatch" style="background:#4C9AFF"></span>All</span><span class="sef-plan-legend-item"><span class="sef-plan-legend-swatch" style="background:#998DD9"></span>Change</span><span class="sef-plan-legend-item"><span class="sef-plan-legend-swatch" style="background:#0052CC"></span>Data</span><span class="sef-plan-legend-item"><span class="sef-plan-legend-swatch" style="background:#FF8B66"></span>HCM</span><span class="sef-plan-legend-item"><span class="sef-plan-legend-swatch" style="background:#79F2C0"></span>Integration</span><span class="sef-plan-legend-item"><span class="sef-plan-legend-swatch" style="background:#DE350B"></span>Milestone</span><span class="sef-plan-legend-item"><span class="sef-plan-legend-swatch" style="background:#FFE380"></span>Payroll</span><span class="sef-plan-legend-item"><span class="sef-plan-legend-swatch" style="background:#00875A"></span>Testing</span></div>

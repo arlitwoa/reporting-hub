@@ -137,9 +137,18 @@ SEF_PROJECT_PLAN_EXTRA_CSS = """
     border: 1px solid #dfe1e6;
     border-radius: 4px;
 }
-.chart-wrap-sef-plan svg {
+/* Override .report-shell .chart-wrap (overflow-x: hidden) */
+.report-shell .chart-wrap-sef-plan {
+    overflow: auto;
+}
+/* Override .report-shell .chart-wrap svg (width:100%, max-width:100%, height:auto)
+   — SVG must render at its intrinsic pixel size so text is readable. */
+.report-shell .chart-wrap-sef-plan svg {
   display: block;
-  /* No width/height CSS — SVG renders at its intrinsic pixel dimensions (1:1 scale). */
+  width: auto;
+  height: auto;
+  min-width: unset;
+  max-width: unset;
 }
 .sef-plan-legend {
   display: flex;
