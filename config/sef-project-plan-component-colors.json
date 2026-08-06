@@ -1,8 +1,8 @@
 {
-  "source": "Jira Plans 959 view 1053 — View settings → Color by → Component (PDE)",
+  "source": "Jira Plans 959 view 1053 — View settings → Color by → Workstream (PDE)",
   "defaultFill": "#7A869A",
   "defaultLabel": "All other work items",
-  "components": {
+  "workstreams": {
     "All": "#4C9AFF",
     "Payroll": "#FFE380",
     "HCM": "#FF8B66",

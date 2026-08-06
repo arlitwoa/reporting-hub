@@ -28,9 +28,34 @@
   },
   "filterDimensions": [
     {
-      "id": "component",
-      "label": "Component",
-      "sourceField": "components"
+      "id": "workstream",
+      "label": "Workstream",
+      "sourceField": "workstreams"
+    },
+    {
+      "id": "tenant",
+      "label": "Tenant",
+      "sourceField": "tenant"
+    },
+    {
+      "id": "environment",
+      "label": "Environment",
+      "sourceField": "environment"
+    },
+    {
+      "id": "platforms",
+      "label": "Platforms",
+      "sourceField": "platforms"
+    },
+    {
+      "id": "testTypes",
+      "label": "Test Types",
+      "sourceField": "testTypes"
+    },
+    {
+      "id": "smeCommitment",
+      "label": "SME Commitment",
+      "sourceField": "smeCommitment"
     }
   ],
   "scopeLinkType": "Scope",

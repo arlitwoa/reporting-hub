@@ -58,7 +58,7 @@ class SefProjectPlanReportingConfig:
     extra_package_issue_types: tuple[str, ...] = ()
     extra_chapter_issue_types: tuple[str, ...] = ()
     filter_dimensions: tuple[SefFilterDimensionConfig, ...] = (
-        SefFilterDimensionConfig(id="component", label="Component", source_field="components"),
+        SefFilterDimensionConfig(id="workstream", label="Workstream", source_field="workstreams"),
     )
     def output_root(self, repo_root: Path | None = None) -> Path:
         from extensions.twoa_programme.quarterly_reporting import load_quarterly_reporting_config
@@ -117,7 +117,7 @@ def load_sef_project_plan_reporting_config(
         )
     if not filter_dimensions:
         filter_dimensions = [
-            SefFilterDimensionConfig(id="component", label="Component", source_field="components")
+            SefFilterDimensionConfig(id="workstream", label="Workstream", source_field="workstreams")
         ]
     artifacts = raw.get("artifacts") or {}
     pages = raw.get("githubPages") or {}

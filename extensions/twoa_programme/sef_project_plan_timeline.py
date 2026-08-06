@@ -18,7 +18,7 @@ from extensions.twoa_programme.epic_timeline import (
     epic_bar_fill,
 )
 from extensions.twoa_programme.jira_search import search_all
-from extensions.twoa_programme.quarterly_dashboard_constants import ATL, JIRA_SERVER, SVG_FONT
+from extensions.twoa_programme.quarterly_dashboard_constants import ATL, CHART_AXIS_FONT, JIRA_SERVER, SVG_FONT
 from extensions.twoa_programme.quarterly_dashboard_markup import REPORT_CSS, _svg_embedded_title
 from extensions.twoa_programme.github_pages_nav import BREADCRUMB_CSS
 from extensions.twoa_programme.quarterly_dashboard_svg_core import (
@@ -36,12 +36,14 @@ from extensions.twoa_programme.milestone_scope_chart import (
     lane_bar_segments,
     timeline_bar_segment_order,
 )
+from extensions.twoa_programme.quarterly_dashboard_calendar import _week_start_dates
 from extensions.twoa_programme.sef_block_scope import build_block_scope_rollups
 from extensions.twoa_programme.sef_project_plan_component_colors import (
     SefProjectPlanComponentColors,
-    component_names_from_issue,
+    WORKSTREAM_FIELD_ID,
+    workstream_names_from_issue,
     load_sef_project_plan_component_colors,
-    sef_project_plan_component_legend_html,
+    sef_project_plan_workstream_legend_html,
 )
 from extensions.twoa_programme.sef_project_plan_reporting import (
     SefFilterDimensionConfig,
@@ -51,6 +53,75 @@ from extensions.twoa_programme.sef_project_plan_reporting import (
 )
 
 START_DATE_FIELD = "customfield_10015"
+TENANT_FIELD_ID = "customfield_14734"
+ENVIRONMENT_FIELD_ID = "customfield_10408"
+PLATFORMS_FIELD_ID = "customfield_10046"
+PLATFORM_FIELD_ID = "customfield_10079"
+TEST_TYPES_FIELD_ID = "customfield_10145"
+
+# Source-field names used in report filterDimensions and the Jira fields that feed them.
+_DIMENSION_SOURCE_FIELD_IDS: dict[str, tuple[str, ...]] = {
+    "workstreams": (WORKSTREAM_FIELD_ID, "components"),
+    "tenant": (TENANT_FIELD_ID,),
+    "environment": (ENVIRONMENT_FIELD_ID,),
+    "platforms": (PLATFORMS_FIELD_ID, PLATFORM_FIELD_ID),
+    "testTypes": (TEST_TYPES_FIELD_ID,),
+    # SME commitment is intentionally configurable; set sourceField to a customfield id
+    # in config when the authoritative Jira field is confirmed for PDE.
+    "smeCommitment": (),
+}
+
+
+def _coerce_issue_field_values(raw: Any) -> list[str]:
+    values: list[str] = []
+
+    def _append(item: Any) -> None:
+        if item is None:
+            return
+        if isinstance(item, dict):
+            text = str(
+                item.get("value")
+                or item.get("name")
+                or item.get("displayName")
+                or item.get("key")
+                or ""
+            ).strip()
+        else:
+            text = str(item).strip()
+        if text:
+            values.append(text)
+
+    if isinstance(raw, list):
+        for item in raw:
+            _append(item)
+    else:
+        _append(raw)
+    return values
+
+
+def _issue_dimension_values(issue: dict[str, Any], *, source_field: str) -> list[str]:
+    if source_field == "workstreams":
+        return workstream_names_from_issue(issue)
+
+    fields = issue.get("fields") or {}
+    candidates: list[str] = []
+    candidates.extend(_DIMENSION_SOURCE_FIELD_IDS.get(source_field, ()))
+    if source_field.startswith("customfield_"):
+        candidates.append(source_field)
+    candidates.append(source_field)
+
+    values: list[str] = []
+    for field_id in candidates:
+        values.extend(_coerce_issue_field_values(fields.get(field_id)))
+
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        deduped.append(value)
+    return deduped
 
 CHAPTER_ROW_HEIGHT = 36
 PHASE_ROW_HEIGHT = 44
@@ -133,13 +204,17 @@ SEF_PROJECT_PLAN_EXTRA_CSS = """
 .chart-wrap-sef-plan.chart-wrap-timeline {
     max-height: 82vh;
     min-height: 400px;
-    overflow: auto;
+    overflow-x: scroll;
+    overflow-y: auto;
+    scrollbar-gutter: stable both-edges;
     border: 1px solid #dfe1e6;
     border-radius: 4px;
 }
 /* Override .report-shell .chart-wrap (overflow-x: hidden) */
 .report-shell .chart-wrap-sef-plan {
-    overflow: auto;
+    overflow-x: scroll;
+    overflow-y: auto;
+    scrollbar-gutter: stable both-edges;
 }
 /* Override .report-shell .chart-wrap svg (width:100%, max-width:100%, height:auto)
    — SVG must render at its intrinsic pixel size so text is readable. */
@@ -186,6 +261,29 @@ SEF_PROJECT_PLAN_EXTRA_CSS = """
     background: #fff;
     color: #172b4d;
 }
+.sef-plan-filter-actions {
+    display: inline-flex;
+    align-items: flex-end;
+    padding-bottom: 1px;
+}
+.sef-plan-clear {
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid #dfe1e6;
+    border-radius: 4px;
+    background: #fff;
+    color: #172b4d;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.sef-plan-clear:hover {
+    background: #f4f5f7;
+}
+.sef-plan-clear:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
 .sef-plan-variant[hidden] {
     display: none;
 }
@@ -201,6 +299,47 @@ SEF_PROJECT_PLAN_EXTRA_CSS = """
 }
 .chart-wrap-sef-plan svg a:hover text {
   text-decoration: underline;
+}
+.chart-wrap-sef-plan .sef-block-link-icon {
+    cursor: pointer;
+    user-select: none;
+}
+.chart-wrap-sef-plan .sef-block-link-icon-bg {
+    fill: #ffebe6;
+    stroke: #ff8f73;
+    stroke-width: 0.8;
+}
+.chart-wrap-sef-plan .sef-block-link-icon-glyph {
+    fill: #bf2600;
+    font-weight: 700;
+}
+.chart-wrap-sef-plan .sef-block-link-icon-dir {
+    fill: #42526e;
+    font-weight: 700;
+}
+.chart-wrap-sef-plan .sef-block-link-icon:hover .sef-block-link-icon-bg {
+    fill: #ffdfd6;
+    stroke: #de350b;
+}
+.chart-wrap-sef-plan .sef-block-link-icon.active .sef-block-link-icon-bg {
+    fill: #ffbdad;
+    stroke: #bf2600;
+}
+.chart-wrap-sef-plan .sef-block-link-icon[data-sef-dir="blocks"] .sef-block-link-icon-bg {
+    fill: #e3fcef;
+    stroke: #79f2c0;
+}
+.chart-wrap-sef-plan .sef-block-link-icon[data-sef-dir="blocks"] .sef-block-link-icon-glyph,
+.chart-wrap-sef-plan .sef-block-link-icon[data-sef-dir="blocks"] .sef-block-link-icon-dir {
+    fill: #006644;
+}
+.chart-wrap-sef-plan .sef-block-link-icon[data-sef-dir="both"] .sef-block-link-icon-bg {
+    fill: #deebff;
+    stroke: #4c9aff;
+}
+.chart-wrap-sef-plan .sef-block-link-icon[data-sef-dir="both"] .sef-block-link-icon-glyph,
+.chart-wrap-sef-plan .sef-block-link-icon[data-sef-dir="both"] .sef-block-link-icon-dir {
+    fill: #0747a6;
 }
 .sef-phase-divider {
   fill: #f4f5f7;
@@ -327,6 +466,27 @@ def _issue_timeline_row(
     fallback_end: date,
     milestone_issue_types: tuple[str, ...],
 ) -> dict[str, Any]:
+    def _blocked_by_keys() -> list[str]:
+        blocked_by: list[str] = []
+        for link in (fields.get("issuelinks") or []):
+            if not isinstance(link, dict):
+                continue
+            link_type = link.get("type") or {}
+            inward_rel = str((link_type or {}).get("inward") or "").strip().lower()
+            outward_rel = str((link_type or {}).get("outward") or "").strip().lower()
+
+            inward_issue = link.get("inwardIssue") or {}
+            outward_issue = link.get("outwardIssue") or {}
+
+            inward_key = str(inward_issue.get("key") or "").strip()
+            outward_key = str(outward_issue.get("key") or "").strip()
+
+            if inward_key and "blocked by" in inward_rel:
+                blocked_by.append(inward_key)
+            if outward_key and "blocked by" in outward_rel:
+                blocked_by.append(outward_key)
+
+        return list(dict.fromkeys(key for key in blocked_by if key and key != str(issue.get("key") or "")))
     fields = issue.get("fields") or {}
     start_raw = fields.get(START_DATE_FIELD)
     if isinstance(start_raw, str):
@@ -362,11 +522,18 @@ def _issue_timeline_row(
             row["isMeetingGate"] = True
         if issue_type_icon_url:
             row["issueTypeIconUrl"] = issue_type_icon_url
-    components = component_names_from_issue(issue)
-    if components:
-        row["components"] = components
+    workstreams = _issue_dimension_values(issue, source_field="workstreams")
+    if workstreams:
+        row["workstreams"] = workstreams
+    for source_field in ("tenant", "environment", "platforms", "testTypes", "smeCommitment"):
+        values = _issue_dimension_values(issue, source_field=source_field)
+        if values:
+            row[source_field] = values
     if due_s:
         row["dueDate"] = due_s
+    blocked_by = _blocked_by_keys()
+    if blocked_by:
+        row["blockedByKeys"] = blocked_by
     return row
 
 
@@ -660,7 +827,21 @@ def fetch_sef_project_plan_timeline(
     fallback_start = date.fromisoformat(config.chart_window_start)
     fallback_end = date.fromisoformat(config.chart_window_end)
     start_field = START_DATE_FIELD
-    fields = ["summary", "status", "issuetype", "created", "duedate", start_field, "components"]
+    fields = [
+        "summary",
+        "status",
+        "issuetype",
+        "created",
+        "duedate",
+        start_field,
+        "components",
+        WORKSTREAM_FIELD_ID,
+        TENANT_FIELD_ID,
+        ENVIRONMENT_FIELD_ID,
+        PLATFORMS_FIELD_ID,
+        PLATFORM_FIELD_ID,
+        TEST_TYPES_FIELD_ID,
+    ]
     scope_fields = [*fields, "issuelinks"]
     story_points_field = field_aliases()["Story Points"]
 
@@ -876,7 +1057,19 @@ def filter_payload_by_dimension_value(
 
     The hierarchy is preserved by keeping ancestors of matching rows.
     """
-    dimensions = payload.get("filterDimensions") or []
+    dimensions_raw = payload.get("filterDimensions") or []
+    dimensions: list[dict[str, Any]] = []
+    for dim in dimensions_raw:
+        if not isinstance(dim, dict):
+            continue
+        dim_copy = dict(dim)
+        if str(dim_copy.get("id") or "") == "component":
+            dim_copy["id"] = "workstream"
+        if str(dim_copy.get("label") or "") == "Component":
+            dim_copy["label"] = "Workstream"
+        if str(dim_copy.get("sourceField") or "") == "components":
+            dim_copy["sourceField"] = "workstreams"
+        dimensions.append(dim_copy)
     mapping = {
         str(row.get("id") or ""): str(row.get("sourceField") or "")
         for row in dimensions
@@ -1027,16 +1220,49 @@ def _append_label_link(
     font_weight: str = "600",
     fill: str | None = None,
     indent: float = LABEL_PAD_X,
+    row_key: str = "",
+    blocked_by_keys: list[str] | None = None,
+    blocks_keys: list[str] | None = None,
+    rows_by_key: dict[str, dict[str, Any]] | None = None,
 ) -> None:
+    del indent
     text_fill = fill or ATL["ink"]
-    parts.append(f'<g clip-path="url(#sef-plan-label-col)">{_svg_embedded_title(tooltip)}')
+    data_key_attr = (
+        f' data-sef-key="{html.escape(row_key)}" data-sef-row="1"' if row_key else ""
+    )
+    parts.append(
+        f'<g clip-path="url(#sef-plan-label-col)"{data_key_attr}>{_svg_embedded_title(tooltip)}'
+    )
     parts.append(f'<a href="{url}" target="_blank" rel="noopener">')
+    visible_label = html.escape(_truncate_label(text))
     parts.append(
         f'<text x="{x:.1f}" y="{y_center:.1f}" text-anchor="start" dominant-baseline="middle" '
         f'font-family="{SVG_FONT}" font-size="{font_size}" fill="{text_fill}" '
-        f'font-weight="{font_weight}">{html.escape(_truncate_label(text))}</text>'
+        f'font-weight="{font_weight}">{visible_label}</text>'
     )
-    parts.append("</a></g>")
+    parts.append("</a>")
+
+    payload = _blocked_focus_payload(
+        row_key=row_key,
+        blocked_by_keys=blocked_by_keys,
+        blocks_keys=blocks_keys,
+        rows_by_key=rows_by_key,
+    )
+    if payload:
+        linked_csv, link_tooltip, direction = payload
+        icon_x = x + (len(_truncate_label(text)) * font_size * 0.58) + 8
+        _append_block_link_icon(
+            parts,
+            row_key=row_key,
+            direction=direction,
+            linked_csv=html.escape(linked_csv),
+            tooltip=link_tooltip,
+            cx=icon_x,
+            cy=y_center,
+            size=10.0,
+        )
+
+    parts.append("</g>")
 
 
 def _append_label_text(
@@ -1049,15 +1275,104 @@ def _append_label_text(
     font_size: int = 10,
     font_weight: str = "600",
     fill: str | None = None,
+    row_key: str = "",
 ) -> None:
     text_fill = fill or ATL["ink"]
-    parts.append(f'<g clip-path="url(#sef-plan-label-col)">{_svg_embedded_title(tooltip)}')
+    data_key_attr = (
+        f' data-sef-key="{html.escape(row_key)}" data-sef-row="1"' if row_key else ""
+    )
+    parts.append(
+        f'<g clip-path="url(#sef-plan-label-col)"{data_key_attr}>{_svg_embedded_title(tooltip)}'
+    )
     parts.append(
         f'<text x="{x:.1f}" y="{y_center:.1f}" text-anchor="start" dominant-baseline="middle" '
         f'font-family="{SVG_FONT}" font-size="{font_size}" fill="{text_fill}" '
         f'font-weight="{font_weight}">{html.escape(_truncate_label(text))}</text>'
     )
     parts.append("</g>")
+
+
+def _append_block_link_icon(
+    parts: list[str],
+    *,
+    row_key: str,
+    direction: str,
+    linked_csv: str,
+    tooltip: str,
+    cx: float,
+    cy: float,
+    size: float,
+) -> None:
+    dir_value = direction if direction in {"blocked-by", "blocks", "both"} else "blocked-by"
+    dir_glyph = "←" if dir_value == "blocked-by" else ("→" if dir_value == "blocks" else "↔")
+    half = size / 2.0
+    radius = max(1.5, size * 0.2)
+    glyph_size = max(7.0, size * 0.78)
+    dir_size = max(5.8, size * 0.46)
+    parts.append(
+        f'<g class="sef-block-link-icon" data-sef-key="{html.escape(row_key)}" data-sef-row="1" '
+        f'data-sef-dir="{dir_value}" '
+        f'onclick="sefToggleBlockedFocus(event,&apos;{html.escape(row_key)}&apos;,&apos;{linked_csv}&apos;)">'
+        f'{_svg_embedded_title(tooltip)}'
+        f'<rect class="sef-block-link-icon-bg" x="{cx - half:.1f}" y="{cy - half:.1f}" '
+        f'width="{size:.1f}" height="{size:.1f}" rx="{radius:.1f}"/>'
+        f'<text class="sef-block-link-icon-glyph" x="{cx:.1f}" y="{cy + 0.2:.1f}" '
+        f'text-anchor="middle" dominant-baseline="middle" font-family="{SVG_FONT}" '
+        f'font-size="{glyph_size:.1f}">&#128279;</text>'
+        f'<text class="sef-block-link-icon-dir" x="{cx + (half * 0.58):.1f}" y="{cy + (half * 0.60):.1f}" '
+        f'text-anchor="middle" dominant-baseline="middle" font-family="{SVG_FONT}" '
+        f'font-size="{dir_size:.1f}">{dir_glyph}</text>'
+        "</g>"
+    )
+
+
+def _blocked_focus_payload(
+    *,
+    row_key: str,
+    blocked_by_keys: list[str] | None,
+    blocks_keys: list[str] | None,
+    rows_by_key: dict[str, dict[str, Any]] | None,
+) -> tuple[str, str, str] | None:
+    source_key = str(row_key or "").strip()
+    if not source_key:
+        return None
+    blockers = [str(key).strip() for key in (blocked_by_keys or []) if str(key).strip()]
+    blockers = list(dict.fromkeys(blockers))
+    blocked_rows = [str(key).strip() for key in (blocks_keys or []) if str(key).strip()]
+    blocked_rows = list(dict.fromkeys(blocked_rows))
+    linked_keys = list(dict.fromkeys([*blockers, *blocked_rows]))
+    if not linked_keys:
+        return None
+
+    direction = "both" if blockers and blocked_rows else ("blocked-by" if blockers else "blocks")
+    blocked_count = len(blockers)
+    blocks_count = len(blocked_rows)
+
+    tooltip_lines = [f"{source_key} is blocked by:", f"{source_key} dependency direction:"]
+    if direction == "both":
+        tooltip_lines.append(f"- Depends on {blocked_count} item(s) and blocks {blocks_count} item(s)")
+    elif direction == "blocked-by":
+        tooltip_lines.append(f"- Depends on {blocked_count} item(s)")
+    else:
+        tooltip_lines.append(f"- Blocks {blocks_count} item(s)")
+    tooltip_lines.append("Blocked by:")
+    linked_rows = rows_by_key or {}
+    for blocker in blockers:
+        blocker_summary = str((linked_rows.get(blocker) or {}).get("summary") or "").strip()
+        if blocker_summary:
+            tooltip_lines.append(f"- {blocker}: {blocker_summary}")
+        else:
+            tooltip_lines.append(f"- {blocker}")
+    if blocked_rows:
+        tooltip_lines.append("Also links to:")
+        for blocked_key in blocked_rows:
+            blocked_summary = str((linked_rows.get(blocked_key) or {}).get("summary") or "").strip()
+            if blocked_summary:
+                tooltip_lines.append(f"- {blocked_key}: {blocked_summary}")
+            else:
+                tooltip_lines.append(f"- {blocked_key}")
+    tooltip_lines.append("Click to focus this item and its linked items.")
+    return ",".join(linked_keys), "\n".join(tooltip_lines), direction
 
 
 def _bar_tooltip(row: dict[str, Any]) -> str:
@@ -1068,9 +1383,9 @@ def _bar_tooltip(row: dict[str, Any]) -> str:
     status = row.get("status")
     if status:
         lines.append(f"Status: {status}")
-    components = row.get("components") or []
-    if components:
-        lines.append(f"Component: {', '.join(str(name) for name in components)}")
+    workstreams = row.get("workstreams") or row.get("components") or []
+    if workstreams:
+        lines.append(f"Workstream: {', '.join(str(name) for name in workstreams)}")
     scope = row.get("scopeRollup")
     if scope:
         issue_count = int(scope.get("issueCount") or float(scope.get("totalWeight") or 0))
@@ -1114,8 +1429,21 @@ def _append_timeline_bar(
     opacity: float,
     rx: int = 2,
     scope_overlay_opacity: float = SCOPE_OVERLAY_OPACITY,
+    blocked_by_keys: list[str] | None = None,
+    blocks_keys: list[str] | None = None,
+    rows_by_key: dict[str, dict[str, Any]] | None = None,
 ) -> None:
-    parts.append(f'<g>{_svg_embedded_title(_bar_tooltip(row))}')
+    row_key = str(row.get("key") or "").strip()
+    focus_payload = _blocked_focus_payload(
+        row_key=row_key,
+        blocked_by_keys=blocked_by_keys,
+        blocks_keys=blocks_keys,
+        rows_by_key=rows_by_key,
+    )
+    data_key_attr = (
+        f' data-sef-key="{html.escape(row_key)}" data-sef-row="1"' if row_key else ""
+    )
+    parts.append(f'<g{data_key_attr}>{_svg_embedded_title(_bar_tooltip(row))}')
     if _is_milestone_row(row):
         cx = x1
         icon_url = _milestone_icon_url(row)
@@ -1138,6 +1466,18 @@ def _append_timeline_bar(
             parts.append(
                 f'<polygon points="{points}" fill="{MILESTONE_TRIANGLE_FILL}" opacity="0.95"/>'
             )
+        if focus_payload:
+            linked_csv, link_tooltip, direction = focus_payload
+            _append_block_link_icon(
+                parts,
+                row_key=row_key,
+                direction=direction,
+                linked_csv=html.escape(linked_csv),
+                tooltip=link_tooltip,
+                cx=cx + 9.0,
+                cy=bar_y + (bar_h / 2.0),
+                size=max(9.0, min(11.0, bar_h)),
+            )
         parts.append("</g>")
         return
     parts.append(
@@ -1159,6 +1499,22 @@ def _append_timeline_bar(
                 overlay_opacity=scope_overlay_opacity,
                 link_class="block-scope-segment",
             )
+
+    if focus_payload:
+        linked_csv, link_tooltip, direction = focus_payload
+        icon_size = max(9.0, min(12.0, bar_h))
+        icon_x = x1 + max(icon_size / 2.0 + 1.0, bar_w - icon_size / 2.0 - 1.0)
+        icon_y = bar_y + (bar_h / 2.0)
+        _append_block_link_icon(
+            parts,
+            row_key=row_key,
+            direction=direction,
+            linked_csv=html.escape(linked_csv),
+            tooltip=link_tooltip,
+            cx=icon_x,
+            cy=icon_y,
+            size=icon_size,
+        )
     parts.append("</g>")
 
 
@@ -1184,6 +1540,36 @@ def _iter_milestone_dependency_edges(phases: list[dict[str, Any]]) -> list[tuple
                     edges.append((blocker_key, blocked_key))
 
     return list(dict.fromkeys(edges))
+
+
+def _timeline_rows_by_key(phases: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    rows: dict[str, dict[str, Any]] = {}
+    for row in _iter_timeline_rows(phases):
+        key = str(row.get("key") or "").strip()
+        if key:
+            rows[key] = row
+    return rows
+
+
+def _build_block_link_maps(phases: list[dict[str, Any]]) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    blocked_by: dict[str, list[str]] = {}
+    blocks: dict[str, list[str]] = {}
+    for row in _iter_timeline_rows(phases):
+        blocked_key = str(row.get("key") or "").strip()
+        if not blocked_key:
+            continue
+        for blocker in row.get("blockedByKeys") or []:
+            blocker_key = str(blocker or "").strip()
+            if not blocker_key or blocker_key == blocked_key:
+                continue
+            blocked_by.setdefault(blocked_key, []).append(blocker_key)
+            blocks.setdefault(blocker_key, []).append(blocked_key)
+
+    for key, values in list(blocked_by.items()):
+        blocked_by[key] = list(dict.fromkeys(values))
+    for key, values in list(blocks.items()):
+        blocks[key] = list(dict.fromkeys(values))
+    return blocked_by, blocks
 
 
 def _append_dependency_connectors(
@@ -1243,7 +1629,10 @@ def _append_dependency_connectors(
             f"L {ex:.1f} {ey:.1f}"
         )
         tooltip = f"Dependency: {blocker_key} blocks {blocked_key}"
-        parts.append(f'<g>{_svg_embedded_title(tooltip)}')
+        parts.append(
+            f'<g data-sef-dep-from="{html.escape(blocker_key)}" '
+            f'data-sef-dep-to="{html.escape(blocked_key)}">{_svg_embedded_title(tooltip)}'
+        )
         parts.append(
             f'<path d="{path_d}" '
             f'stroke="{DEPENDENCY_STROKE}" stroke-width="{DEPENDENCY_STROKE_WIDTH}" '
@@ -1298,13 +1687,13 @@ def sef_project_plan_timeline_svg(
     payload: dict[str, Any],
     *,
     px_per_day: float = SEF_PLAN_PX_PER_DAY,
-    component_colors: SefProjectPlanComponentColors | None = None,
+    workstream_colors: SefProjectPlanComponentColors | None = None,
 ) -> str:
     phases = payload.get("phases") or []
     if not phases:
         return '<p class="footnote">No plan blocks. Run fetch_sef_project_plan_timeline.py --write.</p>'
 
-    colors = component_colors or load_sef_project_plan_component_colors()
+    colors = workstream_colors or load_sef_project_plan_component_colors()
 
     def row_fill(row: dict[str, Any]) -> str:
         return colors.fill_for_row(row)
@@ -1329,6 +1718,9 @@ def sef_project_plan_timeline_svg(
         return x1 if _is_milestone_row(row) else (x1 + bar_w)
 
     row_positions: dict[str, tuple[float, float, float]] = {}
+    parent_by_key: dict[str, str] = {}
+    rows_by_key = _timeline_rows_by_key(phases)
+    blocked_by_map, blocks_map = _build_block_link_maps(phases)
     milestone_markers: list[tuple[float, str, date, bool]] = []  # (x, label, day, is_gate)
 
     for milestone in payload.get("milestones") or []:
@@ -1357,6 +1749,43 @@ def sef_project_plan_timeline_svg(
         f'<line x1="{plot_left}" y1="{plot_top}" x2="{plot_left}" y2="{plot_bottom}" '
         f'stroke="{ATL["line"]}" stroke-width="1"/>'
     )
+    parts.append('<g id="sef-x-axis-top">')
+    parts.append(
+        f'<line x1="{plot_left}" y1="{plot_top}" x2="{plot_right}" y2="{plot_top}" '
+        f'stroke="{ATL["line"]}" stroke-width="1"/>'
+    )
+
+    # Top axis labels: same scale as bottom axis (week starts + month starts).
+    top_week_y = plot_top - 8
+    top_month_y = plot_top - 24
+    for week_start in _week_start_dates(x_min, x_max):
+        wx = x_for(week_start)
+        parts.append(
+            f'<line x1="{wx:.1f}" y1="{plot_top}" x2="{wx:.1f}" y2="{plot_top - 4:.1f}" '
+            f'stroke="{ATL["line"]}" stroke-width="1"/>'
+        )
+        parts.append(
+            f'<text x="{wx:.1f}" y="{top_week_y:.1f}" text-anchor="middle" font-family="{SVG_FONT}" '
+            f'font-size="{CHART_AXIS_FONT}" fill="{ATL["text_subtle"]}">'
+            f'{html.escape(week_start.strftime("%d"))}</text>'
+        )
+
+    top_month = date(x_min.year, x_min.month, 1)
+    while top_month <= x_max:
+        if top_month >= x_min:
+            mx = x_for(top_month)
+            parts.append(
+                f'<text x="{mx:.0f}" y="{top_month_y:.1f}" text-anchor="middle" font-family="{SVG_FONT}" '
+                f'font-size="{CHART_AXIS_FONT}" fill="{ATL["text_subtle"]}" font-weight="600">'
+                f'{html.escape(top_month.strftime("%b"))}</text>'
+            )
+        if top_month.month == 12:
+            top_month = date(top_month.year + 1, 1, 1)
+        else:
+            top_month = date(top_month.year, top_month.month + 1, 1)
+    parts.append("</g>")
+
+    parts.append(f'<g id="sef-x-axis" data-sef-orig-bottom="{plot_bottom:.1f}">')
     parts.append(
         f'<line x1="{plot_left}" y1="{plot_bottom}" x2="{plot_right}" y2="{plot_bottom}" '
         f'stroke="{ATL["line"]}" stroke-width="1"/>'
@@ -1385,6 +1814,7 @@ def sef_project_plan_timeline_svg(
         plot_right=plot_right,
         x_for=x_for,
     )
+    parts.append("</g>")
 
     chapter_manifest: list[dict] = []
     holidays = payload.get("holidays") or []
@@ -1433,6 +1863,7 @@ def sef_project_plan_timeline_svg(
         phase_end = date.fromisoformat(str(phase.get("endDate"))[:10])
 
         if phase_key:
+            parent_by_key[phase_key] = ""
             phase_start = date.fromisoformat(str(phase.get("startDate"))[:10])
             phase_end = date.fromisoformat(str(phase.get("endDate"))[:10])
             phase_x1 = x_for(phase_start)
@@ -1442,12 +1873,20 @@ def sef_project_plan_timeline_svg(
             phase_bar_y = y_cursor + (PHASE_ROW_HEIGHT - PHASE_BAR_HEIGHT) / 2
             phase_fill = row_fill(phase)
 
-            parts.append(f'<g>{_svg_embedded_title(_bar_tooltip(phase))}')
-            parts.append(
-                f'<rect x="{phase_x1:.1f}" y="{phase_bar_y:.1f}" width="{phase_bar_w:.1f}" '
-                f'height="{PHASE_BAR_HEIGHT:.1f}" rx="2" fill="{phase_fill}" opacity="{BAR_OPACITY}"/>'
+            _append_timeline_bar(
+                parts,
+                row=phase,
+                x1=phase_x1,
+                bar_y=phase_bar_y,
+                bar_w=phase_bar_w,
+                bar_h=PHASE_BAR_HEIGHT,
+                fill=phase_fill,
+                opacity=BAR_OPACITY,
+                scope_overlay_opacity=SCOPE_OVERLAY_OPACITY,
+                blocked_by_keys=blocked_by_map.get(phase_key),
+                blocks_keys=blocks_map.get(phase_key),
+                rows_by_key=rows_by_key,
             )
-            parts.append("</g>")
             row_positions[phase_key] = (phase_x1, phase_row_cy, _row_end_x(phase, phase_x1, phase_bar_w))
             _append_label_link(
                 parts,
@@ -1458,6 +1897,10 @@ def sef_project_plan_timeline_svg(
                 tooltip=_bar_tooltip(phase),
                 font_size=13,
                 font_weight="700",
+                row_key=phase_key,
+                blocked_by_keys=blocked_by_map.get(phase_key),
+                blocks_keys=blocks_map.get(phase_key),
+                rows_by_key=rows_by_key,
             )
             y_cursor += PHASE_ROW_HEIGHT
 
@@ -1474,6 +1917,8 @@ def sef_project_plan_timeline_svg(
             summary = str(chapter.get("summary") or key)
             has_packages = bool(chapter.get("packages"))
             sub_h = block_h - BLOCK_PAD_Y * 2 - CHAPTER_ROW_HEIGHT
+            if key:
+                parent_by_key[key] = phase_key
 
             if key:
                 parts.append(
@@ -1482,13 +1927,6 @@ def sef_project_plan_timeline_svg(
                     f'data-collapsed-h="{BLOCK_PAD_Y * 2 + CHAPTER_ROW_HEIGHT}">'
                 )
 
-            border_id_attr = f'id="sef-bd-{html.escape(key)}" ' if key else ""
-            parts.append(
-                f'<rect {border_id_attr}'
-                f'x="0" y="{block_y:.1f}" width="{plot_right:.1f}" height="{block_h:.1f}" '
-                f'fill="none" stroke="{ATL["ink"]}" stroke-width="{BLOCK_BORDER_WIDTH}"/>'
-            )
-
             start_day = date.fromisoformat(str(chapter.get("startDate"))[:10])
             end_day = date.fromisoformat(str(chapter.get("endDate"))[:10])
             x1 = x_for(start_day)
@@ -1496,6 +1934,15 @@ def sef_project_plan_timeline_svg(
             bar_w = max(x2 - x1, 2.0)
             bar_y = y0 + (CHAPTER_ROW_HEIGHT - CHAPTER_BAR_HEIGHT) / 2
             fill = row_fill(chapter)
+            border_id_attr = f'id="sef-bd-{html.escape(key)}" ' if key else ""
+            parts.append(
+                f'<rect {border_id_attr}'
+                f'x="0" y="{block_y:.1f}" width="{plot_right:.1f}" height="{block_h:.1f}" '
+                f'data-sef-key="{html.escape(key)}" data-sef-row="1" '
+                f'data-sef-role="chapter-border" data-sef-orig-y="{block_y:.1f}" '
+                f'data-sef-orig-height="{block_h:.1f}" '
+                f'fill="none" stroke="{ATL["ink"]}" stroke-width="{BLOCK_BORDER_WIDTH}"/>'
+            )
 
             same_window_as_phase = (
                 str(chapter.get("startDate") or "")[:10] == phase_start.isoformat()
@@ -1513,6 +1960,9 @@ def sef_project_plan_timeline_svg(
                     fill=fill,
                     opacity=BAR_OPACITY,
                     scope_overlay_opacity=SCOPE_OVERLAY_OPACITY,
+                    blocked_by_keys=blocked_by_map.get(key),
+                    blocks_keys=blocks_map.get(key),
+                    rows_by_key=rows_by_key,
                 )
             if key:
                 row_positions[key] = (x1, row_cy, _row_end_x(chapter, x1, bar_w))
@@ -1523,6 +1973,10 @@ def sef_project_plan_timeline_svg(
                     y_center=row_cy,
                     url=f"{JIRA_SERVER}/browse/{html.escape(key)}",
                     tooltip=_bar_tooltip(chapter),
+                    row_key=key,
+                    blocked_by_keys=blocked_by_map.get(key),
+                    blocks_keys=blocks_map.get(key),
+                    rows_by_key=rows_by_key,
                 )
             else:
                 _append_label_text(
@@ -1537,6 +1991,7 @@ def sef_project_plan_timeline_svg(
                 chev_x = max(LABEL_PAD_X - 3, 6)
                 parts.append(
                     f'<text id="sef-chev-{html.escape(key)}" '
+                    f'data-sef-key="{html.escape(key)}" data-sef-row="1" '
                     f'x="{chev_x:.1f}" y="{row_cy + 4:.1f}" '
                     f'font-family="{SVG_FONT}" font-size="10" fill="{ATL["ink"]}" '
                     f'style="cursor:pointer;user-select:none" text-anchor="end" '
@@ -1546,11 +2001,17 @@ def sef_project_plan_timeline_svg(
 
             sub_y = y0 + CHAPTER_ROW_HEIGHT
             for pkg_index, package in enumerate(chapter.get("packages") or []):
+                p_key = str(package.get("key") or "")
+                if p_key:
+                    parent_by_key[p_key] = key
                 # Alternating swimlane background for this package + its details.
                 pkg_lane_h = STREAM_ROW_HEIGHT + len(package.get("details") or []) * DETAIL_ROW_HEIGHT
                 lane_fill = SWIMLANE_FILLS[pkg_index % len(SWIMLANE_FILLS)]
                 parts.append(
                     f'<rect x="0" y="{sub_y:.1f}" width="{plot_right:.1f}" '
+                    f'data-sef-key="{html.escape(p_key)}" data-sef-row="1" '
+                    f'data-sef-role="package-lane" data-sef-orig-y="{sub_y:.1f}" '
+                    f'data-sef-orig-height="{pkg_lane_h:.1f}" '
                     f'height="{pkg_lane_h:.1f}" fill="{lane_fill}" opacity="0.55"/>'
                 )
 
@@ -1561,7 +2022,6 @@ def sef_project_plan_timeline_svg(
                 px2 = x_for(p_end)
                 p_bar_w = max(px2 - px1, 2.0)
                 p_bar_y = sub_y + (STREAM_ROW_HEIGHT - STREAM_BAR_HEIGHT) / 2
-                p_key = str(package.get("key") or "")
                 p_summary = str(package.get("summary") or p_key)
                 p_fill = row_fill(package)
                 p_opacity = BAR_OPACITY
@@ -1576,6 +2036,9 @@ def sef_project_plan_timeline_svg(
                     opacity=p_opacity,
                     rx=1,
                     scope_overlay_opacity=SUB_SCOPE_OVERLAY_OPACITY,
+                    blocked_by_keys=blocked_by_map.get(p_key),
+                    blocks_keys=blocks_map.get(p_key),
+                    rows_by_key=rows_by_key,
                 )
                 if p_key:
                     row_positions[p_key] = (px1, sub_cy, _row_end_x(package, px1, p_bar_w))
@@ -1591,6 +2054,10 @@ def sef_project_plan_timeline_svg(
                     font_size=10,
                     font_weight="400",
                     fill=ATL["text_subtle"],
+                    row_key=p_key,
+                    blocked_by_keys=blocked_by_map.get(p_key),
+                    blocks_keys=blocks_map.get(p_key),
+                    rows_by_key=rows_by_key,
                 )
                 sub_y += STREAM_ROW_HEIGHT
 
@@ -1603,6 +2070,8 @@ def sef_project_plan_timeline_svg(
                     d_bar_w = max(dx2 - dx1, 2.0)
                     d_bar_y = sub_y + (DETAIL_ROW_HEIGHT - DETAIL_BAR_HEIGHT) / 2
                     d_key = str(detail.get("key") or "")
+                    if d_key:
+                        parent_by_key[d_key] = p_key
                     d_summary = str(detail.get("summary") or d_key)
                     d_fill = row_fill(detail)
                     d_opacity = BAR_OPACITY
@@ -1617,6 +2086,9 @@ def sef_project_plan_timeline_svg(
                         opacity=d_opacity,
                         rx=1,
                         scope_overlay_opacity=DETAIL_SCOPE_OVERLAY_OPACITY,
+                        blocked_by_keys=blocked_by_map.get(d_key),
+                        blocks_keys=blocks_map.get(d_key),
+                        rows_by_key=rows_by_key,
                     )
                     if d_key:
                         row_positions[d_key] = (dx1, detail_cy, _row_end_x(detail, dx1, d_bar_w))
@@ -1632,6 +2104,10 @@ def sef_project_plan_timeline_svg(
                         font_size=9,
                         font_weight="400",
                         fill=ATL["text_subtle"],
+                        row_key=d_key,
+                        blocked_by_keys=blocked_by_map.get(d_key),
+                        blocks_keys=blocks_map.get(d_key),
+                        rows_by_key=rows_by_key,
                     )
                     sub_y += DETAIL_ROW_HEIGHT
                 parts.append('</g>')  # close sub-rows group
@@ -1650,6 +2126,14 @@ def sef_project_plan_timeline_svg(
         manifest_str = _json.dumps(chapter_manifest).replace('"', '&quot;')
         parts.append(
             f'<text id="sef-cm" data-chapters="{manifest_str}" '
+            f'visibility="hidden" fill="none">.</text>'
+        )
+
+    if parent_by_key:
+        import json as _json
+        parent_map_str = _json.dumps(parent_by_key).replace('"', '&quot;')
+        parts.append(
+            f'<text id="sef-pm" data-parent-map="{parent_map_str}" '
             f'visibility="hidden" fill="none">.</text>'
         )
 
@@ -1768,31 +2252,61 @@ def build_sef_project_plan_report_html(
             f"({window_start.isoformat()} to {window_end.isoformat()}). "
             "Each bar runs from start date through due date. "
             "Milestones are shown as meeting-gate icons or red triangles. "
-            "Bar colours follow Jira Plans Component mapping."
+            "Bar colours follow Jira Plans Workstream mapping."
         )
 
+    def _workstream_option_label(value: str) -> str:
+        text = str(value or "").strip()
+        if not text:
+            return ""
+        label = text.replace("-", " ").replace("_", " ").strip()
+        if label.lower() == "hcm":
+            return "HCM"
+        return " ".join(part.capitalize() for part in label.split())
+
     colors = load_sef_project_plan_component_colors()
-    legend = sef_project_plan_component_legend_html(colors)
-    dimensions = payload.get("filterDimensions") or []
+    legend = sef_project_plan_workstream_legend_html(colors)
+    dimensions_raw = payload.get("filterDimensions") or []
+    dimensions: list[dict[str, Any]] = []
+    for dim in dimensions_raw:
+        if not isinstance(dim, dict):
+            continue
+        dim_copy = dict(dim)
+        if str(dim_copy.get("id") or "") == "component":
+            dim_copy["id"] = "workstream"
+        if str(dim_copy.get("label") or "") == "Component":
+            dim_copy["label"] = "Workstream"
+        if str(dim_copy.get("sourceField") or "") == "components":
+            dim_copy["sourceField"] = "workstreams"
+        dim_id = str(dim_copy.get("id") or "")
+        options = [str(opt).strip() for opt in (dim_copy.get("options") or []) if str(opt).strip()]
+        if dim_id == "workstream":
+            options = [opt for opt in options if opt.lower() != "all"]
+        dim_copy["options"] = sorted(dict.fromkeys(options))
+        dimensions.append(dim_copy)
+
     if not dimensions:
         dimensions = _build_filter_dimensions(
             payload.get("phases") or [],
-            (SefFilterDimensionConfig(id="component", label="Component", source_field="components"),),
+            (SefFilterDimensionConfig(id="workstream", label="Workstream", source_field="workstreams"),),
         )
-        payload = json.loads(json.dumps(payload))
-        payload["filterDimensions"] = dimensions
+    payload = json.loads(json.dumps(payload))
+    payload["filterDimensions"] = dimensions
     variants = build_payload_filter_variants(payload)
 
     controls_html = ""
     if dimensions:
         controls: list[str] = ['<div class="sef-plan-filters" aria-label="Report filters">']
         for dimension in dimensions:
-            dim_id = html.escape(str(dimension.get("id") or ""))
-            dim_label = html.escape(str(dimension.get("label") or dim_id.title()))
+            dim_id_raw = str(dimension.get("id") or "")
+            dim_id = html.escape(dim_id_raw)
+            dim_label = html.escape(str(dimension.get("label") or dim_id_raw.title()))
             options = [str(opt) for opt in (dimension.get("options") or []) if str(opt)]
-            option_html = ['<option value="">All</option>']
+            all_label = "All workstreams" if dim_id_raw == "workstream" else "All"
+            option_html = [f'<option value="">{html.escape(all_label)}</option>']
             option_html.extend(
-                f'<option value="{html.escape(opt)}">{html.escape(opt)}</option>' for opt in options
+                f'<option value="{html.escape(opt)}">{html.escape(_workstream_option_label(opt) if dim_id_raw == "workstream" else opt)}</option>'
+                for opt in options
             )
             controls.append(
                 "<label class=\"sef-plan-filter\">"
@@ -1802,13 +2316,18 @@ def build_sef_project_plan_report_html(
                 "</select>"
                 "</label>"
             )
+        controls.append(
+            '<div class="sef-plan-filter-actions">'
+            '<button type="button" class="sef-plan-clear" data-sef-filter-clear>Clear all filters</button>'
+            '</div>'
+        )
         controls.append("</div>")
         controls_html = "".join(controls)
 
     variant_blocks: list[str] = []
     for index, variant in enumerate(variants):
         variant_payload = variant["payload"]
-        chart = sef_project_plan_timeline_svg(variant_payload, component_colors=colors)
+        chart = sef_project_plan_timeline_svg(variant_payload, workstream_colors=colors)
         footnote = _footnote_for(variant_payload)
         key = html.escape(str(variant["key"] or "__all__"))
         hidden_attr = "" if index == 0 else " hidden"
@@ -1829,6 +2348,7 @@ def build_sef_project_plan_report_html(
   const dimensionIds = {ids_json};
   const filters = document.querySelectorAll('[data-sef-filter]');
   const variants = document.querySelectorAll('[data-variant-key]');
+    const clearBtn = document.querySelector('[data-sef-filter-clear]');
 
   function currentKey() {{
     const parts = [];
@@ -1843,6 +2363,13 @@ def build_sef_project_plan_report_html(
   function apply() {{
     const key = currentKey();
     let shown = false;
+        let activeCount = 0;
+        for (const id of dimensionIds) {{
+            const sel = document.querySelector(`[data-sef-filter="${{id}}"]`);
+            const val = (sel && sel.value ? sel.value.trim() : "");
+            if (val) activeCount += 1;
+        }}
+
     variants.forEach((node) => {{
       const match = node.getAttribute('data-variant-key') === key;
       node.hidden = !match;
@@ -1851,9 +2378,16 @@ def build_sef_project_plan_report_html(
     if (!shown) {{
       variants.forEach((node, idx) => {{ node.hidden = idx !== 0; }});
     }}
+        if (clearBtn) clearBtn.disabled = activeCount === 0;
   }}
 
   filters.forEach((sel) => sel.addEventListener('change', apply));
+    if (clearBtn) {{
+        clearBtn.addEventListener('click', () => {{
+            filters.forEach((sel) => {{ sel.value = ''; }});
+            apply();
+        }});
+    }}
   apply();
 }})();
 </script>
@@ -1885,6 +2419,536 @@ def build_sef_project_plan_report_html(
 <script>
 (function () {{
   'use strict';
+    var chartPans = document.querySelectorAll('.chart-wrap-sef-plan');
+    chartPans.forEach(function (wrap) {{
+        wrap.addEventListener('wheel', function (evt) {{
+            var canScrollX = wrap.scrollWidth > wrap.clientWidth;
+            if (!canScrollX) return;
+
+            var canScrollY = wrap.scrollHeight > wrap.clientHeight;
+            var atTop = wrap.scrollTop <= 0;
+            var atBottom = (wrap.scrollTop + wrap.clientHeight) >= (wrap.scrollHeight - 1);
+
+            var xDelta = evt.deltaX;
+            var yDelta = evt.deltaY;
+            var useHorizontal = evt.shiftKey || Math.abs(xDelta) > Math.abs(yDelta);
+
+            // If the user hits the vertical edge of the timeline viewport,
+            // continue panning horizontally with the wheel instead of no-op.
+            if (!useHorizontal && canScrollY) {{
+                if ((yDelta < 0 && atTop) || (yDelta > 0 && atBottom)) {{
+                    useHorizontal = true;
+                }}
+            }}
+
+            // If there is no vertical scrollbar, treat wheel motion as horizontal pan.
+            if (!useHorizontal && !canScrollY && Math.abs(yDelta) > 0.01) {{
+                useHorizontal = true;
+            }}
+
+            if (!useHorizontal) return;
+
+            var delta = xDelta;
+            if (Math.abs(delta) < 0.01) delta = yDelta;
+            if (Math.abs(delta) < 0.01) return;
+
+            wrap.scrollLeft += delta;
+            evt.preventDefault();
+        }}, {{ passive: false }});
+    }});
+
+    function ensureOriginalSvgState(svg) {{
+        if (!svg.getAttribute('data-sef-orig-viewbox')) {{
+            svg.setAttribute('data-sef-orig-viewbox', svg.getAttribute('viewBox') || '');
+        }}
+        if (!svg.getAttribute('data-sef-orig-height')) {{
+            svg.setAttribute('data-sef-orig-height', svg.getAttribute('height') || '');
+        }}
+        var wrap = svg.closest('.chart-wrap-sef-plan');
+        if (wrap) {{
+            if (!wrap.getAttribute('data-sef-orig-min-height')) {{
+                wrap.setAttribute('data-sef-orig-min-height', wrap.style.minHeight || '');
+            }}
+            if (!wrap.getAttribute('data-sef-orig-height')) {{
+                wrap.setAttribute('data-sef-orig-height', wrap.style.height || '');
+            }}
+        }}
+    }}
+
+    function restoreOriginalSvgState(svg) {{
+        var vb = svg.getAttribute('data-sef-orig-viewbox');
+        var h = svg.getAttribute('data-sef-orig-height');
+        if (vb) svg.setAttribute('viewBox', vb);
+        if (h) svg.setAttribute('height', h);
+
+        var wrap = svg.closest('.chart-wrap-sef-plan');
+        if (wrap) {{
+            wrap.style.minHeight = wrap.getAttribute('data-sef-orig-min-height') || '';
+            wrap.style.height = wrap.getAttribute('data-sef-orig-height') || '';
+        }}
+    }}
+
+    function _extractTranslate(transform) {{
+        var t = String(transform || '').trim();
+        if (!t) return {{ x: 0, y: 0 }};
+        var m = t.match(/translate\\(([^)]+)\\)/i);
+        if (!m) return {{ x: 0, y: 0 }};
+        var vals = m[1].split(/[ ,]+/).filter(Boolean).map(parseFloat);
+        if (!vals.length || vals.some(function (n) {{ return !isFinite(n); }})) return {{ x: 0, y: 0 }};
+        return {{ x: vals[0] || 0, y: vals.length > 1 ? (vals[1] || 0) : 0 }};
+    }}
+
+    function _effectiveBox(node) {{
+        var box;
+        try {{
+            var clip = String(node.getAttribute && node.getAttribute('clip-path') || '');
+            if (clip.indexOf('sef-plan-label-col') !== -1) {{
+                var txt = node.querySelector('text');
+                box = txt ? txt.getBBox() : node.getBBox();
+            }} else {{
+                box = node.getBBox();
+            }}
+        }} catch (_err) {{ return null; }}
+        if (!box || !isFinite(box.x) || !isFinite(box.y) || !isFinite(box.width) || !isFinite(box.height)) {{
+            return null;
+        }}
+        var tx = 0;
+        var ty = 0;
+        var cur = node;
+        while (cur && cur.getAttribute) {{
+            var tr = _extractTranslate(cur.getAttribute('transform'));
+            tx += tr.x;
+            ty += tr.y;
+            cur = cur.parentNode;
+            if (cur && cur.tagName && String(cur.tagName).toLowerCase() === 'svg') break;
+        }}
+        return {{ x: box.x + tx, y: box.y + ty, width: box.width, height: box.height }};
+    }}
+
+    function _isReasonableRowBox(node, box) {{
+        if (!box) return false;
+        if (!isFinite(box.height) || box.height <= 0) return false;
+        var isRow = (node.getAttribute && node.getAttribute('data-sef-row') === '1');
+        if (!isRow) return true;
+        var role = (node.getAttribute('data-sef-role') || '').trim();
+        if (role === 'chapter-border' || role === 'package-lane') return false;
+        // Row-level items should be short; very tall boxes are wrapper artefacts.
+        return box.height <= 160;
+    }}
+
+    function _isShown(node, stopAt) {{
+        var cur = node;
+        while (cur && cur !== stopAt) {{
+            if (cur.style && cur.style.display === 'none') return false;
+            cur = cur.parentNode;
+        }}
+        return true;
+    }}
+
+    function _hasAncestorWithSameKey(node, key, stopAt) {{
+        var cur = node ? node.parentNode : null;
+        while (cur && cur !== stopAt) {{
+            if (cur.getAttribute) {{
+                var curKey = (cur.getAttribute('data-sef-key') || '').trim();
+                var isRow = cur.getAttribute('data-sef-row') === '1';
+                if (isRow && curKey === key) return true;
+            }}
+            cur = cur.parentNode;
+        }}
+        return false;
+    }}
+
+    function _isInLabelClipRegion(node, stopAt) {{
+        var cur = node;
+        while (cur && cur !== stopAt) {{
+            if (cur.getAttribute) {{
+                var clip = String(cur.getAttribute('clip-path') || '');
+                if (clip.indexOf('sef-plan-label-col') !== -1) return true;
+            }}
+            cur = cur.parentNode;
+        }}
+        return false;
+    }}
+
+    function repositionFocusedXAxis(svg, newY, newH, xShift) {{
+        var axis = svg.querySelector('#sef-x-axis');
+        if (!axis) return;
+        var origBottom = parseFloat(axis.getAttribute('data-sef-orig-bottom') || 'NaN');
+        if (!isFinite(origBottom)) return;
+        var bottomPad = 74;
+        var targetBottom = newY + newH - bottomPad;
+
+        // Keep axis visible in the current focused viewport without requiring vertical scroll.
+        var wrap = svg.closest('.chart-wrap-sef-plan');
+        if (wrap && isFinite(wrap.clientHeight) && wrap.clientHeight > 0) {{
+            var visibleBottom = newY + wrap.clientHeight - 40;
+            targetBottom = Math.min(targetBottom, visibleBottom);
+        }}
+
+        var dy = targetBottom - origBottom;
+        var dx = isFinite(xShift) ? xShift : 0;
+        axis.setAttribute('transform', 'translate(' + dx.toFixed(1) + ' ' + dy.toFixed(1) + ')');
+    }}
+
+    function resizeFocusedWrap(svg, newH) {{
+        var wrap = svg.closest('.chart-wrap-sef-plan');
+        if (!wrap) return;
+        var focusedH = Math.max(320, Math.ceil(newH) + 14);
+        wrap.style.minHeight = focusedH + 'px';
+        wrap.style.height = focusedH + 'px';
+    }}
+
+    function _parseTranslateY(transform) {{
+        var tr = _extractTranslate(transform);
+        return isFinite(tr.y) ? tr.y : 0;
+    }}
+
+    function applyFocusTimelineShift(svg, dx) {{
+        if (!isFinite(dx) || Math.abs(dx) < 0.5) return;
+
+        svg.querySelectorAll('[data-sef-row="1"][data-sef-key]').forEach(function (node) {{
+            if (!_isShown(node, svg)) return;
+            var role = (node.getAttribute('data-sef-role') || '').trim();
+            var clip = String(node.getAttribute('clip-path') || '');
+            var id = String(node.getAttribute('id') || '');
+            if (clip.indexOf('sef-plan-label-col') !== -1) return;
+            if (_isInLabelClipRegion(node, svg)) return;
+            if (id.indexOf('sef-chev-') === 0) return;
+            var key = (node.getAttribute('data-sef-key') || '').trim();
+            if (!key) return;
+            if (_hasAncestorWithSameKey(node, key, svg)) return;
+            var dy = _parseTranslateY(node.getAttribute('transform'));
+            node.setAttribute('transform', 'translate(' + dx.toFixed(1) + ' ' + dy.toFixed(1) + ')');
+        }});
+
+        svg.querySelectorAll('[data-sef-dep-from][data-sef-dep-to]').forEach(function (node) {{
+            if (!_isShown(node, svg)) return;
+            var dy = _parseTranslateY(node.getAttribute('transform'));
+            node.setAttribute('transform', 'translate(' + dx.toFixed(1) + ' ' + dy.toFixed(1) + ')');
+        }});
+    }}
+
+    function restoreXAxisPosition(svg) {{
+        var axis = svg.querySelector('#sef-x-axis');
+        if (!axis) return;
+        axis.removeAttribute('transform');
+    }}
+
+    function compactVisibleRows(svg, visibleSet, anchorSet) {{
+        var rowNodes = Array.from(svg.querySelectorAll('[data-sef-row="1"][data-sef-key]')).filter(function (node) {{
+            var role = (node.getAttribute('data-sef-role') || '').trim();
+            return role !== 'chapter-border' && role !== 'package-lane';
+        }});
+        var byKey = new Map();
+
+        rowNodes.forEach(function (node) {{
+            if (!_isShown(node, svg)) return;
+            var key = (node.getAttribute('data-sef-key') || '').trim();
+            if (!key || !visibleSet.has(key)) return;
+            var existing = byKey.get(key);
+            if (!existing) {{
+                existing = {{ minY: Infinity, maxY: -Infinity, nodes: [], hasBounds: false }};
+                byKey.set(key, existing);
+            }}
+            existing.nodes.push(node);
+
+            var box = _effectiveBox(node);
+            if (!_isReasonableRowBox(node, box)) return;
+            if (!box || !isFinite(box.y) || !isFinite(box.height)) return;
+            existing.minY = Math.min(existing.minY, box.y);
+            existing.maxY = Math.max(existing.maxY, box.y + box.height);
+            existing.hasBounds = true;
+        }});
+
+        var rows = Array.from(byKey.entries()).filter(function (entry) {{ return entry[1].hasBounds; }});
+        rows.sort(function (a, b) {{ return a[1].minY - b[1].minY; }});
+        if (!rows.length) return;
+
+        var rowGap = 6;
+        var cursor = rows[0][1].minY;
+        var shifts = new Map();
+        rows.forEach(function (entry) {{
+            var key = entry[0];
+            var rec = entry[1];
+            var targetTop = cursor;
+            var dy = targetTop - rec.minY;
+            shifts.set(key, dy);
+            rec.nodes.forEach(function (node) {{
+                if (_hasAncestorWithSameKey(node, key, svg)) return;
+                node.setAttribute('transform', 'translate(0 ' + dy + ')');
+            }});
+            cursor = targetTop + (rec.maxY - rec.minY) + rowGap;
+        }});
+
+        svg.querySelectorAll('[data-sef-dep-from][data-sef-dep-to]').forEach(function (node) {{
+            if (!_isShown(node, svg)) return;
+            var from = (node.getAttribute('data-sef-dep-from') || '').trim();
+            var to = (node.getAttribute('data-sef-dep-to') || '').trim();
+            var fromShift = shifts.get(from) || 0;
+            var toShift = shifts.get(to) || 0;
+            var depShift = (fromShift + toShift) / 2;
+            node.setAttribute('transform', 'translate(0 ' + depShift + ')');
+        }});
+
+        var allVisible = Array.from(svg.querySelectorAll('[data-sef-key]')).filter(function (node) {{
+            if (!_isShown(node, svg)) return false;
+            var role = (node.getAttribute('data-sef-role') || '').trim();
+            if (role === 'chapter-border' || role === 'package-lane') return false;
+            return true;
+        }});
+        if (!allVisible.length) return;
+        var minY = Infinity;
+        var maxY = -Infinity;
+        allVisible.forEach(function (node) {{
+            var box = _effectiveBox(node);
+            if (!_isReasonableRowBox(node, box)) return;
+            if (!box || !isFinite(box.y) || !isFinite(box.height)) return;
+            minY = Math.min(minY, box.y);
+            maxY = Math.max(maxY, box.y + box.height);
+        }});
+        if (!isFinite(minY) || !isFinite(maxY)) return;
+
+        var originalViewBox = (svg.getAttribute('data-sef-orig-viewbox') || svg.getAttribute('viewBox') || '').split(/\\s+/).map(Number);
+        if (originalViewBox.length !== 4 || originalViewBox.some(function (n) {{ return !isFinite(n); }})) return;
+        var padTop = 62;
+        var padBottom = 90;
+        var newY = Math.max(0, minY - padTop);
+        var newH = Math.max(260, (maxY - minY) + padTop + padBottom);
+
+        // Collapse the horizontal axis to visible timeline data while preserving the label column.
+        var axisLeft = 0;
+        var labelClip = svg.querySelector('#sef-plan-label-col rect');
+        if (labelClip) {{
+            axisLeft = (parseFloat(labelClip.getAttribute('x')) || 0) + (parseFloat(labelClip.getAttribute('width')) || 0) + 8;
+        }}
+
+        var minDataX = Infinity;
+        var maxDataX = -Infinity;
+        var timelineNodes = Array.from(svg.querySelectorAll('[data-sef-row="1"][data-sef-key],[data-sef-dep-from][data-sef-dep-to]'));
+        timelineNodes.forEach(function (node) {{
+            if (!_isShown(node, svg)) return;
+            var nodeId = String(node.getAttribute('id') || '');
+            if (nodeId.indexOf('sef-chev-') === 0) return;
+            var rowKey = (node.getAttribute('data-sef-key') || '').trim();
+            if (rowKey && !visibleSet.has(rowKey)) return;
+            if (rowKey && anchorSet && anchorSet.size && !anchorSet.has(rowKey)) return;
+            if (_isInLabelClipRegion(node, svg)) return;
+            var role = (node.getAttribute('data-sef-role') || '').trim();
+            if (role === 'chapter-border' || role === 'package-lane') return;
+            if ((node.getAttribute('clip-path') || '').indexOf('sef-plan-label-col') !== -1) return;
+
+            var box = _effectiveBox(node);
+            if (!_isReasonableRowBox(node, box)) return;
+            if (!box || !isFinite(box.x) || !isFinite(box.width)) return;
+
+            var left = Math.max(axisLeft, box.x);
+            var right = box.x + box.width;
+            if (right <= axisLeft + 1) return;
+            minDataX = Math.min(minDataX, left);
+            maxDataX = Math.max(maxDataX, right);
+        }});
+
+        var xPadLeft = 24;
+        var xPadRight = 80;
+        var newX = originalViewBox[0];
+        var newW = originalViewBox[2];
+        var xShift = 0;
+        if (isFinite(minDataX) && isFinite(maxDataX) && maxDataX > minDataX) {{
+            var desiredDataLeft = axisLeft + 18;
+            if (minDataX > desiredDataLeft) {{
+                xShift = desiredDataLeft - minDataX;
+            }}
+            applyFocusTimelineShift(svg, xShift);
+
+            // Keep the left origin so the label column remains visible.
+            newX = originalViewBox[0];
+            var shiftedMaxDataX = maxDataX + xShift;
+            var shiftedMinDataX = minDataX + xShift;
+            var desiredRight = Math.min(originalViewBox[0] + originalViewBox[2], shiftedMaxDataX + xPadRight);
+            var minRight = Math.max(axisLeft + 140, shiftedMinDataX - xPadLeft);
+            desiredRight = Math.max(minRight, desiredRight);
+            newW = Math.max(420, desiredRight - newX);
+        }}
+
+        repositionFocusedXAxis(svg, newY, newH, xShift);
+        svg.setAttribute('viewBox', newX + ' ' + newY + ' ' + newW + ' ' + newH);
+        svg.setAttribute('height', Math.ceil(newH));
+        resizeFocusedWrap(svg, newH);
+    }}
+
+    function restoreLaneGeometry(svg) {{
+        svg.querySelectorAll('[data-sef-orig-y]').forEach(function (node) {{
+            node.setAttribute('y', node.getAttribute('data-sef-orig-y'));
+        }});
+        svg.querySelectorAll('[data-sef-orig-height]').forEach(function (node) {{
+            node.setAttribute('height', node.getAttribute('data-sef-orig-height'));
+        }});
+    }}
+
+    function isDescendantOrSelf(candidate, ancestor, parentMap) {{
+        var cur = (candidate || '').trim();
+        var guard = 0;
+        while (cur && guard < 64) {{
+            if (cur === ancestor) return true;
+            cur = (parentMap[cur] || '').trim();
+            guard += 1;
+        }}
+        return false;
+    }}
+
+    function collectVisibleBoundsForAncestor(svg, ancestorKey, visibleSet, parentMap) {{
+        var minY = Infinity;
+        var maxY = -Infinity;
+        visibleSet.forEach(function (key) {{
+            if (!isDescendantOrSelf(key, ancestorKey, parentMap)) return;
+            svg.querySelectorAll('[data-sef-row="1"][data-sef-key="' + key + '"]').forEach(function (node) {{
+                if (!_isShown(node, svg)) return;
+                var role = (node.getAttribute('data-sef-role') || '').trim();
+                if (role === 'chapter-border' || role === 'package-lane') return;
+                var box = _effectiveBox(node);
+                if (!_isReasonableRowBox(node, box)) return;
+                if (!box || !isFinite(box.y) || !isFinite(box.height)) return;
+                minY = Math.min(minY, box.y);
+                maxY = Math.max(maxY, box.y + box.height);
+            }});
+        }});
+        if (!isFinite(minY) || !isFinite(maxY)) return null;
+        return {{ minY: minY, maxY: maxY }};
+    }}
+
+    function compactParentLaneHeights(svg, visibleSet, parentMap) {{
+        svg.querySelectorAll('rect[data-sef-role="package-lane"][data-sef-key]').forEach(function (lane) {{
+            if (!_isShown(lane, svg)) return;
+            var key = (lane.getAttribute('data-sef-key') || '').trim();
+            if (!key || !visibleSet.has(key)) return;
+            var bounds = collectVisibleBoundsForAncestor(svg, key, visibleSet, parentMap);
+            if (!bounds) return;
+            var padTop = 2;
+            var padBottom = 2;
+            lane.setAttribute('y', Math.max(0, bounds.minY - padTop).toFixed(1));
+            lane.setAttribute('height', Math.max(12, (bounds.maxY - bounds.minY) + padTop + padBottom).toFixed(1));
+        }});
+
+        svg.querySelectorAll('rect[data-sef-role="chapter-border"][data-sef-key]').forEach(function (border) {{
+            if (!_isShown(border, svg)) return;
+            var key = (border.getAttribute('data-sef-key') || '').trim();
+            if (!key || !visibleSet.has(key)) return;
+            var bounds = collectVisibleBoundsForAncestor(svg, key, visibleSet, parentMap);
+            if (!bounds) return;
+            var padTop = 6;
+            var padBottom = 6;
+            border.setAttribute('y', Math.max(0, bounds.minY - padTop).toFixed(1));
+            border.setAttribute('height', Math.max(24, (bounds.maxY - bounds.minY) + padTop + padBottom).toFixed(1));
+        }});
+    }}
+
+    function updateExpandersForVisibility(svg, focusedMode) {{
+        svg.querySelectorAll('text[id^="sef-chev-"][data-sef-key]').forEach(function (chev) {{
+            var key = (chev.getAttribute('data-sef-key') || '').trim();
+            if (!key) return;
+            if (!focusedMode) {{
+                chev.style.display = '';
+                return;
+            }}
+            var sub = document.getElementById('sef-sub-' + key);
+            if (!sub) {{
+                chev.style.display = 'none';
+                return;
+            }}
+            var hasVisibleChildren = Array.from(sub.querySelectorAll('[data-sef-row="1"][data-sef-key]')).some(function (node) {{
+                return _isShown(node, svg);
+            }});
+            chev.style.display = hasVisibleChildren ? '' : 'none';
+        }});
+    }}
+
+    function clearFocus(targetSvg) {{
+        targetSvg.querySelectorAll('[data-sef-key]').forEach(function (node) {{
+            node.style.display = '';
+        }});
+        targetSvg.querySelectorAll('[data-sef-dep-from][data-sef-dep-to]').forEach(function (node) {{
+            node.style.display = '';
+        }});
+        restoreLaneGeometry(targetSvg);
+        restoreXAxisPosition(targetSvg);
+        targetSvg.querySelectorAll('[data-sef-row="1"][data-sef-key],[data-sef-dep-from][data-sef-dep-to]').forEach(function (node) {{
+            node.removeAttribute('transform');
+        }});
+        targetSvg.querySelectorAll('.sef-block-link-icon.active').forEach(function (node) {{
+            node.classList.remove('active');
+        }});
+        updateExpandersForVisibility(targetSvg, false);
+        targetSvg.removeAttribute('data-sef-focus-source');
+        restoreOriginalSvgState(targetSvg);
+    }}
+
+    window.sefToggleBlockedFocus = function (evt, sourceKey, linkedCsv) {{
+        if (evt && typeof evt.stopPropagation === 'function') evt.stopPropagation();
+        if (evt && typeof evt.preventDefault === 'function') evt.preventDefault();
+        var source = (sourceKey || '').trim();
+        if (!source) return;
+
+        var icon = evt && evt.currentTarget ? evt.currentTarget : null;
+        var svg = icon ? icon.closest('svg') : null;
+        if (!svg) return;
+        ensureOriginalSvgState(svg);
+
+        var focused = (svg.getAttribute('data-sef-focus-source') || '').trim();
+        if (focused === source) {{
+            clearFocus(svg);
+            return;
+        }}
+
+        var linked = (linkedCsv || '').split(',').map(function (item) {{ return item.trim(); }}).filter(Boolean);
+        var visible = new Set([source]);
+        linked.forEach(function (key) {{ visible.add(key); }});
+        var anchor = new Set(visible);
+
+        var parentMap = {{}};
+        var pmEl = document.getElementById('sef-pm');
+        if (pmEl) {{
+            try {{
+                parentMap = JSON.parse((pmEl.getAttribute('data-parent-map') || '{{}}').replace(/&quot;/g, '"'));
+            }} catch (_err) {{
+                parentMap = {{}};
+            }}
+        }}
+        var queue = Array.from(visible);
+        while (queue.length) {{
+            var child = queue.pop();
+            var parent = (parentMap[child] || '').trim();
+            if (parent && !visible.has(parent)) {{
+                visible.add(parent);
+                queue.push(parent);
+            }}
+        }}
+
+        svg.querySelectorAll('[data-sef-key]').forEach(function (node) {{
+            var key = (node.getAttribute('data-sef-key') || '').trim();
+            node.style.display = visible.has(key) ? '' : 'none';
+        }});
+
+        svg.querySelectorAll('[data-sef-dep-from][data-sef-dep-to]').forEach(function (node) {{
+            var from = (node.getAttribute('data-sef-dep-from') || '').trim();
+            var to = (node.getAttribute('data-sef-dep-to') || '').trim();
+            node.style.display = (visible.has(from) && visible.has(to)) ? '' : 'none';
+        }});
+
+        svg.querySelectorAll('[data-sef-row="1"][data-sef-key],[data-sef-dep-from][data-sef-dep-to]').forEach(function (node) {{
+            node.removeAttribute('transform');
+        }});
+        restoreLaneGeometry(svg);
+        compactVisibleRows(svg, visible, anchor);
+        compactParentLaneHeights(svg, visible, parentMap);
+        updateExpandersForVisibility(svg, true);
+
+        svg.querySelectorAll('.sef-block-link-icon.active').forEach(function (node) {{
+            node.classList.remove('active');
+        }});
+        if (icon && icon.classList) icon.classList.add('active');
+        svg.setAttribute('data-sef-focus-source', source);
+    }};
+
   window.sefToggleChapter = function (evt, key) {{
     evt.stopPropagation();
     var sub = document.getElementById('sef-sub-' + key);
