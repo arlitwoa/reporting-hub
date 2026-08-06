@@ -69,7 +69,7 @@ ATL = {
     "release_out_cycle": "#ffc400",
 }
 SPRINT_FILL = (ATL["sprint_a"], ATL["sprint_b"])
-SVG_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif'
+SVG_FONT = '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, sans-serif'
 Y_AXIS_LEFT = 76
 CHART_AXIS_FONT = 10
 REF_PLOT_HEIGHT = 272

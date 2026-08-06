@@ -12,6 +12,7 @@ from extensions.twoa_programme.sef_project_plan_reporting import (
     load_sef_project_plan_reporting_config,
 )
 from extensions.twoa_programme.sef_project_plan_timeline import (
+    _issue_dimension_values,
     _build_hierarchy_from_flat,
     build_payload_filter_variants,
     build_sef_project_plan_report_html,
@@ -36,8 +37,28 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
         self.assertEqual(config.detail_issue_type, "Block Level Minus One")
         self.assertEqual(config.test_cycle_issue_type, "Test Cycle")
         self.assertIn("Meeting Gate", config.milestone_issue_types)
-        self.assertEqual(config.filter_dimensions[0].id, "component")
+        self.assertEqual(config.filter_dimensions[0].id, "workstream")
+        self.assertTrue(any(d.id == "tenant" for d in config.filter_dimensions))
+        self.assertTrue(any(d.id == "environment" for d in config.filter_dimensions))
+        self.assertTrue(any(d.id == "platforms" for d in config.filter_dimensions))
+        self.assertTrue(any(d.id == "testTypes" for d in config.filter_dimensions))
+        self.assertTrue(any(d.id == "smeCommitment" for d in config.filter_dimensions))
         self.assertEqual(config.pages_publish_path, "docs/sef/project-plan.html")
+
+    def test_issue_dimension_values_extract_new_filter_fields(self) -> None:
+        issue = {
+            "fields": {
+                "customfield_14734": {"value": "Tenant A"},
+                "customfield_10408": [{"value": "TST"}, {"value": "PRD"}],
+                "customfield_10046": [{"value": "HRIS"}],
+                "customfield_10079": {"value": "Data"},
+                "customfield_10145": [{"value": "Regression"}, {"value": "Smoke"}],
+            }
+        }
+        self.assertEqual(_issue_dimension_values(issue, source_field="tenant"), ["Tenant A"])
+        self.assertEqual(_issue_dimension_values(issue, source_field="environment"), ["TST", "PRD"])
+        self.assertEqual(_issue_dimension_values(issue, source_field="platforms"), ["HRIS", "Data"])
+        self.assertEqual(_issue_dimension_values(issue, source_field="testTypes"), ["Regression", "Smoke"])
 
     def test_chart_window_spans_full_project_delivery(self) -> None:
         start, end = resolve_chart_window_for_phases(self.payload["phases"])
@@ -54,6 +75,7 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
         self.assertIn("PDE-4086", svg)
         self.assertIn("PDE-4078", svg)
         self.assertIn("<svg ", svg)
+        self.assertIn('id="sef-x-axis-top"', svg)
 
     def test_html_report_shell(self) -> None:
         html_doc = build_sef_project_plan_report_html(
@@ -63,10 +85,11 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
         )
         self.assertIn("SEF | Integrated Project Plan", html_doc)
         self.assertIn("chart-wrap-sef-plan", html_doc)
+        self.assertIn("data-sef-filter-clear", html_doc)
 
-    def test_timeline_bars_use_component_colours(self) -> None:
+    def test_timeline_bars_use_workstream_colours(self) -> None:
         payload = json.loads(json.dumps(self.payload))
-        payload["phases"][0]["chapters"][1]["components"] = ["Testing"]
+        payload["phases"][0]["chapters"][1]["workstreams"] = ["Testing"]
         svg = sef_project_plan_timeline_svg(payload)
         self.assertIn('fill="#00875A"', svg)
         self.assertIn('fill="#7A869A"', svg)
@@ -75,6 +98,27 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
         svg = sef_project_plan_timeline_svg(self.payload)
         self.assertIn('class="chart-today-marker"', svg)
         self.assertIn('class="chart-today-line"', svg)
+
+    def test_svg_renders_blocked_by_link_icon(self) -> None:
+        payload = json.loads(json.dumps(self.payload))
+        chapter = payload["phases"][0]["chapters"][0]
+        package = chapter["packages"][0]
+        chapter["blockedByKeys"] = [package["key"]]
+
+        svg = sef_project_plan_timeline_svg(payload)
+        self.assertIn('class="sef-block-link-icon"', svg)
+        self.assertIn('is blocked by', svg)
+        self.assertIn('onclick="sefToggleBlockedFocus(', svg)
+
+    def test_html_includes_blocked_focus_script(self) -> None:
+        html_doc = build_sef_project_plan_report_html(
+            self.payload,
+            generated_on="01 Jan 2026 12:00 NZDT",
+            page_title="SEF | Integrated Project Plan",
+        )
+        self.assertIn("window.sefToggleBlockedFocus", html_doc)
+        self.assertIn("data-sef-dep-from", html_doc)
+        self.assertIn("data-sef-key", html_doc)
 
     def test_discover_phase_hub_issues_skips_missing_configured_keys(self) -> None:
         from unittest.mock import MagicMock, patch
@@ -361,12 +405,12 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
         self.assertTrue(milestone["isMeetingGate"])
         self.assertEqual(milestone["issueTypeIconUrl"], "/images/icons/mg.svg")
 
-    def test_component_filter_preserves_matching_hierarchy(self) -> None:
+    def test_workstream_filter_preserves_matching_hierarchy(self) -> None:
         payload = {
             "chartWindowStart": "2026-06-01",
             "chartWindowEnd": "2026-12-31",
             "filterDimensions": [
-                {"id": "component", "label": "Component", "sourceField": "components", "options": ["HCM", "Payroll"]}
+                {"id": "workstream", "label": "Workstream", "sourceField": "workstreams", "options": ["HCM", "Payroll"]}
             ],
             "phases": [
                 {
@@ -380,21 +424,21 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
                             "summary": "Chapter",
                             "startDate": "2026-06-01",
                             "endDate": "2026-09-01",
-                            "components": ["HCM"],
+                            "workstreams": ["HCM"],
                             "packages": [
                                 {
                                     "key": "PDE-3",
                                     "summary": "Package",
                                     "startDate": "2026-06-10",
                                     "endDate": "2026-08-01",
-                                    "components": ["HCM"],
+                                    "workstreams": ["HCM"],
                                     "details": [
                                         {
                                             "key": "PDE-4",
                                             "summary": "Detail",
                                             "startDate": "2026-06-12",
                                             "endDate": "2026-06-30",
-                                            "components": ["HCM"],
+                                            "workstreams": ["HCM"],
                                         }
                                     ],
                                 },
@@ -403,7 +447,7 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
                                     "summary": "Payroll Package",
                                     "startDate": "2026-07-01",
                                     "endDate": "2026-08-15",
-                                    "components": ["Payroll"],
+                                    "workstreams": ["Payroll"],
                                     "details": [],
                                 },
                             ],
@@ -412,24 +456,24 @@ class SefProjectPlanTimelineTests(unittest.TestCase):
                 }
             ],
         }
-        filtered = filter_payload_by_dimension_value(payload, dimension_id="component", value="Payroll")
+        filtered = filter_payload_by_dimension_value(payload, dimension_id="workstream", value="Payroll")
         packages = filtered["phases"][0]["chapters"][0]["packages"]
         self.assertEqual([row["key"] for row in packages], ["PDE-5"])
 
-    def test_filter_variants_include_all_and_component_values(self) -> None:
+    def test_filter_variants_include_all_and_workstream_values(self) -> None:
         payload = {
             "chartWindowStart": "2026-06-01",
             "chartWindowEnd": "2026-12-31",
             "filterDimensions": [
-                {"id": "component", "label": "Component", "sourceField": "components", "options": ["HCM", "Payroll"]}
+                {"id": "workstream", "label": "Workstream", "sourceField": "workstreams", "options": ["HCM", "Payroll"]}
             ],
             "phases": self.payload.get("phases") or [],
         }
         variants = build_payload_filter_variants(payload)
         keys = {variant["key"] for variant in variants}
         self.assertIn("__all__", keys)
-        self.assertIn("component:HCM", keys)
-        self.assertIn("component:Payroll", keys)
+        self.assertIn("workstream:HCM", keys)
+        self.assertIn("workstream:Payroll", keys)
 
 
 if __name__ == "__main__":
