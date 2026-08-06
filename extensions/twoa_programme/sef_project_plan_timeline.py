@@ -253,13 +253,56 @@ SEF_PROJECT_PLAN_EXTRA_CSS = """
     font-size: 12px;
     color: #42526e;
 }
-.sef-plan-filter select {
-    min-width: 220px;
-    padding: 6px 8px;
-    border: 1px solid #dfe1e6;
-    border-radius: 4px;
+.sef-plan-expander {
+    min-width: 240px;
     background: #fff;
+    border: 1px solid #dfe1e6;
+    border-radius: 6px;
+}
+.sef-plan-expander > summary {
+    list-style: none;
+    padding: 7px 10px;
+    cursor: pointer;
     color: #172b4d;
+    font-weight: 500;
+    user-select: none;
+}
+.sef-plan-expander > summary::-webkit-details-marker {
+    display: none;
+}
+.sef-plan-expander > summary::after {
+    content: "▾";
+    float: right;
+    color: #6b778c;
+}
+.sef-plan-expander[open] > summary::after {
+    content: "▴";
+}
+.sef-plan-options {
+    max-height: 260px;
+    overflow: auto;
+    border-top: 1px solid #ebecf0;
+    padding: 6px 8px;
+}
+.sef-plan-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+    color: #172b4d;
+}
+.sef-plan-option input {
+    margin: 0;
+}
+.sef-plan-option span {
+    line-height: 1.2;
+}
+.sef-plan-option:hover {
+    background: #f7f8fa;
+}
+.sef-plan-expander:focus-within {
+    border-color: #4c9aff;
+    box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.2);
 }
 .sef-plan-filter-actions {
     display: inline-flex;
@@ -1208,6 +1251,35 @@ def _label_column_width(phases: list[dict[str, Any]]) -> float:
     return max(float(LABEL_WIDTH), dynamic)
 
 
+def _working_days_inclusive(start: date, end: date) -> int:
+    if end < start:
+        start, end = end, start
+    total = 0
+    current = start
+    while current <= end:
+        if current.weekday() < 5:
+            total += 1
+        current += timedelta(days=1)
+    return total
+
+
+def _label_with_duration_metrics(label: str, row: dict[str, Any]) -> str:
+    start_raw = str(row.get("startDate") or "")[:10]
+    end_raw = str(row.get("endDate") or "")[:10]
+    try:
+        start = date.fromisoformat(start_raw)
+        end = date.fromisoformat(end_raw)
+    except ValueError:
+        return label
+    if end < start:
+        start, end = end, start
+    elapsed_days = (end - start).days + 1
+    work_days = _working_days_inclusive(start, end)
+    weeks = elapsed_days / 7.0
+    weeks_str = f"{weeks:.1f}".rstrip("0").rstrip(".")
+    return f"{label} (ED {elapsed_days} | WD {work_days} | W {weeks_str})"
+
+
 def _append_label_link(
     parts: list[str],
     *,
@@ -1428,6 +1500,7 @@ def _append_timeline_bar(
     fill: str,
     opacity: float,
     rx: int = 2,
+    role: str = "",
     scope_overlay_opacity: float = SCOPE_OVERLAY_OPACITY,
     blocked_by_keys: list[str] | None = None,
     blocks_keys: list[str] | None = None,
@@ -1440,8 +1513,9 @@ def _append_timeline_bar(
         blocks_keys=blocks_keys,
         rows_by_key=rows_by_key,
     )
+    role_attr = f' data-sef-role="{html.escape(role)}"' if role else ""
     data_key_attr = (
-        f' data-sef-key="{html.escape(row_key)}" data-sef-row="1"' if row_key else ""
+        f' data-sef-key="{html.escape(row_key)}" data-sef-row="1"{role_attr}' if row_key else role_attr
     )
     parts.append(f'<g{data_key_attr}>{_svg_embedded_title(_bar_tooltip(row))}')
     if _is_milestone_row(row):
@@ -1882,6 +1956,7 @@ def sef_project_plan_timeline_svg(
                 bar_h=PHASE_BAR_HEIGHT,
                 fill=phase_fill,
                 opacity=BAR_OPACITY,
+                role="phase-bar",
                 scope_overlay_opacity=SCOPE_OVERLAY_OPACITY,
                 blocked_by_keys=blocked_by_map.get(phase_key),
                 blocks_keys=blocks_map.get(phase_key),
@@ -1890,7 +1965,7 @@ def sef_project_plan_timeline_svg(
             row_positions[phase_key] = (phase_x1, phase_row_cy, _row_end_x(phase, phase_x1, phase_bar_w))
             _append_label_link(
                 parts,
-                text=phase_label,
+                text=_label_with_duration_metrics(phase_label, phase),
                 x=LABEL_PAD_X,
                 y_center=phase_row_cy,
                 url=f"{JIRA_SERVER}/browse/{html.escape(phase_key)}",
@@ -1959,6 +2034,7 @@ def sef_project_plan_timeline_svg(
                     bar_h=CHAPTER_BAR_HEIGHT,
                     fill=fill,
                     opacity=BAR_OPACITY,
+                    role="chapter-bar",
                     scope_overlay_opacity=SCOPE_OVERLAY_OPACITY,
                     blocked_by_keys=blocked_by_map.get(key),
                     blocks_keys=blocks_map.get(key),
@@ -1968,7 +2044,7 @@ def sef_project_plan_timeline_svg(
                 row_positions[key] = (x1, row_cy, _row_end_x(chapter, x1, bar_w))
                 _append_label_link(
                     parts,
-                    text=summary,
+                    text=_label_with_duration_metrics(summary, chapter),
                     x=LABEL_PAD_X,
                     y_center=row_cy,
                     url=f"{JIRA_SERVER}/browse/{html.escape(key)}",
@@ -1981,7 +2057,7 @@ def sef_project_plan_timeline_svg(
             else:
                 _append_label_text(
                     parts,
-                    text=summary,
+                    text=_label_with_duration_metrics(summary, chapter),
                     x=LABEL_PAD_X,
                     y_center=row_cy,
                     tooltip=_bar_tooltip(chapter),
@@ -2035,6 +2111,7 @@ def sef_project_plan_timeline_svg(
                     fill=p_fill,
                     opacity=p_opacity,
                     rx=1,
+                    role="package-bar",
                     scope_overlay_opacity=SUB_SCOPE_OVERLAY_OPACITY,
                     blocked_by_keys=blocked_by_map.get(p_key),
                     blocks_keys=blocks_map.get(p_key),
@@ -2046,7 +2123,7 @@ def sef_project_plan_timeline_svg(
                     milestone_markers.append((px1, p_summary, p_start, bool(package.get("isMeetingGate"))))
                 _append_label_link(
                     parts,
-                    text=p_summary,
+                    text=_label_with_duration_metrics(p_summary, package),
                     x=SUB_LABEL_INDENT,
                     y_center=sub_cy,
                     url=f"{JIRA_SERVER}/browse/{html.escape(p_key)}",
@@ -2085,6 +2162,7 @@ def sef_project_plan_timeline_svg(
                         fill=d_fill,
                         opacity=d_opacity,
                         rx=1,
+                        role="detail-bar",
                         scope_overlay_opacity=DETAIL_SCOPE_OVERLAY_OPACITY,
                         blocked_by_keys=blocked_by_map.get(d_key),
                         blocks_keys=blocks_map.get(d_key),
@@ -2096,7 +2174,7 @@ def sef_project_plan_timeline_svg(
                         milestone_markers.append((dx1, d_summary, d_start, bool(detail.get("isMeetingGate"))))
                     _append_label_link(
                         parts,
-                        text=d_summary,
+                        text=_label_with_duration_metrics(d_summary, detail),
                         x=DETAIL_LABEL_INDENT,
                         y_center=detail_cy,
                         url=f"{JIRA_SERVER}/browse/{html.escape(d_key)}",
@@ -2292,7 +2370,8 @@ def build_sef_project_plan_report_html(
         )
     payload = json.loads(json.dumps(payload))
     payload["filterDimensions"] = dimensions
-    variants = build_payload_filter_variants(payload)
+    chart = sef_project_plan_timeline_svg(payload, workstream_colors=colors)
+    footnote = _footnote_for(payload)
 
     controls_html = ""
     if dimensions:
@@ -2302,19 +2381,25 @@ def build_sef_project_plan_report_html(
             dim_id = html.escape(dim_id_raw)
             dim_label = html.escape(str(dimension.get("label") or dim_id_raw.title()))
             options = [str(opt) for opt in (dimension.get("options") or []) if str(opt)]
-            all_label = "All workstreams" if dim_id_raw == "workstream" else "All"
-            option_html = [f'<option value="">{html.escape(all_label)}</option>']
-            option_html.extend(
-                f'<option value="{html.escape(opt)}">{html.escape(_workstream_option_label(opt) if dim_id_raw == "workstream" else opt)}</option>'
+            option_html = [
+                (
+                    '<label class="sef-plan-option">'
+                    f'<input type="checkbox" data-sef-filter-option value="{html.escape(opt)}"/>'
+                    f'<span>{html.escape(_workstream_option_label(opt) if dim_id_raw == "workstream" else opt)}</span>'
+                    '</label>'
+                )
                 for opt in options
-            )
+            ]
             controls.append(
-                "<label class=\"sef-plan-filter\">"
+                "<div class=\"sef-plan-filter\">"
                 f"<span>{dim_label}</span>"
-                f"<select data-sef-filter=\"{dim_id}\">"
+                f"<details class=\"sef-plan-expander\" data-sef-filter=\"{dim_id}\">"
+                "<summary data-sef-filter-summary>All</summary>"
+                "<div class=\"sef-plan-options\">"
                 f"{''.join(option_html)}"
-                "</select>"
-                "</label>"
+                "</div>"
+                "</details>"
+                "</div>"
             )
         controls.append(
             '<div class="sef-plan-filter-actions">'
@@ -2324,71 +2409,263 @@ def build_sef_project_plan_report_html(
         controls.append("</div>")
         controls_html = "".join(controls)
 
-    variant_blocks: list[str] = []
-    for index, variant in enumerate(variants):
-        variant_payload = variant["payload"]
-        chart = sef_project_plan_timeline_svg(variant_payload, workstream_colors=colors)
-        footnote = _footnote_for(variant_payload)
-        key = html.escape(str(variant["key"] or "__all__"))
-        hidden_attr = "" if index == 0 else " hidden"
-        variant_blocks.append(
-            f'<section class="sef-plan-variant" data-variant-key="{key}"{hidden_attr}>'
+    variant_block = (
+            '<section class="sef-plan-variant" data-variant-key="__all__">'
             f'<div class="chart-wrap chart-wrap-timeline chart-wrap-sef-plan">{chart}</div>'
             f'<p class="footnote">{html.escape(footnote)}</p>'
             "</section>"
-        )
+    )
 
     variant_script = ""
     if dimensions:
-        dimension_ids = [str(d.get("id") or "") for d in dimensions if str(d.get("id") or "")]
-        ids_json = json.dumps(dimension_ids)
-        variant_script = f"""
+            dimension_meta: list[dict[str, str]] = []
+            for d in dimensions:
+                    dim_id = str(d.get("id") or "").strip()
+                    source_field = str(d.get("sourceField") or "").strip()
+                    if dim_id and source_field:
+                            dimension_meta.append({"id": dim_id, "sourceField": source_field})
+
+            row_filter_values: dict[str, dict[str, list[str]]] = {}
+            for row in _iter_timeline_rows(payload.get("phases") or []):
+                    key = str(row.get("key") or "").strip()
+                    if not key:
+                            continue
+                    row_entry: dict[str, list[str]] = {}
+                    for meta in dimension_meta:
+                            vals = _iter_dimension_values(row, source_field=meta["sourceField"])
+                            if vals:
+                                    row_entry[meta["id"]] = vals
+                    row_filter_values[key] = row_entry
+
+            meta_json = json.dumps(dimension_meta)
+            values_json = json.dumps(row_filter_values)
+            variant_script = f"""
 <script>
 (() => {{
-  const dimensionIds = {ids_json};
-  const filters = document.querySelectorAll('[data-sef-filter]');
-  const variants = document.querySelectorAll('[data-variant-key]');
-    const clearBtn = document.querySelector('[data-sef-filter-clear]');
+const dimensionMeta = {meta_json};
+const rowFilterValues = {values_json};
+const filters = document.querySelectorAll('[data-sef-filter]');
+const clearBtn = document.querySelector('[data-sef-filter-clear]');
+const svg = document.querySelector('.sef-plan-variant .chart-wrap-sef-plan svg');
 
-  function currentKey() {{
-    const parts = [];
-    for (const id of dimensionIds) {{
-      const sel = document.querySelector(`[data-sef-filter="${{id}}"]`);
-      const val = (sel && sel.value ? sel.value.trim() : "");
-      if (val) parts.push(`${{id}}:${{val}}`);
+function selectedValues(filterEl) {{
+    return Array.from(filterEl.querySelectorAll('input[data-sef-filter-option]:checked'))
+        .map((opt) => String(opt.value || '').trim())
+        .filter(Boolean);
+}}
+
+function updateSummary(filterEl) {{
+    const summary = filterEl.querySelector('[data-sef-filter-summary]');
+    if (!summary) return;
+    const selected = selectedValues(filterEl);
+    if (!selected.length) {{
+        summary.textContent = 'All';
+        return;
     }}
-    return parts.length ? parts.join('|') : '__all__';
-  }}
+    if (selected.length === 1) {{
+        const only = filterEl.querySelector('input[data-sef-filter-option]:checked + span');
+        summary.textContent = only ? only.textContent : '1 selected';
+        return;
+    }}
+    summary.textContent = `${{selected.length}} selected`;
+}}
 
-  function apply() {{
-    const key = currentKey();
-    let shown = false;
-        let activeCount = 0;
-        for (const id of dimensionIds) {{
-            const sel = document.querySelector(`[data-sef-filter="${{id}}"]`);
-            const val = (sel && sel.value ? sel.value.trim() : "");
-            if (val) activeCount += 1;
-        }}
-
-    variants.forEach((node) => {{
-      const match = node.getAttribute('data-variant-key') === key;
-      node.hidden = !match;
-      shown = shown || match;
+function closeAllExpanders(exceptEl) {{
+    filters.forEach((f) => {{
+        if (exceptEl && f === exceptEl) return;
+        if (f.open) f.open = false;
     }});
-    if (!shown) {{
-      variants.forEach((node, idx) => {{ node.hidden = idx !== 0; }});
-    }}
-        if (clearBtn) clearBtn.disabled = activeCount === 0;
-  }}
+}}
 
-  filters.forEach((sel) => sel.addEventListener('change', apply));
-    if (clearBtn) {{
-        clearBtn.addEventListener('click', () => {{
-            filters.forEach((sel) => {{ sel.value = ''; }});
-            apply();
+function parentMapFromSvg() {{
+    if (!svg) return {{}};
+    const pm = svg.querySelector('#sef-pm');
+    if (!pm) return {{}};
+    try {{
+        return JSON.parse((pm.getAttribute('data-parent-map') || '{{}}').replace(/&quot;/g, '"'));
+    }} catch (_err) {{
+        return {{}};
+    }}
+}}
+
+function buildChildrenMap(parentMap) {{
+    const children = {{}};
+    Object.keys(parentMap).forEach((key) => {{
+        const parent = String(parentMap[key] || '').trim();
+        if (!parent) return;
+        if (!children[parent]) children[parent] = [];
+        children[parent].push(key);
+    }});
+    return children;
+}}
+
+function addAncestors(set, key, parentMap) {{
+    let cur = String(key || '').trim();
+    let guard = 0;
+    while (cur && guard < 128) {{
+        const parent = String(parentMap[cur] || '').trim();
+        if (!parent) break;
+        set.add(parent);
+        cur = parent;
+        guard += 1;
+    }}
+}}
+
+function addDescendants(set, key, childrenMap) {{
+    const stack = [String(key || '').trim()].filter(Boolean);
+    let guard = 0;
+    while (stack.length && guard < 5000) {{
+        const cur = stack.pop();
+        const kids = childrenMap[cur] || [];
+        for (const child of kids) {{
+            if (!set.has(child)) {{
+                set.add(child);
+                stack.push(child);
+            }}
+        }}
+        guard += 1;
+    }}
+}}
+
+function rowMatchesSelections(rowValues, selectedByDim) {{
+    for (const dim of dimensionMeta) {{
+        const selected = selectedByDim[dim.id] || [];
+        if (!selected.length) continue;
+        const rowVals = rowValues[dim.id] || [];
+        if (!rowVals.length) return false;
+        const hit = selected.some((v) => rowVals.includes(v));
+        if (!hit) return false;
+    }}
+    return true;
+}}
+
+function effectiveRowValues(key, dimId, parentMap, cache) {{
+    const cacheKey = `${{key}}::${{dimId}}`;
+    if (cache[cacheKey]) return cache[cacheKey];
+
+    const values = [];
+    const seen = new Set();
+    let cur = String(key || '').trim();
+    let guard = 0;
+    while (cur && guard < 128) {{
+        const curValues = (rowFilterValues[cur] && rowFilterValues[cur][dimId]) || [];
+        curValues.forEach((v) => {{
+            if (!seen.has(v)) {{
+                seen.add(v);
+                values.push(v);
+            }}
+        }});
+        cur = String(parentMap[cur] || '').trim();
+        guard += 1;
+    }}
+
+    cache[cacheKey] = values;
+    return values;
+}}
+
+function rowMatchesSelectionsForKey(key, selectedByDim, parentMap, cache) {{
+    for (const dim of dimensionMeta) {{
+        const selected = selectedByDim[dim.id] || [];
+        if (!selected.length) continue;
+        const vals = effectiveRowValues(key, dim.id, parentMap, cache);
+        if (!vals.length) return false;
+        const hit = selected.some((v) => vals.includes(v));
+        if (!hit) return false;
+    }}
+    return true;
+}}
+
+function apply() {{
+    if (!svg) return;
+
+    const selectedByDim = {{}};
+    let activeCount = 0;
+    dimensionMeta.forEach((dim) => {{
+        const sel = document.querySelector(`[data-sef-filter="${{dim.id}}"]`);
+        const vals = sel ? selectedValues(sel) : [];
+        selectedByDim[dim.id] = vals;
+        activeCount += vals.length;
+    }});
+
+    const allMode = activeCount === 0;
+    const parentMap = parentMapFromSvg();
+    const childrenMap = buildChildrenMap(parentMap);
+    const visibleKeys = new Set();
+    const inheritedValueCache = {{}};
+
+    if (allMode) {{
+        Object.keys(rowFilterValues).forEach((key) => visibleKeys.add(key));
+    }} else {{
+        const matched = new Set();
+        Object.keys(rowFilterValues).forEach((key) => {{
+            if (rowMatchesSelectionsForKey(key, selectedByDim, parentMap, inheritedValueCache)) matched.add(key);
+        }});
+
+        matched.forEach((key) => {{
+            visibleKeys.add(key);
+            addAncestors(visibleKeys, key, parentMap);
+            addDescendants(visibleKeys, key, childrenMap);
         }});
     }}
-  apply();
+
+    svg.querySelectorAll('[data-sef-key]').forEach((node) => {{
+        const key = String(node.getAttribute('data-sef-key') || '').trim();
+        if (!key) return;
+        node.style.display = visibleKeys.has(key) ? '' : 'none';
+    }});
+
+    svg.querySelectorAll('[data-sef-dep-from][data-sef-dep-to]').forEach((node) => {{
+        const from = String(node.getAttribute('data-sef-dep-from') || '').trim();
+        const to = String(node.getAttribute('data-sef-dep-to') || '').trim();
+        node.style.display = (visibleKeys.has(from) && visibleKeys.has(to)) ? '' : 'none';
+    }});
+
+    svg.removeAttribute('data-sef-focus-source');
+    svg.querySelectorAll('.sef-block-link-icon.active').forEach((node) => node.classList.remove('active'));
+    if (clearBtn) clearBtn.disabled = allMode;
+    if (typeof window.sefApplyVisibilityCompaction === 'function') {{
+        window.sefApplyVisibilityCompaction(svg);
+    }}
+}}
+
+filters.forEach((sel) => {{
+    updateSummary(sel);
+    sel.addEventListener('toggle', () => {{
+        if (sel.open) closeAllExpanders(sel);
+    }});
+    sel.addEventListener('change', (event) => {{
+        updateSummary(sel);
+        apply();
+        const target = event.target;
+        if (target instanceof Element && target.matches('input[data-sef-filter-option]')) {{
+            closeAllExpanders(null);
+        }}
+    }});
+}});
+
+document.addEventListener('click', (event) => {{
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const withinFilter = target.closest('details.sef-plan-expander');
+    if (!withinFilter) closeAllExpanders(null);
+}});
+
+document.addEventListener('keydown', (event) => {{
+    if (event.key === 'Escape') closeAllExpanders(null);
+}});
+
+if (clearBtn) {{
+    clearBtn.addEventListener('click', () => {{
+        filters.forEach((sel) => {{
+            Array.from(sel.querySelectorAll('input[data-sef-filter-option]')).forEach((opt) => {{
+                opt.checked = false;
+            }});
+            updateSummary(sel);
+        }});
+        apply();
+    }});
+}}
+apply();
 }})();
 </script>
 """
@@ -2412,7 +2689,7 @@ def build_sef_project_plan_report_html(
     <section class="chart-section">
       {legend}
             {controls_html}
-            {''.join(variant_blocks)}
+                        {variant_block}
     </section>
   </main>
     {variant_script}
@@ -2570,7 +2847,7 @@ def build_sef_project_plan_report_html(
         return false;
     }}
 
-    function repositionFocusedXAxis(svg, newY, newH, xShift) {{
+    function repositionFocusedXAxis(svg, newY, newH, xShift, clampToViewport) {{
         var axis = svg.querySelector('#sef-x-axis');
         if (!axis) return;
         var origBottom = parseFloat(axis.getAttribute('data-sef-orig-bottom') || 'NaN');
@@ -2578,11 +2855,14 @@ def build_sef_project_plan_report_html(
         var bottomPad = 74;
         var targetBottom = newY + newH - bottomPad;
 
-        // Keep axis visible in the current focused viewport without requiring vertical scroll.
-        var wrap = svg.closest('.chart-wrap-sef-plan');
-        if (wrap && isFinite(wrap.clientHeight) && wrap.clientHeight > 0) {{
-            var visibleBottom = newY + wrap.clientHeight - 40;
-            targetBottom = Math.min(targetBottom, visibleBottom);
+        // In focused mode keep axis visible in viewport; in normal filtered mode
+        // keep it at the true bottom of filtered content.
+        if (clampToViewport) {{
+            var wrap = svg.closest('.chart-wrap-sef-plan');
+            if (wrap && isFinite(wrap.clientHeight) && wrap.clientHeight > 0) {{
+                var visibleBottom = newY + wrap.clientHeight - 40;
+                targetBottom = Math.min(targetBottom, visibleBottom);
+            }}
         }}
 
         var dy = targetBottom - origBottom;
@@ -2734,7 +3014,7 @@ def build_sef_project_plan_report_html(
             if (rowKey && anchorSet && anchorSet.size && !anchorSet.has(rowKey)) return;
             if (_isInLabelClipRegion(node, svg)) return;
             var role = (node.getAttribute('data-sef-role') || '').trim();
-            if (role === 'chapter-border' || role === 'package-lane') return;
+            if (role === 'chapter-border' || role === 'package-lane' || role === 'phase-bar') return;
             if ((node.getAttribute('clip-path') || '').indexOf('sef-plan-label-col') !== -1) return;
 
             var box = _effectiveBox(node);
@@ -2770,7 +3050,7 @@ def build_sef_project_plan_report_html(
             newW = Math.max(420, desiredRight - newX);
         }}
 
-        repositionFocusedXAxis(svg, newY, newH, xShift);
+        repositionFocusedXAxis(svg, newY, newH, xShift, !!(anchorSet && anchorSet.size));
         svg.setAttribute('viewBox', newX + ' ' + newY + ' ' + newW + ' ' + newH);
         svg.setAttribute('height', Math.ceil(newH));
         resizeFocusedWrap(svg, newH);
@@ -2881,6 +3161,53 @@ def build_sef_project_plan_report_html(
         targetSvg.removeAttribute('data-sef-focus-source');
         restoreOriginalSvgState(targetSvg);
     }}
+
+    window.sefApplyVisibilityCompaction = function (targetSvg) {{
+        if (!targetSvg) return;
+        ensureOriginalSvgState(targetSvg);
+
+        // Always start compaction from original geometry so axis/viewBox are
+        // recalculated from current filter state, not from prior compacted state.
+        restoreOriginalSvgState(targetSvg);
+
+        restoreLaneGeometry(targetSvg);
+        restoreXAxisPosition(targetSvg);
+        targetSvg.querySelectorAll('[data-sef-row="1"][data-sef-key],[data-sef-dep-from][data-sef-dep-to]').forEach(function (node) {{
+            node.removeAttribute('transform');
+        }});
+
+        var visibleSet = new Set();
+        var hiddenFound = false;
+        targetSvg.querySelectorAll('[data-sef-row="1"][data-sef-key]').forEach(function (node) {{
+            var key = (node.getAttribute('data-sef-key') || '').trim();
+            if (!key) return;
+            if (_isShown(node, targetSvg)) {{
+                visibleSet.add(key);
+            }} else {{
+                hiddenFound = true;
+            }}
+        }});
+
+        if (!hiddenFound || !visibleSet.size) {{
+            updateExpandersForVisibility(targetSvg, false);
+            restoreOriginalSvgState(targetSvg);
+            return;
+        }}
+
+        var parentMap = {{}};
+        var pm = targetSvg.querySelector('#sef-pm');
+        if (pm) {{
+            try {{
+                parentMap = JSON.parse((pm.getAttribute('data-parent-map') || '{{}}').replace(/&quot;/g, '"'));
+            }} catch (_err) {{
+                parentMap = {{}};
+            }}
+        }}
+
+        compactVisibleRows(targetSvg, visibleSet, null);
+        compactParentLaneHeights(targetSvg, visibleSet, parentMap);
+        updateExpandersForVisibility(targetSvg, true);
+    }};
 
     window.sefToggleBlockedFocus = function (evt, sourceKey, linkedCsv) {{
         if (evt && typeof evt.stopPropagation === 'function') evt.stopPropagation();
