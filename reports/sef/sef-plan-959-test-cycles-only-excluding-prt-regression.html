@@ -52,6 +52,10 @@
     .hover-card .meta { color: #5e6c84; margin-bottom: 6px; }
     .hover-card .desc-label { font-weight: 700; margin-right: 4px; }
     .hover-card .desc-body { color: #253858; }
+    .hover-card .field-grid { margin: 8px 0 8px; border-top: 1px solid #edf1f6; padding-top: 7px; }
+    .hover-card .field-row { display: grid; grid-template-columns: 112px 1fr; gap: 8px; margin: 2px 0; }
+    .hover-card .field-label { color: #5e6c84; font-weight: 600; }
+    .hover-card .field-value { color: #253858; }
   </style>
   <script type="module">
     const TASKS = [
@@ -196,6 +200,46 @@
     "PDE-4729": "Execute Parallel Run Three as the final planned parallel payroll validation cycle to confirm sustained payroll accuracy and operational readiness before production-focused decisioning. This run is intended to close residual variance risk and consolidate evidence for go-live governance.",
     "PDE-4731": ""
 };
+    const ISSUE_CONTEXT_FIELDS = ["Environment", "Platforms", "Tenant", "Tenant Name", "Test Company", "AIS Instance"];
+    const ISSUE_METADATA = {
+    "PDE-4683": {"Environment": "Non Integrated Parallel", "Platforms": "payroll", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
+    "PDE-4684": {"Environment": "Non Integrated Parallel", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
+    "PDE-4687": {"Environment": "Non Integrated Parallel", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
+    "PDE-4686": {"Environment": "Non Integrated Parallel", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
+    "PDE-4685": {"Environment": "Non Integrated Parallel", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
+    "PDE-4678": {"Environment": "SIT", "Platforms": "payroll, workday", "Tenant": "TWoA4", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
+    "PDE-4679": {"Environment": "SIT", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4680": {"Environment": "SIT", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": ""},
+    "PDE-4682": {"Environment": "SIT", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": ""},
+    "PDE-4681": {"Environment": "SIT", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": ""},
+    "PDE-4599": {"Environment": "Non Integrated Parallel", "Platforms": "datapay", "Tenant": "none", "Tenant Name": "none", "Test Company": "Non Integrated Parallel", "AIS Instance": "none"},
+    "PDE-4601": {"Environment": "TST", "Platforms": "payroll, workday", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4602": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4606": {"Environment": "End to End", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4714": {"Environment": "End to End", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4716": {"Environment": "End to End", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4715": {"Environment": "End to End", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4717": {"Environment": "End to End", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4677": {"Environment": "SIT", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4706": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST"},
+    "PDE-4705": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST"},
+    "PDE-4704": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST"},
+    "PDE-4703": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST"},
+    "PDE-4702": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST"},
+    "PDE-4607": {"Environment": "UAT", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4734": {"Environment": "Parallel", "Platforms": "datapay, workday", "Tenant": "TWoA5", "Tenant Name": "Parallel", "Test Company": "Parallel", "AIS Instance": ""},
+    "PDE-4735": {"Environment": "Parallel", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4736": {"Environment": "Parallel", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4738": {"Environment": "Parallel", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4737": {"Environment": "Parallel", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4727": {"Environment": "STG", "Platforms": "alma, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, payroll, sana, smartconnect, workday", "Tenant": "TWoA5", "Tenant Name": "End to End", "Test Company": "End to End", "AIS Instance": "STG"},
+    "PDE-4604": {"Environment": "End to End", "Platforms": "azure-integration-services, datapay, workday", "Tenant": "TWoA5", "Tenant Name": "End to End", "Test Company": "End to End", "AIS Instance": "STG"},
+    "PDE-4608": {"Environment": "STG", "Platforms": "workday", "Tenant": "TWoA5", "Tenant Name": "UAT", "Test Company": "none", "AIS Instance": "none"},
+    "PDE-4730": {"Environment": "Parallel", "Platforms": "datapay, workday", "Tenant": "", "Tenant Name": "Parallel", "Test Company": "Parallel", "AIS Instance": "none"},
+    "PDE-4616": {"Environment": "Parallel", "Platforms": "datapay, workday", "Tenant": "", "Tenant Name": "Parallel", "Test Company": "Parallel", "AIS Instance": "none"},
+    "PDE-4729": {"Environment": "Parallel", "Platforms": "datapay, workday", "Tenant": "", "Tenant Name": "Parallel", "Test Company": "Parallel", "AIS Instance": "none"},
+    "PDE-4731": {"Environment": "PRD", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Tenant": "Gold", "Tenant Name": "PRD", "Test Company": "PRD", "AIS Instance": "PRD"}
+  };
     const DESCRIPTION_FALLBACK = "No Description is currently entered in Jira for this item.";
 
     function toDate(v) {
@@ -236,9 +280,22 @@
       const description = jiraDescription && String(jiraDescription).trim()
         ? jiraDescription
         : DESCRIPTION_FALLBACK;
+      const meta = ISSUE_METADATA[task.key] || {};
+      const fieldsHtml = ISSUE_CONTEXT_FIELDS
+        .map((label) => {
+          const value = (meta[label] || "").trim();
+          if (!value) {
+            return "";
+          }
+          return `<div class="field-row"><div class="field-label">${escapeHtml(label)}</div><div class="field-value">${escapeHtml(value)}</div></div>`;
+        })
+        .filter(Boolean)
+        .join("");
+      const contextSection = fieldsHtml ? `<div class="field-grid">${fieldsHtml}</div>` : "";
       return `
         <div class="title">${escapeHtml(task.key)} | ${escapeHtml(task.title)}</div>
         <div class="meta">${escapeHtml(task.start)} to ${escapeHtml(task.end)} | ${escapeHtml(category)}${stripText ? ` | ${escapeHtml(stripText)}` : ""}</div>
+        ${contextSection}
         <div><span class="desc-label">Description:</span><span class="desc-body">${escapeHtml(description)}</span></div>
       `;
     }
