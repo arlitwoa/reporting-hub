@@ -48,6 +48,11 @@
           "href": "sef/plans/test-strategy.html",
           "title": "Test Strategy | Testing Stream | Block Schedule",
           "description": "Testing stream test strategy schedule from PDE Block rows"
+        },
+        {
+          "href": "sef/plans/sef-plan-959-test-cycles-only-excluding-prt-regression.html",
+          "title": "Test Strategy | Plan 959 | Test Cycles + Pre Requisites",
+          "description": "interactive schedule with filters, dependencies, and collapsed child groups"
         }
       ]
     },
