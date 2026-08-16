@@ -32,6 +32,26 @@
     .parent-toggle { border:1px solid #c3ccda; background:#f4f7fc; color:#253858; border-radius:999px; padding:5px 10px; font-size:12px; cursor:pointer; }
     .parent-toggle.collapsed { background:#fff; color:#5e6c84; border-color:#dfe1e6; }
     .gantt-svg { width:100%; height:auto; display:block; }
+    .hover-card {
+      position: fixed;
+      z-index: 9999;
+      max-width: 460px;
+      background: #ffffff;
+      border: 1px solid #d0d7e2;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(9, 30, 66, 0.18);
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #172b4d;
+      pointer-events: none;
+      display: none;
+      white-space: normal;
+    }
+    .hover-card .title { font-weight: 700; margin-bottom: 6px; }
+    .hover-card .meta { color: #5e6c84; margin-bottom: 6px; }
+    .hover-card .desc-label { font-weight: 700; margin-right: 4px; }
+    .hover-card .desc-body { color: #253858; }
   </style>
   <script type="module">
     const TASKS = [
@@ -137,6 +157,46 @@
     const parentsWithChildren = TASKS.filter((t) => childCountByParent[t.key]);
     parentsWithChildren.forEach((p) => collapsedParents.add(p.key));
     const selectedCategories = new Set(CATEGORY_ORDER);
+    const ISSUE_DESCRIPTIONS = {
+    "PDE-4683": "",
+    "PDE-4684": "",
+    "PDE-4687": "",
+    "PDE-4686": "",
+    "PDE-4685": "",
+    "PDE-4678": "",
+    "PDE-4679": "",
+    "PDE-4680": "",
+    "PDE-4682": "",
+    "PDE-4681": "",
+    "PDE-4599": "First Payroll non-integrated parallel execution cycle to validate Payroll run mechanics, reconciliation method, and operational readiness of Payroll testers before integrated parallel phases. This cycle focuses on Payroll outcome quality and variance management, not end-to-end interface assurance.",
+    "PDE-4601": "Connectivity proving cycle for Payroll interfaces to confirm secure transport, file handoff, trigger timing, and operational monitoring between Workday and Payroll platform components before deeper integrated execution.",
+    "PDE-4602": "",
+    "PDE-4606": "",
+    "PDE-4714": "",
+    "PDE-4716": "",
+    "PDE-4715": "",
+    "PDE-4717": "",
+    "PDE-4677": "Core SIT cycle to validate point-to-point integration behavior and data exchange correctness between Workday and connected systems (including Payroll integration paths), independent of full end-to-end business orchestration.",
+    "PDE-4706": "",
+    "PDE-4705": "",
+    "PDE-4704": "",
+    "PDE-4703": "",
+    "PDE-4702": "",
+    "PDE-4607": "",
+    "PDE-4734": "",
+    "PDE-4735": "",
+    "PDE-4736": "",
+    "PDE-4738": "",
+    "PDE-4737": "",
+    "PDE-4727": "Bridging connectivity cycle between SIT and full E2E execution to confirm that end-to-end scenario pathways are technically reachable and stable across participating systems before broader business-process E2E runs.",
+    "PDE-4604": "Primary E2E execution cycle to validate complete business process flows across Workday and connected systems, including Payroll integration touchpoints, from trigger through to final business outcome and evidence.",
+    "PDE-4608": "Execute business-led UAT for Workday core process suitability in a non-integrated Workday instance, focusing on user acceptance of process flow, role behaviour, data visibility, and operational usability without dependency on live cross-system integration execution.",
+    "PDE-4730": "Execute HCM/Payroll parallel-connectivity testing to confirm that Workday and Datapay technical pathways remain stable and supportable in the parallel context. This cycle establishes transport, trigger/schedule, monitoring, and incident-routing readiness so subsequent parallel test execution is not disrupted by avoidable connectivity failures.",
+    "PDE-4616": "Execute Parallel Run Two to validate payroll processing stability and repeatability after remediation from prior cycles. This run confirms that Workday and Datapay outcomes remain aligned to agreed tolerance bands and that operational controls support progression toward final readiness cycles.",
+    "PDE-4729": "Execute Parallel Run Three as the final planned parallel payroll validation cycle to confirm sustained payroll accuracy and operational readiness before production-focused decisioning. This run is intended to close residual variance risk and consolidate evidence for go-live governance.",
+    "PDE-4731": ""
+};
+    const DESCRIPTION_FALLBACK = "No Description is currently entered in Jira for this item.";
 
     function toDate(v) {
       return new Date(`${v}T00:00:00`);
@@ -155,6 +215,70 @@
       const lg = Math.round(g + (255 - g) * amount);
       const lb = Math.round(b + (255 - b) * amount);
       return `#${((1 << 24) + (lr << 16) + (lg << 8) + lb).toString(16).slice(1)}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function getHoverCard() {
+      return document.getElementById("hoverCard");
+    }
+
+    function buildTooltipHtml(task, stripText) {
+      const category = CATEGORY_LABELS[task.category] || task.category;
+      const jiraDescription = ISSUE_DESCRIPTIONS[task.key] || "";
+      const description = jiraDescription && String(jiraDescription).trim()
+        ? jiraDescription
+        : DESCRIPTION_FALLBACK;
+      return `
+        <div class="title">${escapeHtml(task.key)} | ${escapeHtml(task.title)}</div>
+        <div class="meta">${escapeHtml(task.start)} to ${escapeHtml(task.end)} | ${escapeHtml(category)}${stripText ? ` | ${escapeHtml(stripText)}` : ""}</div>
+        <div><span class="desc-label">Description:</span><span class="desc-body">${escapeHtml(description)}</span></div>
+      `;
+    }
+
+    function showTooltip(event, html) {
+      const tooltip = getHoverCard();
+      if (!tooltip) {
+        return;
+      }
+      tooltip.innerHTML = html;
+      tooltip.style.display = "block";
+      moveTooltip(event);
+    }
+
+    function moveTooltip(event) {
+      const tooltip = getHoverCard();
+      if (!tooltip || tooltip.style.display === "none") {
+        return;
+      }
+      const pad = 14;
+      let x = event.clientX + pad;
+      let y = event.clientY + pad;
+      const maxX = window.innerWidth - tooltip.offsetWidth - 8;
+      const maxY = window.innerHeight - tooltip.offsetHeight - 8;
+      if (x > maxX) {
+        x = event.clientX - tooltip.offsetWidth - pad;
+      }
+      if (y > maxY) {
+        y = event.clientY - tooltip.offsetHeight - pad;
+      }
+      tooltip.style.left = `${Math.max(8, x)}px`;
+      tooltip.style.top = `${Math.max(8, y)}px`;
+    }
+
+    function hideTooltip() {
+      const tooltip = getHoverCard();
+      if (!tooltip) {
+        return;
+      }
+      tooltip.style.display = "none";
     }
 
     function getVisibleTaskKeysByFilter() {
@@ -382,11 +506,17 @@
           : style;
         const dual = DUAL_STRIP_BY_KEY[t.key];
 
-        const addInteractivity = (node, tooltipText) => {
-          const tt = document.createElementNS(svgns, "title");
-          tt.textContent = tooltipText;
-          node.appendChild(tt);
+        const addInteractivity = (node, tooltipHtml) => {
           node.style.cursor = "pointer";
+          node.addEventListener("mouseenter", (event) => {
+            showTooltip(event, tooltipHtml);
+          });
+          node.addEventListener("mousemove", (event) => {
+            moveTooltip(event);
+          });
+          node.addEventListener("mouseleave", () => {
+            hideTooltip();
+          });
           node.addEventListener("click", () => {
             window.open(`https://twoa.atlassian.net/browse/${t.key}`, "_blank", "noopener,noreferrer");
           });
@@ -410,7 +540,8 @@
           topRect.setAttribute("height", `${half}`);
           topRect.setAttribute("fill", topStyle.fill);
           topRect.setAttribute("stroke", "none");
-          addInteractivity(topRect, `${t.key} | ${t.title}\n${t.start} to ${t.end}\nStrip: ${dual[0]} + ${dual[1]}`);
+          const tooltipHtml = buildTooltipHtml(t, `Strip: ${dual[0]} + ${dual[1]}`);
+          addInteractivity(topRect, tooltipHtml);
           svg.appendChild(topRect);
 
           const bottomRect = document.createElementNS(svgns, "rect");
@@ -420,7 +551,7 @@
           bottomRect.setAttribute("height", `${half}`);
           bottomRect.setAttribute("fill", bottomStyle.fill);
           bottomRect.setAttribute("stroke", "none");
-          addInteractivity(bottomRect, `${t.key} | ${t.title}\n${t.start} to ${t.end}\nStrip: ${dual[0]} + ${dual[1]}`);
+          addInteractivity(bottomRect, tooltipHtml);
           svg.appendChild(bottomRect);
 
           const outline = document.createElementNS(svgns, "rect");
@@ -433,7 +564,7 @@
           outline.setAttribute("fill", "none");
           outline.setAttribute("stroke", barStyle.stroke);
           outline.setAttribute("stroke-width", "1.5");
-          addInteractivity(outline, `${t.key} | ${t.title}\n${t.start} to ${t.end}\nStrip: ${dual[0]} + ${dual[1]}`);
+          addInteractivity(outline, tooltipHtml);
           svg.appendChild(outline);
           barPosByKey[t.key] = { x, y: yBar, w, h: barH };
         } else {
@@ -447,7 +578,7 @@
           rect.setAttribute("fill", barStyle.fill);
           rect.setAttribute("stroke", barStyle.stroke);
           rect.setAttribute("stroke-width", "1.5");
-          addInteractivity(rect, `${t.key} | ${t.title}\n${t.start} to ${t.end}`);
+          addInteractivity(rect, buildTooltipHtml(t, ""));
           svg.appendChild(rect);
           barPosByKey[t.key] = { x, y: yBar, w, h: barH };
         }
@@ -516,6 +647,7 @@
     }
 
     window.addEventListener("DOMContentLoaded", renderAll);
+    window.addEventListener("scroll", hideTooltip, true);
   </script>
 </head>
 <body>
@@ -527,6 +659,7 @@
     </div>
     <div id="parentControls" class="parent-controls"></div>
     <div class="chart"><div id="ganttMount"></div></div>
+    <div id="hoverCard" class="hover-card" aria-hidden="true"></div>
   </div></div>
 </body>
 </html>
