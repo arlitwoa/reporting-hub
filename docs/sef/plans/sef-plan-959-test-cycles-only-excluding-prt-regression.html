@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SEF Plan 959 - Test Cycles and Children Gantt</title>
+  <style>
+    :root { --bg:#f6f8fb; --card:#fff; --text:#172b4d; --muted:#5e6c84; --border:#dfe1e6; --accent:#0052cc; }
+    html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif; }
+    .wrap { max-width:1400px; margin:24px auto; padding:0 16px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 2px rgba(9,30,66,.08); padding:16px; }
+    h1 { margin:0 0 10px; font-size:24px; }
+    h1 a { color:inherit; text-decoration:none; border-bottom:1px solid #c3ccda; }
+    h1 a:hover { text-decoration:underline; border-bottom-color:#8ea7cf; }
+    .meta { margin:0 0 16px; color:var(--muted); font-size:14px; line-height:1.5; }
+    .chart { overflow-x:auto; border:1px solid var(--border); border-radius:8px; padding:10px; background:#fff; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#deebff; color:var(--accent); font-size:12px; font-weight:600; margin-right:6px; }
+    .legend { margin:10px 0 14px; display:flex; flex-wrap:wrap; gap:8px 12px; font-size:12px; color:var(--muted); }
+    .legend-item { display:inline-flex; align-items:center; gap:6px; }
+    .legend-filter { border:1px solid #c3ccda; background:#f4f7fc; color:#253858; border-radius:999px; padding:4px 10px; font-size:12px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
+    .legend-filter.inactive { background:#fff; color:#6b778c; border-color:#dfe1e6; opacity:0.8; }
+    .swatch { width:12px; height:12px; border-radius:3px; border:1px solid rgba(9,30,66,.2); display:inline-block; }
+    .swatch-nip { background:#ffd166; }
+    .swatch-connectivity { background:#73c2fb; }
+    .swatch-sit { background:#06d6a0; }
+    .swatch-e2e { background:#f78c6b; }
+    .swatch-uat { background:#cdb4db; }
+    .swatch-parallel { background:#95d5b2; }
+    .dep-swatch { width:16px; height:0; border-top:2px solid #5e6c84; display:inline-block; }
+    .parent-controls { margin:8px 0 12px; display:flex; flex-wrap:wrap; gap:8px; }
+    .parent-controls .global { font-weight:600; border-color:#9db4d8; background:#eaf2ff; }
+    .parent-toggle { border:1px solid #c3ccda; background:#f4f7fc; color:#253858; border-radius:999px; padding:5px 10px; font-size:12px; cursor:pointer; }
+    .parent-toggle.collapsed { background:#fff; color:#5e6c84; border-color:#dfe1e6; }
+    .gantt-svg { width:100%; height:auto; display:block; }
+  </style>
+  <script type="module">
+    const TASKS = [
+      { key: "PDE-4683", title: "Payroll | Non Integrated Parallel | Test Planning", start: "2026-08-04", end: "2026-09-25", category: "pre requisite" },
+      { key: "PDE-4684", title: "Payroll | Non Integrated Parallel | Test Plan (Story)", start: "2026-08-10", end: "2026-08-28", category: "pre requisite", parent: "PDE-4683" },
+      { key: "PDE-4687", title: "Payroll | Non Integrated Parallel | Test Suite Preparation (Story)", start: "2026-08-10", end: "2026-09-04", category: "pre requisite", parent: "PDE-4683" },
+      { key: "PDE-4686", title: "Payroll | Non Integrated Parallel | Test Data Delivered (Check)", start: "2026-08-17", end: "2026-08-17", category: "pre requisite", parent: "PDE-4683" },
+      { key: "PDE-4685", title: "Payroll | Non Integrated Parallel | Test Environment Delivered (Check)", start: "2026-09-25", end: "2026-09-25", category: "pre requisite", parent: "PDE-4683" },
+      { key: "PDE-4678", title: "Payroll | System Integration Testing | Test Planning", start: "2026-08-10", end: "2026-09-25", category: "pre requisite" },
+      { key: "PDE-4679", title: "Payroll | System Integration Testing | Test Plan (Story)", start: "2026-08-10", end: "2026-09-01", category: "pre requisite", parent: "PDE-4678" },
+      { key: "PDE-4680", title: "Payroll | System Integration Testing | Environment Integration Delivered (Check)", start: "2026-09-14", end: "2026-09-21", category: "pre requisite", parent: "PDE-4678" },
+      { key: "PDE-4682", title: "Payroll | System Integration Testing | Test Data Delivered (Check)", start: "2026-09-17", end: "2026-09-21", category: "pre requisite", parent: "PDE-4678" },
+      { key: "PDE-4681", title: "Payroll | System Integration Testing | Test Environment Delivered (Check)", start: "2026-09-21", end: "2026-09-21", category: "pre requisite", parent: "PDE-4678" },
+      { key: "PDE-4599", title: "Payroll | Non Integrated Parallel Run One | Testing", start: "2026-09-28", end: "2026-10-23", category: "non integrated parallel" },
+      { key: "PDE-4601", title: "HCM/Payroll | Foundation | Connectivity Testing", start: "2026-09-28", end: "2026-10-23", category: "connectivity testing" },
+      { key: "PDE-4602", title: "HCM/Payroll | Foundation | System Integration Testing", start: "2026-09-28", end: "2026-10-23", category: "system integration testing" },
+      { key: "PDE-4606", title: "Testing | End to End | Test Prep", start: "2026-09-27", end: "2026-11-06", category: "pre requisite" },
+      { key: "PDE-4714", title: "Testing | End to End | Test Plan (Story)", start: "2026-09-27", end: "2026-10-16", category: "pre requisite", parent: "PDE-4606" },
+      { key: "PDE-4716", title: "Testing | End to End | Test Data Delivered (Check)", start: "2026-10-19", end: "2026-10-19", category: "pre requisite", parent: "PDE-4606" },
+      { key: "PDE-4715", title: "Testing | End to End | Environment Integration Delivered (Check)", start: "2026-11-06", end: "2026-11-06", category: "pre requisite", parent: "PDE-4606" },
+      { key: "PDE-4717", title: "Testing | End to End | Test Environment Delivered (Check)", start: "2026-11-06", end: "2026-11-06", category: "pre requisite", parent: "PDE-4606" },
+      { key: "PDE-4677", title: "Integration | System Integration Testing", start: "2026-10-05", end: "2026-12-13", category: "system integration testing" },
+      { key: "PDE-4706", title: "CHILD of PDE-4677 | Alma (Story)", start: "2026-10-05", end: "2026-10-18", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4705", title: "CHILD of PDE-4677 | SmartConnect (Story)", start: "2026-10-19", end: "2026-11-01", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4704", title: "CHILD of PDE-4677 | EcoPortal (Story)", start: "2026-11-02", end: "2026-11-15", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4703", title: "CHILD of PDE-4677 | CheckMate (Story)", start: "2026-11-16", end: "2026-11-29", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4702", title: "CHILD of PDE-4677 | MicroSoft Fabric (Story)", start: "2026-11-30", end: "2026-12-13", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4607", title: "Testing | User Acceptance Testing Prep", start: "2026-11-27", end: "2026-12-18", category: "pre requisite" },
+      { key: "PDE-4734", title: "HCM/Payroll | Parallel Testing | Test Planning", start: "2026-12-21", end: "2027-01-24", category: "pre requisite" },
+      { key: "PDE-4735", title: "Testing | Parallel | Test Data Delivered (Check)", start: "2026-12-22", end: "2027-01-20", category: "pre requisite", parent: "PDE-4734" },
+      { key: "PDE-4736", title: "Testing | Parallel | Environment Integration Delivered (Check)", start: "2026-12-22", end: "2027-01-20", category: "pre requisite", parent: "PDE-4734" },
+      { key: "PDE-4738", title: "Testing | Parallel | Test Plan (Story)", start: "2026-12-22", end: "2027-01-20", category: "pre requisite", parent: "PDE-4734" },
+      { key: "PDE-4737", title: "Testing | Parallel | Test Environment Delivered (Check)", start: "2027-01-22", end: "2027-01-22", category: "pre requisite", parent: "PDE-4734" },
+      { key: "PDE-4727", title: "HCM/Payroll | End to End | Connectivity Testing", start: "2026-11-02", end: "2026-11-06", category: "connectivity testing" },
+      { key: "PDE-4604", title: "Testing | End to End Testing", start: "2026-11-09", end: "2026-12-18", category: "end to end testing" },
+      { key: "PDE-4608", title: "Testing | User Acceptance Testing", start: "2027-01-15", end: "2027-02-19", category: "user acceptance testing" },
+      { key: "PDE-4730", title: "HCM/Payroll | Parallel | Connectivity Testing", start: "2027-01-18", end: "2027-01-22", category: "connectivity testing" },
+      { key: "PDE-4616", title: "Testing | Parallel Run Two | Testing", start: "2027-01-25", end: "2027-02-12", category: "parallel run testing" },
+      { key: "PDE-4729", title: "Testing | Parallel Run Three | Testing", start: "2027-02-15", end: "2027-03-05", category: "parallel run testing" },
+      { key: "PDE-4731", title: "Payroll | PRD | Connectivity Testing", start: "2027-03-22", end: "2027-03-26", category: "connectivity testing" }
+    ];
+
+    const CATEGORY_STYLES = {
+      "non integrated parallel": { fill: "#ffd166", stroke: "#cc9a06" },
+      "connectivity testing": { fill: "#73c2fb", stroke: "#2b86c5" },
+      "system integration testing": { fill: "#06d6a0", stroke: "#0b8f6d" },
+      "end to end testing": { fill: "#f78c6b", stroke: "#cf5d3a" },
+      "user acceptance testing": { fill: "#cdb4db", stroke: "#8f6ca3" },
+      "parallel run testing": { fill: "#95d5b2", stroke: "#4b9b73" },
+      "pre requisite": { fill: "#b8c0ff", stroke: "#6f77b3" }
+    };
+
+    const CATEGORY_LABELS = {
+      "pre requisite": "Pre Requisite",
+      "non integrated parallel": "Non Integrated Parallel",
+      "connectivity testing": "Connectivity Testing",
+      "system integration testing": "System Integration Testing",
+      "end to end testing": "End to End Testing",
+      "user acceptance testing": "User Acceptance Testing",
+      "parallel run testing": "Parallel Run Testing"
+    };
+
+    const CATEGORY_ORDER = [
+      "pre requisite",
+      "non integrated parallel",
+      "connectivity testing",
+      "system integration testing",
+      "end to end testing",
+      "user acceptance testing",
+      "parallel run testing"
+    ];
+
+    // Split bars for key connectivity and pre-requisite dependencies.
+    const DUAL_STRIP_BY_KEY = {
+      "PDE-4601": ["connectivity testing", "system integration testing"],
+      "PDE-4727": ["connectivity testing", "end to end testing"],
+      "PDE-4730": ["connectivity testing", "parallel run testing"],
+      "PDE-4683": ["pre requisite", "non integrated parallel"],
+      "PDE-4678": ["pre requisite", "system integration testing"],
+      "PDE-4606": ["pre requisite", "end to end testing"],
+      "PDE-4607": ["pre requisite", "user acceptance testing"],
+      "PDE-4734": ["pre requisite", "parallel run testing"]
+    };
+
+    const DEPENDENCIES = [
+      { from: "PDE-4601", to: "PDE-4677", kind: "precursor" },
+      { from: "PDE-4727", to: "PDE-4604", kind: "precursor" },
+      { from: "PDE-4730", to: "PDE-4616", kind: "precursor" },
+      { from: "PDE-4683", to: "PDE-4599", kind: "precursor" },
+      { from: "PDE-4678", to: "PDE-4677", kind: "precursor" },
+      { from: "PDE-4606", to: "PDE-4604", kind: "precursor" },
+      { from: "PDE-4607", to: "PDE-4608", kind: "precursor" },
+      { from: "PDE-4734", to: "PDE-4616", kind: "precursor" }
+    ];
+
+    const collapsedParents = new Set();
+    const childCountByParent = TASKS.reduce((acc, t) => {
+      if (t.parent) {
+        acc[t.parent] = (acc[t.parent] || 0) + 1;
+      }
+      return acc;
+    }, {});
+    const parentsWithChildren = TASKS.filter((t) => childCountByParent[t.key]);
+    parentsWithChildren.forEach((p) => collapsedParents.add(p.key));
+    const selectedCategories = new Set(CATEGORY_ORDER);
+
+    function toDate(v) {
+      return new Date(`${v}T00:00:00`);
+    }
+
+    function lightenHex(hex, amount = 0.28) {
+      const clean = String(hex || "").replace("#", "");
+      if (!/^[0-9a-fA-F]{6}$/.test(clean)) {
+        return hex;
+      }
+      const n = parseInt(clean, 16);
+      const r = (n >> 16) & 255;
+      const g = (n >> 8) & 255;
+      const b = n & 255;
+      const lr = Math.round(r + (255 - r) * amount);
+      const lg = Math.round(g + (255 - g) * amount);
+      const lb = Math.round(b + (255 - b) * amount);
+      return `#${((1 << 24) + (lr << 16) + (lg << 8) + lb).toString(16).slice(1)}`;
+    }
+
+    function getVisibleTaskKeysByFilter() {
+      const visibleKeys = new Set(
+        TASKS.filter((t) => selectedCategories.has(t.category)).map((t) => t.key)
+      );
+
+      // Ensure predecessor tasks stay visible when their dependent target is selected.
+      let changed = true;
+      while (changed) {
+        changed = false;
+        DEPENDENCIES.forEach((d) => {
+          if (visibleKeys.has(d.to) && !visibleKeys.has(d.from)) {
+            visibleKeys.add(d.from);
+            changed = true;
+          }
+        });
+      }
+
+      return visibleKeys;
+    }
+
+    function getVisibleTasks() {
+      const visibleKeys = getVisibleTaskKeysByFilter();
+      return TASKS.filter((t) => visibleKeys.has(t.key) && !(t.parent && collapsedParents.has(t.parent)));
+    }
+
+    function renderLegendFilters() {
+      const mount = document.getElementById("legendFilters");
+      if (!mount) {
+        return;
+      }
+      mount.innerHTML = "";
+
+      CATEGORY_ORDER.forEach((cat) => {
+        const style = CATEGORY_STYLES[cat] || { fill: "#dfe1e6", stroke: "#b3bac5" };
+        const active = selectedCategories.has(cat);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `legend-filter${active ? "" : " inactive"}`;
+        btn.title = `${active ? "Hide" : "Show"} ${CATEGORY_LABELS[cat] || cat}`;
+        btn.innerHTML = `<span class="swatch" style="background:${style.fill};border-color:${style.stroke};"></span>${CATEGORY_LABELS[cat] || cat}`;
+        btn.addEventListener("click", () => {
+          if (selectedCategories.has(cat)) {
+            selectedCategories.delete(cat);
+          } else {
+            selectedCategories.add(cat);
+          }
+          renderAll();
+        });
+        mount.appendChild(btn);
+      });
+    }
+
+    function renderParentControls() {
+      const mount = document.getElementById("parentControls");
+      if (!mount) {
+        return;
+      }
+      mount.innerHTML = "";
+
+      const collapseAll = document.createElement("button");
+      collapseAll.type = "button";
+      collapseAll.className = "parent-toggle global";
+      collapseAll.textContent = "Collapse All";
+      collapseAll.title = "Collapse children for all parents";
+      collapseAll.addEventListener("click", () => {
+        parentsWithChildren.forEach((p) => collapsedParents.add(p.key));
+        renderAll();
+      });
+      mount.appendChild(collapseAll);
+
+      const expandAll = document.createElement("button");
+      expandAll.type = "button";
+      expandAll.className = "parent-toggle global";
+      expandAll.textContent = "Expand All";
+      expandAll.title = "Expand children for all parents";
+      expandAll.addEventListener("click", () => {
+        collapsedParents.clear();
+        renderAll();
+      });
+      mount.appendChild(expandAll);
+
+      parentsWithChildren.forEach((p) => {
+        const isCollapsed = collapsedParents.has(p.key);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `parent-toggle${isCollapsed ? " collapsed" : ""}`;
+        btn.textContent = `${isCollapsed ? "▸" : "▾"} ${p.key} (${childCountByParent[p.key]})`;
+        btn.title = `${isCollapsed ? "Expand" : "Collapse"} children for ${p.key}`;
+        btn.addEventListener("click", () => {
+          if (collapsedParents.has(p.key)) {
+            collapsedParents.delete(p.key);
+          } else {
+            collapsedParents.add(p.key);
+          }
+          renderAll();
+        });
+        mount.appendChild(btn);
+      });
+    }
+
+    function renderCustomGantt() {
+      const mount = document.getElementById("ganttMount");
+      if (!mount) {
+        return;
+      }
+      mount.innerHTML = "";
+
+      const tasks = getVisibleTasks();
+      if (!tasks.length) {
+        return;
+      }
+      const minDate = new Date(Math.min(...tasks.map((t) => toDate(t.start).getTime())));
+      const maxDate = new Date(Math.max(...tasks.map((t) => toDate(t.end).getTime())));
+      const dayMs = 24 * 60 * 60 * 1000;
+      const totalDays = Math.max(1, Math.round((maxDate - minDate) / dayMs) + 1);
+
+      const rowH = 28;
+      const rowGap = 8;
+      const plotW = 1180;
+      const left = 40;
+      const top = 24;
+      const bottom = 56;
+      const width = left + plotW + 20;
+      const height = top + tasks.length * (rowH + rowGap) + bottom;
+
+      const svgns = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(svgns, "svg");
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.setAttribute("class", "gantt-svg");
+
+      const defs = document.createElementNS(svgns, "defs");
+      const markerPre = document.createElementNS(svgns, "marker");
+      markerPre.setAttribute("id", "arrow-pre");
+      markerPre.setAttribute("viewBox", "0 0 10 10");
+      markerPre.setAttribute("refX", "9");
+      markerPre.setAttribute("refY", "5");
+      markerPre.setAttribute("markerWidth", "6");
+      markerPre.setAttribute("markerHeight", "6");
+      markerPre.setAttribute("orient", "auto-start-reverse");
+      const markerPrePath = document.createElementNS(svgns, "path");
+      markerPrePath.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
+      markerPrePath.setAttribute("fill", "#5e6c84");
+      markerPre.appendChild(markerPrePath);
+      defs.appendChild(markerPre);
+
+      svg.appendChild(defs);
+
+      // Grid month lines
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      let d = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+      if (d < minDate) {
+        d = new Date(minDate.getFullYear(), minDate.getMonth() + 1, 1);
+      }
+      while (d <= maxDate) {
+        const offsetDays = Math.round((d - minDate) / dayMs);
+        const x = left + (offsetDays / totalDays) * plotW;
+
+        const line = document.createElementNS(svgns, "line");
+        line.setAttribute("x1", `${x}`);
+        line.setAttribute("x2", `${x}`);
+        line.setAttribute("y1", `${top}`);
+        line.setAttribute("y2", `${height - bottom}`);
+        line.setAttribute("stroke", "#dfe1e6");
+        line.setAttribute("stroke-width", "1");
+        svg.appendChild(line);
+
+        const txt = document.createElementNS(svgns, "text");
+        txt.setAttribute("x", `${x + 4}`);
+        txt.setAttribute("y", `${height - 8}`);
+        txt.setAttribute("font-size", "11");
+        txt.setAttribute("fill", "#6b778c");
+        txt.textContent = `01 ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+        svg.appendChild(txt);
+
+        d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+      }
+
+      // Start-of-week grid lines and labels (Monday).
+      const weekStart = new Date(minDate);
+      while (weekStart.getDay() !== 1) {
+        weekStart.setDate(weekStart.getDate() + 1);
+      }
+      for (let w = new Date(weekStart); w <= maxDate; w.setDate(w.getDate() + 7)) {
+        const offsetDays = Math.round((w - minDate) / dayMs);
+        const x = left + (offsetDays / totalDays) * plotW;
+
+        const weekLine = document.createElementNS(svgns, "line");
+        weekLine.setAttribute("x1", `${x}`);
+        weekLine.setAttribute("x2", `${x}`);
+        weekLine.setAttribute("y1", `${top}`);
+        weekLine.setAttribute("y2", `${height - bottom}`);
+        weekLine.setAttribute("stroke", "#edf1f6");
+        weekLine.setAttribute("stroke-width", "1");
+        weekLine.setAttribute("stroke-dasharray", "3 4");
+        svg.appendChild(weekLine);
+
+        const weekTxt = document.createElementNS(svgns, "text");
+        weekTxt.setAttribute("x", `${x + 1}`);
+        weekTxt.setAttribute("y", `${height - 26}`);
+        weekTxt.setAttribute("font-size", "9");
+        weekTxt.setAttribute("fill", "#97a0af");
+        weekTxt.textContent = `${String(w.getDate()).padStart(2, "0")}${String(w.getMonth() + 1).padStart(2, "0")}`;
+        svg.appendChild(weekTxt);
+      }
+
+      const barPosByKey = {};
+
+      tasks.forEach((t, idx) => {
+        const st = toDate(t.start);
+        const en = toDate(t.end);
+        const startDays = Math.max(0, Math.round((st - minDate) / dayMs));
+        const durDays = Math.max(1, Math.round((en - st) / dayMs) + 1);
+        const x = left + (startDays / totalDays) * plotW;
+        const w = Math.max(8, (durDays / totalDays) * plotW);
+        const y = top + idx * (rowH + rowGap);
+        const isChild = Boolean(t.parent);
+        const barH = isChild ? Math.max(14, Math.round(rowH * 0.66)) : rowH;
+        const yBar = y + (rowH - barH) / 2;
+
+        const style = CATEGORY_STYLES[t.category] || { fill: "#dfe1e6", stroke: "#b3bac5" };
+        const barStyle = isChild
+          ? { fill: lightenHex(style.fill, 0.35), stroke: lightenHex(style.stroke, 0.2) }
+          : style;
+        const dual = DUAL_STRIP_BY_KEY[t.key];
+
+        const addInteractivity = (node, tooltipText) => {
+          const tt = document.createElementNS(svgns, "title");
+          tt.textContent = tooltipText;
+          node.appendChild(tt);
+          node.style.cursor = "pointer";
+          node.addEventListener("click", () => {
+            window.open(`https://twoa.atlassian.net/browse/${t.key}`, "_blank", "noopener,noreferrer");
+          });
+        };
+
+        if (dual) {
+          const topBase = CATEGORY_STYLES[dual[0]] || barStyle;
+          const bottomBase = CATEGORY_STYLES[dual[1]] || barStyle;
+          const topStyle = isChild
+            ? { fill: lightenHex(topBase.fill, 0.35), stroke: lightenHex(topBase.stroke, 0.2) }
+            : topBase;
+          const bottomStyle = isChild
+            ? { fill: lightenHex(bottomBase.fill, 0.35), stroke: lightenHex(bottomBase.stroke, 0.2) }
+            : bottomBase;
+          const half = barH / 2;
+
+          const topRect = document.createElementNS(svgns, "rect");
+          topRect.setAttribute("x", `${x}`);
+          topRect.setAttribute("y", `${yBar}`);
+          topRect.setAttribute("width", `${w}`);
+          topRect.setAttribute("height", `${half}`);
+          topRect.setAttribute("fill", topStyle.fill);
+          topRect.setAttribute("stroke", "none");
+          addInteractivity(topRect, `${t.key} | ${t.title}\n${t.start} to ${t.end}\nStrip: ${dual[0]} + ${dual[1]}`);
+          svg.appendChild(topRect);
+
+          const bottomRect = document.createElementNS(svgns, "rect");
+          bottomRect.setAttribute("x", `${x}`);
+          bottomRect.setAttribute("y", `${yBar + half}`);
+          bottomRect.setAttribute("width", `${w}`);
+          bottomRect.setAttribute("height", `${half}`);
+          bottomRect.setAttribute("fill", bottomStyle.fill);
+          bottomRect.setAttribute("stroke", "none");
+          addInteractivity(bottomRect, `${t.key} | ${t.title}\n${t.start} to ${t.end}\nStrip: ${dual[0]} + ${dual[1]}`);
+          svg.appendChild(bottomRect);
+
+          const outline = document.createElementNS(svgns, "rect");
+          outline.setAttribute("x", `${x}`);
+          outline.setAttribute("y", `${yBar}`);
+          outline.setAttribute("rx", "4");
+          outline.setAttribute("ry", "4");
+          outline.setAttribute("width", `${w}`);
+          outline.setAttribute("height", `${barH}`);
+          outline.setAttribute("fill", "none");
+          outline.setAttribute("stroke", barStyle.stroke);
+          outline.setAttribute("stroke-width", "1.5");
+          addInteractivity(outline, `${t.key} | ${t.title}\n${t.start} to ${t.end}\nStrip: ${dual[0]} + ${dual[1]}`);
+          svg.appendChild(outline);
+          barPosByKey[t.key] = { x, y: yBar, w, h: barH };
+        } else {
+          const rect = document.createElementNS(svgns, "rect");
+          rect.setAttribute("x", `${x}`);
+          rect.setAttribute("y", `${yBar}`);
+          rect.setAttribute("rx", "4");
+          rect.setAttribute("ry", "4");
+          rect.setAttribute("width", `${w}`);
+          rect.setAttribute("height", `${barH}`);
+          rect.setAttribute("fill", barStyle.fill);
+          rect.setAttribute("stroke", barStyle.stroke);
+          rect.setAttribute("stroke-width", "1.5");
+          addInteractivity(rect, `${t.key} | ${t.title}\n${t.start} to ${t.end}`);
+          svg.appendChild(rect);
+          barPosByKey[t.key] = { x, y: yBar, w, h: barH };
+        }
+      });
+
+      DEPENDENCIES.forEach((d) => {
+        const from = barPosByKey[d.from];
+        const to = barPosByKey[d.to];
+        if (!from || !to) {
+          return;
+        }
+        const sx = from.x + from.w;
+        const sy = from.y + from.h / 2;
+        const ex = to.x;
+        const ey = to.y + to.h / 2;
+        const dx = Math.max(30, Math.abs(ex - sx) * 0.4);
+
+        const path = document.createElementNS(svgns, "path");
+        path.setAttribute("d", `M ${sx} ${sy} C ${sx + dx} ${sy}, ${ex - dx} ${ey}, ${ex} ${ey}`);
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", "#5e6c84");
+        path.setAttribute("marker-end", "url(#arrow-pre)");
+        path.setAttribute("stroke-width", "1.6");
+        path.setAttribute("opacity", "0.9");
+        const tt = document.createElementNS(svgns, "title");
+        tt.textContent = `${d.from} -> ${d.to} (${d.kind})`;
+        path.appendChild(tt);
+        svg.appendChild(path);
+      });
+
+      // Today marker (draw last so it stays on top of bars/dependencies).
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (today >= minDate && today <= maxDate) {
+        const offsetDays = Math.round((today - minDate) / dayMs);
+        const x = left + (offsetDays / totalDays) * plotW;
+
+        const todayLine = document.createElementNS(svgns, "line");
+        todayLine.setAttribute("x1", `${x}`);
+        todayLine.setAttribute("x2", `${x}`);
+        todayLine.setAttribute("y1", `${top - 8}`);
+        todayLine.setAttribute("y2", `${height - bottom}`);
+        todayLine.setAttribute("stroke", "#de350b");
+        todayLine.setAttribute("stroke-width", "2");
+        todayLine.setAttribute("stroke-dasharray", "6 4");
+        todayLine.setAttribute("opacity", "1");
+        svg.appendChild(todayLine);
+
+        const todayLabel = document.createElementNS(svgns, "text");
+        todayLabel.setAttribute("x", `${x + 4}`);
+        todayLabel.setAttribute("y", `${top - 6}`);
+        todayLabel.setAttribute("font-size", "11");
+        todayLabel.setAttribute("font-weight", "700");
+        todayLabel.setAttribute("fill", "#de350b");
+        todayLabel.textContent = "Today";
+        svg.appendChild(todayLabel);
+      }
+
+      mount.appendChild(svg);
+    }
+
+    function renderAll() {
+      renderLegendFilters();
+      renderParentControls();
+      renderCustomGantt();
+    }
+
+    window.addEventListener("DOMContentLoaded", renderAll);
+  </script>
+</head>
+<body>
+  <div class="wrap"><div class="card">
+    <h1><a href="https://twoa.atlassian.net/jira/plans/959/scenarios/959/timeline?vid=1053" target="_blank" rel="noopener noreferrer">SEF Phase 1 | HCM and Payroll</a></h1>
+    <div class="legend">
+      <span id="legendFilters" class="legend-item"></span>
+      <span class="legend-item"><span class="dep-swatch"></span>Precursor Dependency</span>
+    </div>
+    <div id="parentControls" class="parent-controls"></div>
+    <div class="chart"><div id="ganttMount"></div></div>
+  </div></div>
+</body>
+</html>
