@@ -83,6 +83,10 @@
       { key: "PDE-4704", title: "CHILD of PDE-4677 | EcoPortal (Story)", start: "2026-11-02", end: "2026-11-15", category: "system integration testing", parent: "PDE-4677" },
       { key: "PDE-4703", title: "CHILD of PDE-4677 | CheckMate (Story)", start: "2026-11-16", end: "2026-11-29", category: "system integration testing", parent: "PDE-4677" },
       { key: "PDE-4702", title: "CHILD of PDE-4677 | MicroSoft Fabric (Story)", start: "2026-11-30", end: "2026-12-13", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4812", title: "CHILD of PDE-4677 | GPC (Story)", start: "2026-10-05", end: "2026-10-30", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4804", title: "CHILD of PDE-4677 | BroadBean (Story)", start: "2026-12-05", end: "2026-12-18", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4805", title: "CHILD of PDE-4677 | EntraID (Story)", start: "2026-12-05", end: "2026-12-18", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4806", title: "CHILD of PDE-4677 | FirstAdvantage (Story)", start: "2026-12-05", end: "2026-12-18", category: "system integration testing", parent: "PDE-4677" },
       { key: "PDE-4607", title: "Testing | User Acceptance Testing Prep", start: "2026-11-27", end: "2026-12-18", category: "pre requisite" },
       { key: "PDE-4734", title: "HCM/Payroll | Parallel Testing | Test Planning", start: "2026-12-21", end: "2027-01-24", category: "pre requisite" },
       { key: "PDE-4735", title: "Testing | Parallel | Test Data Delivered (Check)", start: "2026-12-22", end: "2027-01-20", category: "pre requisite", parent: "PDE-4734" },
@@ -186,6 +190,10 @@
     "PDE-4704": "",
     "PDE-4703": "",
     "PDE-4702": "",
+    "PDE-4812": "",
+    "PDE-4804": "",
+    "PDE-4805": "",
+    "PDE-4806": "",
     "PDE-4607": "",
     "PDE-4734": "",
     "PDE-4735": "",
@@ -200,7 +208,7 @@
     "PDE-4729": "Execute Parallel Run Three as the final planned parallel payroll validation cycle to confirm sustained payroll accuracy and operational readiness before production-focused decisioning. This run is intended to close residual variance risk and consolidate evidence for go-live governance.",
     "PDE-4731": ""
 };
-    const ISSUE_CONTEXT_FIELDS = ["Environment", "Platforms", "Tenant", "Tenant Name", "Test Company", "AIS Instance"];
+    const ISSUE_CONTEXT_FIELDS = ["Environment", "Platforms", "Tenant", "Tenant Name", "Test Company", "AIS Instance", "Elapsed Days", "Work Days", "Weeks"];
     const ISSUE_METADATA = {
     "PDE-4683": {"Environment": "Non Integrated Parallel", "Platforms": "payroll", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
     "PDE-4684": {"Environment": "Non Integrated Parallel", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
@@ -220,12 +228,16 @@
     "PDE-4716": {"Environment": "End to End", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
     "PDE-4715": {"Environment": "End to End", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
     "PDE-4717": {"Environment": "End to End", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4677": {"Environment": "SIT", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4706": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST"},
-    "PDE-4705": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST"},
-    "PDE-4704": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST"},
-    "PDE-4703": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST"},
-    "PDE-4702": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST"},
+    "PDE-4677": {"Environment": "SIT", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST", "Elapsed Days": "75.0", "Work Days": "54.0", "Weeks": "11.0"},
+    "PDE-4706": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST", "Elapsed Days": "14.0", "Work Days": "10.0", "Weeks": "2.0"},
+    "PDE-4705": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST", "Elapsed Days": "14.0", "Work Days": "9.0", "Weeks": "2.0"},
+    "PDE-4704": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST", "Elapsed Days": "14.0", "Work Days": "10.0", "Weeks": "2.0"},
+    "PDE-4703": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST", "Elapsed Days": "14.0", "Work Days": "10.0", "Weeks": "2.0"},
+    "PDE-4702": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST", "Elapsed Days": "14.0", "Work Days": "10.0", "Weeks": "2.0"},
+    "PDE-4812": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST", "Elapsed Days": "26.0", "Work Days": "19.0", "Weeks": "4.0"},
+    "PDE-4804": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST", "Elapsed Days": "14.0", "Work Days": "11.0", "Weeks": "2.0"},
+    "PDE-4805": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST", "Elapsed Days": "14.0", "Work Days": "11.0", "Weeks": "2.0"},
+    "PDE-4806": {"Environment": "SIT", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": "TST", "Elapsed Days": "14.0", "Work Days": "11.0", "Weeks": "2.0"},
     "PDE-4607": {"Environment": "UAT", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
     "PDE-4734": {"Environment": "Parallel", "Platforms": "datapay, workday", "Tenant": "TWoA5", "Tenant Name": "Parallel", "Test Company": "Parallel", "AIS Instance": ""},
     "PDE-4735": {"Environment": "Parallel", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
@@ -239,6 +251,40 @@
     "PDE-4616": {"Environment": "Parallel", "Platforms": "datapay, workday", "Tenant": "", "Tenant Name": "Parallel", "Test Company": "Parallel", "AIS Instance": "none"},
     "PDE-4729": {"Environment": "Parallel", "Platforms": "datapay, workday", "Tenant": "", "Tenant Name": "Parallel", "Test Company": "Parallel", "AIS Instance": "none"},
     "PDE-4731": {"Environment": "PRD", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Tenant": "Gold", "Tenant Name": "PRD", "Test Company": "PRD", "AIS Instance": "PRD"}
+  };
+    const ISSUE_METRICS = {
+    "PDE-4599": {"Elapsed Days": "26.0", "Work Days": "20.0", "Weeks": "4.0"},
+    "PDE-4601": {"Elapsed Days": "5.0", "Work Days": "5.0", "Weeks": "1.0"},
+    "PDE-4604": {"Elapsed Days": "40.0", "Work Days": "30.0", "Weeks": "6.0"},
+    "PDE-4606": {"Elapsed Days": "41.0", "Work Days": "31.0", "Weeks": "6.0"},
+    "PDE-4607": {"Elapsed Days": "51.0", "Work Days": "33.0", "Weeks": "7.0"},
+    "PDE-4608": {"Elapsed Days": "36.0", "Work Days": "23.0", "Weeks": "5.0"},
+    "PDE-4616": {"Elapsed Days": "19.0", "Work Days": "13.0", "Weeks": "3.0"},
+    "PDE-4677": {"Elapsed Days": "75.0", "Work Days": "54.0", "Weeks": "11.0"},
+    "PDE-4678": {"Elapsed Days": "47.0", "Work Days": "34.0", "Weeks": "7.0"},
+    "PDE-4679": {"Elapsed Days": "23.0", "Work Days": "17.0", "Weeks": "3.0"},
+    "PDE-4680": {"Elapsed Days": "8.0", "Work Days": "5.0", "Weeks": "1.0"},
+    "PDE-4681": {"Elapsed Days": "1.0", "Work Days": "1.0", "Weeks": "0.0"},
+    "PDE-4682": {"Elapsed Days": "5.0", "Work Days": "2.0", "Weeks": "1.0"},
+    "PDE-4683": {"Elapsed Days": "53.0", "Work Days": "39.0", "Weeks": "8.0"},
+    "PDE-4684": {"Elapsed Days": "19.0", "Work Days": "15.0", "Weeks": "3.0"},
+    "PDE-4687": {"Elapsed Days": "26.0", "Work Days": "20.0", "Weeks": "4.0"},
+    "PDE-4702": {"Elapsed Days": "14.0", "Work Days": "10.0", "Weeks": "2.0"},
+    "PDE-4703": {"Elapsed Days": "14.0", "Work Days": "10.0", "Weeks": "2.0"},
+    "PDE-4704": {"Elapsed Days": "14.0", "Work Days": "10.0", "Weeks": "2.0"},
+    "PDE-4705": {"Elapsed Days": "14.0", "Work Days": "9.0", "Weeks": "2.0"},
+    "PDE-4706": {"Elapsed Days": "14.0", "Work Days": "10.0", "Weeks": "2.0"},
+    "PDE-4714": {"Elapsed Days": "20.0", "Work Days": "16.0", "Weeks": "3.0"},
+    "PDE-4727": {"Elapsed Days": "5.0", "Work Days": "5.0", "Weeks": "1.0"},
+    "PDE-4729": {"Elapsed Days": "19.0", "Work Days": "15.0", "Weeks": "3.0"},
+    "PDE-4730": {"Elapsed Days": "5.0", "Work Days": "5.0", "Weeks": "1.0"},
+    "PDE-4731": {"Elapsed Days": "5.0", "Work Days": "4.0", "Weeks": "1.0"},
+    "PDE-4734": {"Elapsed Days": "54.0", "Work Days": "36.0", "Weeks": "8.0"},
+    "PDE-4738": {"Elapsed Days": "19.0", "Work Days": "15.0", "Weeks": "3.0"},
+    "PDE-4804": {"Elapsed Days": "14.0", "Work Days": "11.0", "Weeks": "2.0"},
+    "PDE-4805": {"Elapsed Days": "14.0", "Work Days": "11.0", "Weeks": "2.0"},
+    "PDE-4806": {"Elapsed Days": "14.0", "Work Days": "11.0", "Weeks": "2.0"},
+    "PDE-4812": {"Elapsed Days": "26.0", "Work Days": "19.0", "Weeks": "4.0"}
   };
     const DESCRIPTION_FALLBACK = "No Description is currently entered in Jira for this item.";
 
@@ -280,7 +326,10 @@
       const description = jiraDescription && String(jiraDescription).trim()
         ? jiraDescription
         : DESCRIPTION_FALLBACK;
-      const meta = ISSUE_METADATA[task.key] || {};
+      const meta = {
+        ...(ISSUE_METADATA[task.key] || {}),
+        ...(ISSUE_METRICS[task.key] || {}),
+      };
       const fieldsHtml = ISSUE_CONTEXT_FIELDS
         .map((label) => {
           const value = (meta[label] || "").trim();
