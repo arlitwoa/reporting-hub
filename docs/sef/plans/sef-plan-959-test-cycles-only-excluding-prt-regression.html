@@ -61,7 +61,7 @@
     .render-meta { margin: 0 0 8px; color: #5e6c84; font-size: 12px; }
   </style>
   <script type="module">
-    const RENDERED_AT = "2026-08-17 12:24:53 New Zealand Standard Time";
+    const RENDERED_AT = "2026-08-18 09:28:37 New Zealand Standard Time";
     const TASKS = [
       { key: "PDE-4683", title: "Payroll | Non Integrated Parallel | Test Planning", start: "2026-08-04", end: "2026-09-25", category: "pre requisite", parent: "PDE-4249" },
       { key: "PDE-4684", title: "SEF | Phase 1 | HCM and Payroll | Test Plan | Non Integrated Payroll Parallel Run 1", start: "2026-08-10", end: "2026-08-28", category: "parallel run testing", parent: "PDE-4683" },
@@ -201,13 +201,29 @@
     parentsWithChildren.forEach((p) => collapsedParents.add(p.key));
     const selectedCategories = new Set(CATEGORY_ORDER);
     const ISSUE_DESCRIPTIONS = {
-    "PDE-4599": "First Payroll non-integrated parallel execution cycle to validate Payroll run mechanics, reconciliation method, and operational readiness of Payroll testers before integrated parallel phases. This cycle focuses on Payroll outcome quality and variance management, not end-to-end interface assurance.",
-    "PDE-4604": "Primary E2E execution cycle to validate complete business process flows across Workday and connected systems, including Payroll integration touchpoints, from trigger through to final business outcome and evidence.",
+    "PDE-4599": "Non-Integrated Parallel Testing is a payroll assurance phase where payroll is run in a standalone Datapay environment without live upstream or downstream integrations. Its purpose is to prove that core payroll processing works correctly on its own: employee setup, leave setup, pay data processing, pay run execution, and variance checking. In practice, this means loading full employee data (including leave balances and 52-week earnings), running payroll in parallel with the current payroll process, and comparing outcomes to confirm gross-to-net calculations, deductions, statutory obligations, and overall payroll accuracy.
+
+NIP Testing is critical because it isolates payroll behavior from integration noise and exposes calculation, configuration, and data quality issues early. It gives the programme a controlled way to validate compliance and identify defects before integrated testing and production deployment. By documenting and triaging variances in partnership between Datapay and payroll stakeholders, NIP creates confidence that payroll outputs are accurate for all employee groups and that the system is ready to progress into end-to-end integration and go-live stages.
+
+The programme will encourage SMEs to use the NIP environment once the variations have been resolved - this will give the business an early opportunity to interact with the new system and to execute BAU processes.",
+    "PDE-4604": "The E2E Test Phase validates critical business scenarios across the integrated landscape, beginning only after connectivity testing has confirmed secure and reliable data exchange across all in-scope interfaces. Connectivity execution is expected to reuse available lower-tier environments, including downstream TWoA systems that only provide dev or test instances. Following connectivity, a stabilization phase will be run to resolve high-impact defects, harden interface reliability, and improve test-data consistency before scaling SME and Business User execution.
+
+E2E then focuses on end-to-end process assurance with significant SME and Business User participation, validating real business flows, role-based execution, and cross-system outcomes with production-like migrated data. Responsibilities are partitioned by integration path: KPMG and Datacom lead Workday-to-Datapay testing, KPMG leads Workday-to-AIS testing, and TWoA leads AIS downstream testing and downstream business-flow validation. TWoA retains overall governance accountability for E2E, including entry/exit control, defect triage oversight, evidence quality, and go-forward readiness recommendations.
+
+To align strategy with this approach, downstream E2E validation for TWoA-owned systems should be explicitly moved from exclusions into scope, with named interfaces and clear ownership.
+
+This phase will require high levels of coordination and cooperation to ensure all tests are covered.",
     "PDE-4606": "",
     "PDE-4607": "",
     "PDE-4608": "Execute business-led UAT for Workday core process suitability in a non-integrated Workday instance, focusing on user acceptance of process flow, role behaviour, data visibility, and operational usability without dependency on live cross-system integration execution.",
     "PDE-4616": "Execute Parallel Run Two to validate payroll processing stability and repeatability after remediation from prior cycles. This run confirms that Workday and Datapay outcomes remain aligned to agreed tolerance bands and that operational controls support progression toward final readiness cycles.",
-    "PDE-4677": "Core SIT cycle to validate point-to-point integration behavior and data exchange correctness between Workday and connected systems (including Payroll integration paths), independent of full end-to-end business orchestration.",
+    "PDE-4677": "System Integration Testing (SIT) is the phase used to prove point-to-point integration behaviour and data exchange correctness between Workday and connected systems, including payroll pathways. The phase begins with mandatory connectivity testing to confirm interface availability, transport security, encryption/decryption, and operational file movement before scenario execution starts.
+
+Once connectivity is confirmed, SIT validates inbound and outbound interface processing across agreed integrations. This includes schema and payload conformance, field-level mapping, transformation accuracy, and source-to-target data integrity. It also covers negative-path behaviour, including error handling, retries, reprocessing controls, and operational supportability, with evidence captured to show that transferred data remains consistent across participating applications.
+
+Delivery responsibilities in this phase are explicitly partitioned: KPMG and Datacom jointly execute Workday-to-Datapay testing, KPMG executes Workday-to-AIS testing, and TWoA executes AIS downstream testing. Across all streams, TWoA retains overall accountability for SIT governance and oversight, including test planning, execution control, traceability, defect triage governance, and phase-level quality reporting.
+
+SIT is therefore the integration assurance gate that establishes confidence in interface reliability and data correctness, while deliberately excluding full cross-process business validation and business acceptance. End-to-end business orchestration is validated in E2E, and business acceptance is validated in UAT. SIT evidence is used to support readiness decisions and risk-based progression into those subsequent phases.",
     "PDE-4678": "",
     "PDE-4679": "",
     "PDE-4680": "",
