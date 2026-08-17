@@ -18,6 +18,7 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 PARENT_KEY = "PDE-4249"
 EXCLUDED_KEYS = {"PDE-4873", "PDE-4874"}
@@ -452,7 +453,8 @@ def main() -> int:
     template = _replace_const_block(template, "ISSUE_DESCRIPTIONS", "{", "}", _format_object_map(descriptions))
     template = _replace_const_block(template, "ISSUE_METADATA", "{", "}", _format_object_map(metadata))
     template = _replace_const_block(template, "ISSUE_METRICS", "{", "}", _format_object_map(metrics))
-    rendered_at = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
+    # Always render the report timestamp in New Zealand local time for stakeholder readability.
+    rendered_at = datetime.now(ZoneInfo("Pacific/Auckland")).strftime("%Y-%m-%d %H:%M:%S") + " NZT"
     template = _replace_string_const(template, "RENDERED_AT", rendered_at)
 
     REPORT_DOCS.write_text(template, encoding="utf-8")
