@@ -15,6 +15,7 @@ import json
 import os
 import re
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,8 @@ CATEGORY_ORDER = [
     "connectivity testing",
     "system integration testing",
     "end to end testing",
+    "performance testing",
+    "security testing",
     "user acceptance testing",
     "parallel run testing",
 ]
@@ -145,7 +148,11 @@ def _classify_category(issue_type: str, summary: str) -> str:
         return "connectivity testing"
     if "system integration testing" in s or "system integration" in s:
         return "system integration testing"
-    if "end to end" in s or "performance testing" in s or "penetration testing" in s or "stabilization" in s:
+    if "performance testing" in s:
+        return "performance testing"
+    if "penetration testing" in s or "security testing" in s:
+        return "security testing"
+    if "end to end" in s or "stabilization" in s:
         return "end to end testing"
     return "system integration testing"
 
@@ -159,6 +166,15 @@ def _replace_const_block(text: str, name: str, open_char: str, close_char: str, 
     new_text, count = pattern.subn(replacement, text, count=1)
     if count != 1:
         raise RuntimeError(f"Could not replace const block: {name}")
+    return new_text
+
+
+def _replace_string_const(text: str, name: str, value: str) -> str:
+    pattern = re.compile(rf'const\s+{re.escape(name)}\s*=\s*"[^"]*";')
+    replacement = f'const {name} = "{value}";'
+    new_text, count = pattern.subn(replacement, text, count=1)
+    if count != 1:
+        raise RuntimeError(f"Could not replace string const: {name}")
     return new_text
 
 
@@ -434,6 +450,8 @@ def main() -> int:
     template = _replace_const_block(template, "ISSUE_DESCRIPTIONS", "{", "}", _format_object_map(descriptions))
     template = _replace_const_block(template, "ISSUE_METADATA", "{", "}", _format_object_map(metadata))
     template = _replace_const_block(template, "ISSUE_METRICS", "{", "}", _format_object_map(metrics))
+    rendered_at = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
+    template = _replace_string_const(template, "RENDERED_AT", rendered_at)
 
     REPORT_DOCS.write_text(template, encoding="utf-8")
     print(f"Wrote {REPORT_DOCS} ({len(tasks)} scoped items)")
