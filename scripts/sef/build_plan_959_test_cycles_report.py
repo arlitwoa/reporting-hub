@@ -163,7 +163,9 @@ def _replace_const_block(text: str, name: str, open_char: str, close_char: str, 
         re.MULTILINE,
     )
     replacement = f"const {name} = {open_char}\n{replacement_body}\n    {close_char};"
-    new_text, count = pattern.subn(replacement, text, count=1)
+    # Use a callable replacement so backslash escapes in JSON (for example "\\n")
+    # are preserved verbatim and not interpreted by re.sub.
+    new_text, count = pattern.subn(lambda _m: replacement, text, count=1)
     if count != 1:
         raise RuntimeError(f"Could not replace const block: {name}")
     return new_text
@@ -172,7 +174,7 @@ def _replace_const_block(text: str, name: str, open_char: str, close_char: str, 
 def _replace_string_const(text: str, name: str, value: str) -> str:
     pattern = re.compile(rf'const\s+{re.escape(name)}\s*=\s*"[^"]*";')
     replacement = f'const {name} = "{value}";'
-    new_text, count = pattern.subn(replacement, text, count=1)
+    new_text, count = pattern.subn(lambda _m: replacement, text, count=1)
     if count != 1:
         raise RuntimeError(f"Could not replace string const: {name}")
     return new_text
