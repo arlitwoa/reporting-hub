@@ -30,6 +30,7 @@ CATEGORY_ORDER = [
     "pre requisite",
     "non integrated parallel",
     "connectivity testing",
+    "integration testing",
     "system integration testing",
     "end to end testing",
     "performance testing",
@@ -138,7 +139,7 @@ def _classify_category(issue_type: str, summary: str) -> str:
     if issue_type.strip().lower() == "pre requisite":
         return "pre requisite"
 
-    s = summary.lower()
+    s = summary.lower().strip()
     if "non integrated parallel" in s:
         return "non integrated parallel"
     if "user acceptance testing" in s:
@@ -147,6 +148,9 @@ def _classify_category(issue_type: str, summary: str) -> str:
         return "parallel run testing"
     if "connectivity testing" in s:
         return "connectivity testing"
+    # Keep SIT distinct. Only classify explicit integration test phases as Integration Testing.
+    if s == "integration testing" or "| integration testing" in s:
+        return "integration testing"
     if "system integration testing" in s or "system integration" in s:
         return "system integration testing"
     if "performance testing" in s:
@@ -221,12 +225,24 @@ def _format_object_map(data: dict[str, Any], indent: str = "    ") -> str:
 
 
 def _order_tasks_parent_first(tasks: list[dict[str, str]]) -> list[dict[str, str]]:
+    category_rank = {name: idx for idx, name in enumerate(CATEGORY_ORDER)}
+
+    def _sort_key(task: dict[str, str]) -> tuple[str, int, str]:
+        return (
+            str(task.get("start") or ""),
+            category_rank.get(str(task.get("category") or ""), 999),
+            str(task.get("key") or ""),
+        )
+
     task_by_key = {t["key"]: t for t in tasks}
     children_by_parent: dict[str, list[dict[str, str]]] = {}
     for task in tasks:
       parent_key = task.get("parent")
       if parent_key:
           children_by_parent.setdefault(parent_key, []).append(task)
+
+    for parent_key in list(children_by_parent):
+        children_by_parent[parent_key].sort(key=_sort_key)
 
     ordered: list[dict[str, str]] = []
     seen: set[str] = set()
@@ -240,7 +256,13 @@ def _order_tasks_parent_first(tasks: list[dict[str, str]]) -> list[dict[str, str
         for child in children_by_parent.get(key, []):
             visit(child)
 
-    for task in tasks:
+    roots = [
+        task for task in tasks
+        if not task.get("parent") or task.get("parent") not in task_by_key
+    ]
+    roots.sort(key=_sort_key)
+
+    for task in roots:
         parent_key = task.get("parent")
         if not parent_key or parent_key not in task_by_key:
             visit(task)

@@ -61,11 +61,11 @@
     .render-meta { margin: 0 0 8px; color: #5e6c84; font-size: 12px; }
   </style>
   <script type="module">
-    const RENDERED_AT = "2026-08-18 10:08:48 NZT";
+    const RENDERED_AT = "2026-08-18 13:04:30 NZT";
     const TASKS = [
       { key: "PDE-4683", title: "Payroll | Non Integrated Parallel | Test Planning", start: "2026-08-04", end: "2026-09-25", category: "pre requisite", parent: "PDE-4249" },
-      { key: "PDE-4684", title: "SEF | Phase 1 | HCM and Payroll | Test Plan | Non Integrated Payroll Parallel Run 1", start: "2026-08-10", end: "2026-08-28", category: "parallel run testing", parent: "PDE-4683" },
       { key: "PDE-4687", title: "Payroll | Non Integrated Parallel | Test Suite Preparation", start: "2026-08-10", end: "2026-09-04", category: "non integrated parallel", parent: "PDE-4683" },
+      { key: "PDE-4684", title: "SEF | Phase 1 | HCM and Payroll | Test Plan | Non Integrated Payroll Parallel Run 1", start: "2026-08-10", end: "2026-08-28", category: "parallel run testing", parent: "PDE-4683" },
       { key: "PDE-4686", title: "Payroll | Non Integrated Parallel | Test Data Delivered", start: "2026-08-31", end: "2026-08-31", category: "non integrated parallel", parent: "PDE-4683" },
       { key: "PDE-4740", title: "Payroll | Non Integrated Parallel | Data Contract", start: "2026-08-31", end: "2026-08-31", category: "non integrated parallel", parent: "PDE-4683" },
       { key: "PDE-4685", title: "Payroll | Non Integrated Parallel | Test Environment Delivered", start: "2026-09-25", end: "2026-09-25", category: "non integrated parallel", parent: "PDE-4683" },
@@ -85,6 +85,7 @@
       { key: "PDE-4788", title: "Testing | End to End | Data Contract", start: "2026-10-19", end: "2026-10-19", category: "end to end testing", parent: "PDE-4606" },
       { key: "PDE-4599", title: "Payroll | Non Integrated Parallel Run One | Testing", start: "2026-09-28", end: "2026-10-23", category: "non integrated parallel", parent: "PDE-4249" },
       { key: "PDE-4811", title: "Integration | System Integration | Connectivity Testing", start: "2026-09-28", end: "2026-10-02", category: "connectivity testing", parent: "PDE-4249" },
+      { key: "PDE-4921", title: "Integration Testing", start: "2026-10-05", end: "2026-12-18", category: "integration testing", parent: "PDE-4249" },
       { key: "PDE-4677", title: "Integration | System Integration Testing", start: "2026-10-05", end: "2026-12-18", category: "system integration testing", parent: "PDE-4249" },
       { key: "PDE-4703", title: "Integration | System Integration Testing | EIP - HR-02", start: "2026-10-05", end: "2026-10-16", category: "system integration testing", parent: "PDE-4677" },
       { key: "PDE-4704", title: "Integration | System Integration Testing | EIP - HR-04", start: "2026-10-05", end: "2026-10-16", category: "system integration testing", parent: "PDE-4677" },
@@ -103,9 +104,9 @@
       { key: "PDE-4888", title: "Integration | System Integration Testing | DataPay - PAY-10", start: "2026-11-02", end: "2026-11-20", category: "system integration testing", parent: "PDE-4677" },
       { key: "PDE-4847", title: "Integration | System Integration | Test Exit Report", start: "2026-12-18", end: "2026-12-18", category: "system integration testing", parent: "PDE-4677" },
       { key: "PDE-4727", title: "End to End | Connectivity Testing", start: "2026-10-19", end: "2026-10-23", category: "connectivity testing", parent: "PDE-4249" },
+      { key: "PDE-4883", title: "End to End | Stabilization", start: "2026-10-26", end: "2026-11-06", category: "end to end testing", parent: "PDE-4249" },
       { key: "PDE-4837", title: "Performance Testing", start: "2026-10-26", end: "2026-11-25", category: "performance testing", parent: "PDE-4249" },
       { key: "PDE-4838", title: "Security Testing", start: "2026-10-26", end: "2026-11-25", category: "security testing", parent: "PDE-4249" },
-      { key: "PDE-4883", title: "End to End | Stabilization", start: "2026-10-26", end: "2026-11-06", category: "end to end testing", parent: "PDE-4249" },
       { key: "PDE-4604", title: "End to End | Testing", start: "2026-11-09", end: "2026-12-18", category: "end to end testing", parent: "PDE-4249" },
       { key: "PDE-4607", title: "[UPDATE] Testing | User Acceptance Testing Prep", start: "2026-11-26", end: "2027-01-15", category: "pre requisite", parent: "PDE-4249" },
       { key: "PDE-4789", title: "SEF | Phase 1 | HCM and Payroll | Test Plan | User Acceptance Testing", start: "2026-12-16", end: "2027-01-15", category: "user acceptance testing", parent: "PDE-4607" },
@@ -131,6 +132,7 @@
     const CATEGORY_STYLES = {
       "non integrated parallel": { fill: "#ffd166", stroke: "#cc9a06" },
       "connectivity testing": { fill: "#73c2fb", stroke: "#2b86c5" },
+      "integration testing": { fill: "#7b2cbf", stroke: "#5a189a" },
       "system integration testing": { fill: "#06d6a0", stroke: "#0b8f6d" },
       "end to end testing": { fill: "#f78c6b", stroke: "#cf5d3a" },
       "performance testing": { fill: "#118ab2", stroke: "#0b5f7a" },
@@ -144,6 +146,7 @@
       "pre requisite": "Pre Requisite",
       "non integrated parallel": "Non Integrated Parallel",
       "connectivity testing": "Connectivity Testing",
+      "integration testing": "Integration Testing",
       "system integration testing": "System Integration Testing",
       "end to end testing": "End to End Testing",
       "performance testing": "Performance Testing",
@@ -156,6 +159,7 @@
       "pre requisite",
       "non integrated parallel",
       "connectivity testing",
+      "integration testing",
       "system integration testing",
       "end to end testing",
       "performance testing",
@@ -263,7 +267,8 @@
     "PDE-4886": "",
     "PDE-4887": "",
     "PDE-4888": "",
-    "PDE-4890": ""
+    "PDE-4890": "",
+    "PDE-4921": ""
     };
     const ISSUE_CONTEXT_FIELDS = ["Environment", "Platforms", "Tenant", "Tenant Name", "Test Company", "AIS Instance", "Elapsed Days", "Work Days", "Weeks"];
     const ISSUE_METADATA = {
@@ -329,7 +334,8 @@
     "PDE-4886": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
     "PDE-4887": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
     "PDE-4888": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4890": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"}
+    "PDE-4890": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4921": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"}
     };
     const ISSUE_METRICS = {
     "PDE-4599": {"Elapsed Days": "26.0", "Work Days": "20.0", "Weeks": "4.0"},
@@ -383,7 +389,8 @@
     "PDE-4886": {"Elapsed Days": "12.0", "Work Days": "10.0", "Weeks": "2.0"},
     "PDE-4887": {"Elapsed Days": "12.0", "Work Days": "10.0", "Weeks": "2.0"},
     "PDE-4888": {"Elapsed Days": "19.0", "Work Days": "15.0", "Weeks": "3.0"},
-    "PDE-4890": {"Elapsed Days": "12.0", "Work Days": "10.0", "Weeks": "2.0"}
+    "PDE-4890": {"Elapsed Days": "12.0", "Work Days": "10.0", "Weeks": "2.0"},
+    "PDE-4921": {"Elapsed Days": "75.0", "Work Days": "54.0", "Weeks": "11.0"}
     };
     const DESCRIPTION_FALLBACK = "No Description is currently entered in Jira for this item.";
 
