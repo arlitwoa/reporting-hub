@@ -52,8 +52,10 @@
     }
     .hover-card .title { font-weight: 700; margin-bottom: 6px; }
     .hover-card .meta { color: #5e6c84; margin-bottom: 6px; }
-    .hover-card .desc-label { font-weight: 700; margin-right: 4px; }
-    .hover-card .desc-body { color: #253858; }
+    .hover-card .desc-label { font-weight: 700; margin: 6px 0 2px; display: block; }
+    .hover-card .desc-body { color: #253858; white-space: pre-wrap; }
+    .hover-card .desc-paragraph { margin: 0 0 8px; }
+    .hover-card .desc-paragraph:last-child { margin-bottom: 0; }
     .hover-card .field-grid { margin: 8px 0 8px; border-top: 1px solid #edf1f6; padding-top: 7px; }
     .hover-card .field-row { display: grid; grid-template-columns: 112px 1fr; gap: 8px; margin: 2px 0; }
     .hover-card .field-label { color: #5e6c84; font-weight: 600; }
@@ -61,7 +63,7 @@
     .render-meta { margin: 0 0 8px; color: #5e6c84; font-size: 12px; }
   </style>
   <script type="module">
-    const RENDERED_AT = "2026-08-18 21:19:53 NZT";
+    const RENDERED_AT = "2026-08-19 06:04:12 NZT";
     const TASKS = [
       { key: "PDE-4683", title: "Payroll | Non Integrated Parallel | Test Planning", start: "2026-08-04", end: "2026-09-25", category: "pre requisite", parent: "PDE-4249" },
       { key: "PDE-4687", title: "Payroll | Non Integrated Parallel | Test Suite Preparation", start: "2026-08-10", end: "2026-09-04", category: "non integrated parallel", parent: "PDE-4683" },
@@ -270,72 +272,72 @@
     "PDE-4890": "",
     "PDE-4921": ""
     };
-    const ISSUE_CONTEXT_FIELDS = ["Environment", "Platforms", "Tenant", "Tenant Name", "Test Company", "AIS Instance", "Elapsed Days", "Work Days", "Weeks"];
+    const ISSUE_CONTEXT_FIELDS = ["Environment", "Platforms", "Test Types", "Tenant", "Tenant Name", "Test Company", "AIS Instance", "Elapsed Days", "Work Days", "Weeks"];
     const ISSUE_METADATA = {
-    "PDE-4599": {"Environment": "", "Platforms": "datapay", "Tenant": "none", "Tenant Name": "none", "Test Company": "Non Integrated Parallel", "AIS Instance": "none"},
-    "PDE-4604": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Tenant": "TWoA5", "Tenant Name": "End to End", "Test Company": "End to End", "AIS Instance": "STG"},
-    "PDE-4606": {"Environment": "", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4607": {"Environment": "", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4608": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Tenant": "TWoA5", "Tenant Name": "UAT", "Test Company": "End to End", "AIS Instance": "STG"},
-    "PDE-4616": {"Environment": "", "Platforms": "datapay, workday", "Tenant": "", "Tenant Name": "Parallel", "Test Company": "Parallel", "AIS Instance": "none"},
-    "PDE-4677": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4678": {"Environment": "", "Platforms": "payroll, workday", "Tenant": "TWoA4", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
-    "PDE-4679": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4680": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": ""},
-    "PDE-4681": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": ""},
-    "PDE-4682": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": ""},
-    "PDE-4683": {"Environment": "", "Platforms": "payroll", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
-    "PDE-4684": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
-    "PDE-4685": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
-    "PDE-4686": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
-    "PDE-4687": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
-    "PDE-4702": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4703": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4704": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4705": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4706": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4714": {"Environment": "", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4715": {"Environment": "", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4716": {"Environment": "", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4717": {"Environment": "", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4727": {"Environment": "", "Platforms": "alma, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, payroll, sana, smartconnect, workday", "Tenant": "TWoA5", "Tenant Name": "End to End", "Test Company": "End to End", "AIS Instance": "STG"},
-    "PDE-4729": {"Environment": "", "Platforms": "datapay, workday", "Tenant": "", "Tenant Name": "Parallel", "Test Company": "Parallel", "AIS Instance": "none"},
-    "PDE-4730": {"Environment": "", "Platforms": "datapay, workday", "Tenant": "", "Tenant Name": "Parallel", "Test Company": "Parallel", "AIS Instance": "none"},
-    "PDE-4731": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Tenant": "Gold", "Tenant Name": "PRD", "Test Company": "PRD", "AIS Instance": "PRD"},
-    "PDE-4734": {"Environment": "", "Platforms": "datapay, workday", "Tenant": "TWoA5", "Tenant Name": "Parallel", "Test Company": "Parallel", "AIS Instance": ""},
-    "PDE-4735": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4736": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4737": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4738": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4740": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
-    "PDE-4749": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": ""},
-    "PDE-4750": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": ""},
-    "PDE-4788": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4789": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4790": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4792": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4793": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4794": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4795": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4798": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4799": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4800": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4804": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4805": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4806": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4811": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, smartconnect, workday", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4812": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4837": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4838": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4847": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4883": {"Environment": "", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "End to End", "Test Company": "End to End", "AIS Instance": "STG"},
-    "PDE-4884": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4885": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4886": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4887": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4888": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4890": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
-    "PDE-4921": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"}
+    "PDE-4599": {"Environment": "", "Platforms": "datapay", "Test Types": "Non Integrated Parallel", "Tenant": "none", "Tenant Name": "none", "Test Company": "Non Integrated Parallel", "AIS Instance": "none"},
+    "PDE-4604": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Test Types": "End to End", "Tenant": "TWoA5", "Tenant Name": "End to End", "Test Company": "End to End", "AIS Instance": "STG"},
+    "PDE-4606": {"Environment": "", "Platforms": "", "Test Types": "End to End", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4607": {"Environment": "", "Platforms": "", "Test Types": "User Acceptance", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4608": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Test Types": "User Acceptance", "Tenant": "TWoA5", "Tenant Name": "UAT", "Test Company": "End to End", "AIS Instance": "STG"},
+    "PDE-4616": {"Environment": "", "Platforms": "datapay, workday", "Test Types": "Parallel", "Tenant": "", "Tenant Name": "Parallel", "Test Company": "Parallel", "AIS Instance": "none"},
+    "PDE-4677": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4678": {"Environment": "", "Platforms": "payroll, workday", "Test Types": "Integration", "Tenant": "TWoA4", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
+    "PDE-4679": {"Environment": "", "Platforms": "", "Test Types": "Integration", "Tenant": "TWoA4", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4680": {"Environment": "", "Platforms": "", "Test Types": "Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": ""},
+    "PDE-4681": {"Environment": "", "Platforms": "", "Test Types": "Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": ""},
+    "PDE-4682": {"Environment": "", "Platforms": "", "Test Types": "Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": ""},
+    "PDE-4683": {"Environment": "", "Platforms": "payroll", "Test Types": "Parallel", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
+    "PDE-4684": {"Environment": "", "Platforms": "", "Test Types": "Parallel", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
+    "PDE-4685": {"Environment": "", "Platforms": "", "Test Types": "Parallel", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
+    "PDE-4686": {"Environment": "", "Platforms": "", "Test Types": "Parallel", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
+    "PDE-4687": {"Environment": "", "Platforms": "", "Test Types": "Parallel", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
+    "PDE-4702": {"Environment": "", "Platforms": "", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4703": {"Environment": "", "Platforms": "", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4704": {"Environment": "", "Platforms": "", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4705": {"Environment": "", "Platforms": "", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4706": {"Environment": "", "Platforms": "", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4714": {"Environment": "", "Platforms": "", "Test Types": "End to End", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4715": {"Environment": "", "Platforms": "", "Test Types": "End to End", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4716": {"Environment": "", "Platforms": "", "Test Types": "End to End", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4717": {"Environment": "", "Platforms": "", "Test Types": "End to End", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4727": {"Environment": "", "Platforms": "alma, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, payroll, sana, smartconnect, workday", "Test Types": "", "Tenant": "TWoA5", "Tenant Name": "End to End", "Test Company": "End to End", "AIS Instance": "STG"},
+    "PDE-4729": {"Environment": "", "Platforms": "datapay, workday", "Test Types": "Parallel", "Tenant": "", "Tenant Name": "Parallel", "Test Company": "Parallel", "AIS Instance": "none"},
+    "PDE-4730": {"Environment": "", "Platforms": "datapay, workday", "Test Types": "", "Tenant": "", "Tenant Name": "Parallel", "Test Company": "Parallel", "AIS Instance": "none"},
+    "PDE-4731": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Test Types": "Connectivity", "Tenant": "Gold", "Tenant Name": "PRD", "Test Company": "PRD", "AIS Instance": "PRD"},
+    "PDE-4734": {"Environment": "", "Platforms": "datapay, workday", "Test Types": "Parallel", "Tenant": "TWoA5", "Tenant Name": "Parallel", "Test Company": "Parallel", "AIS Instance": ""},
+    "PDE-4735": {"Environment": "", "Platforms": "", "Test Types": "Parallel", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4736": {"Environment": "", "Platforms": "", "Test Types": "Parallel", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4737": {"Environment": "", "Platforms": "", "Test Types": "Parallel", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4738": {"Environment": "", "Platforms": "", "Test Types": "Parallel", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4740": {"Environment": "", "Platforms": "", "Test Types": "Parallel", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
+    "PDE-4749": {"Environment": "", "Platforms": "", "Test Types": "Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": ""},
+    "PDE-4750": {"Environment": "", "Platforms": "", "Test Types": "Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": ""},
+    "PDE-4788": {"Environment": "", "Platforms": "", "Test Types": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4789": {"Environment": "", "Platforms": "", "Test Types": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4790": {"Environment": "", "Platforms": "", "Test Types": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4792": {"Environment": "", "Platforms": "", "Test Types": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4793": {"Environment": "", "Platforms": "", "Test Types": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4794": {"Environment": "", "Platforms": "", "Test Types": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4795": {"Environment": "", "Platforms": "", "Test Types": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4798": {"Environment": "", "Platforms": "", "Test Types": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4799": {"Environment": "", "Platforms": "", "Test Types": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4800": {"Environment": "", "Platforms": "", "Test Types": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4804": {"Environment": "", "Platforms": "", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4805": {"Environment": "", "Platforms": "", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4806": {"Environment": "", "Platforms": "", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4811": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, smartconnect, workday", "Test Types": "Connectivity", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4812": {"Environment": "", "Platforms": "", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4837": {"Environment": "", "Platforms": "", "Test Types": "Performance", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4838": {"Environment": "", "Platforms": "", "Test Types": "Security", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4847": {"Environment": "", "Platforms": "", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4883": {"Environment": "", "Platforms": "", "Test Types": "", "Tenant": "TWoA5", "Tenant Name": "End to End", "Test Company": "End to End", "AIS Instance": "STG"},
+    "PDE-4884": {"Environment": "", "Platforms": "", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4885": {"Environment": "", "Platforms": "", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4886": {"Environment": "", "Platforms": "", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4887": {"Environment": "", "Platforms": "", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4888": {"Environment": "", "Platforms": "", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4890": {"Environment": "", "Platforms": "", "Test Types": "System Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4921": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Test Types": "Integration", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"}
     };
     const ISSUE_METRICS = {
     "PDE-4599": {"Elapsed Days": "26.0", "Work Days": "20.0", "Weeks": "4.0"},
@@ -426,16 +428,51 @@
       return document.getElementById("hoverCard");
     }
 
+    function formatDateLong(date) {
+      const d = String(date.getDate()).padStart(2, "0");
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      return `${d} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+    }
+
+    function buildTimelineTooltipHtml(title, value) {
+      return `
+        <div class="title">${escapeHtml(title)}</div>
+        <div class="meta">${escapeHtml(value)}</div>
+      `;
+    }
+
+    function formatDescriptionHtml(text) {
+      const safe = escapeHtml(String(text || "")).trim();
+      if (!safe) {
+        return "";
+      }
+      const normalized = safe.replace(/\r\n/g, "\n");
+      const blocks = normalized
+        .split(/\n\s*\n/)
+        .map((b) => b.trim())
+        .filter(Boolean);
+      if (!blocks.length) {
+        return `<p class="desc-body desc-paragraph">${safe}</p>`;
+      }
+      return blocks
+        .map((block) => `<p class="desc-body desc-paragraph">${block.replace(/\n/g, "<br>")}</p>`)
+        .join("");
+    }
+
     function buildTooltipHtml(task, stripText) {
       const category = CATEGORY_LABELS[task.category] || task.category;
       const jiraDescription = ISSUE_DESCRIPTIONS[task.key] || "";
       const description = jiraDescription && String(jiraDescription).trim()
         ? jiraDescription
         : DESCRIPTION_FALLBACK;
+      const descriptionHtml = formatDescriptionHtml(description);
       const meta = {
         ...(ISSUE_METADATA[task.key] || {}),
         ...(ISSUE_METRICS[task.key] || {}),
       };
+      if (!String(meta["Test Types"] || "").trim()) {
+        meta["Test Types"] = CATEGORY_LABELS[task.category] || task.category;
+      }
       const fieldsHtml = ISSUE_CONTEXT_FIELDS
         .map((label) => {
           const value = (meta[label] || "").trim();
@@ -451,7 +488,7 @@
         <div class="title">${escapeHtml(task.key)} | ${escapeHtml(task.title)}</div>
         <div class="meta">${escapeHtml(task.start)} to ${escapeHtml(task.end)} | ${escapeHtml(category)}${stripText ? ` | ${escapeHtml(stripText)}` : ""}</div>
         ${contextSection}
-        <div><span class="desc-label">Description:</span><span class="desc-body">${escapeHtml(description)}</span></div>
+        <div><span class="desc-label">Description:</span>${descriptionHtml}</div>
       `;
     }
 
@@ -733,6 +770,19 @@
 
       svg.appendChild(defs);
 
+      const addHoverOnlyInteractivity = (node, tooltipHtml) => {
+        node.style.cursor = "help";
+        node.addEventListener("mouseenter", (event) => {
+          showTooltip(event, tooltipHtml);
+        });
+        node.addEventListener("mousemove", (event) => {
+          moveTooltip(event);
+        });
+        node.addEventListener("mouseleave", () => {
+          hideTooltip();
+        });
+      };
+
       // Grid month lines
       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       let d = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
@@ -751,6 +801,18 @@
         line.setAttribute("stroke", "#dfe1e6");
         line.setAttribute("stroke-width", "1");
         svg.appendChild(line);
+        const monthTip = buildTimelineTooltipHtml("Month Start", formatDateLong(d));
+        addHoverOnlyInteractivity(line, monthTip);
+
+        const lineHit = document.createElementNS(svgns, "line");
+        lineHit.setAttribute("x1", `${x}`);
+        lineHit.setAttribute("x2", `${x}`);
+        lineHit.setAttribute("y1", `${top}`);
+        lineHit.setAttribute("y2", `${height - bottom}`);
+        lineHit.setAttribute("stroke", "transparent");
+        lineHit.setAttribute("stroke-width", "10");
+        addHoverOnlyInteractivity(lineHit, monthTip);
+        svg.appendChild(lineHit);
 
         const txt = document.createElementNS(svgns, "text");
         txt.setAttribute("x", `${x + 4}`);
@@ -758,6 +820,7 @@
         txt.setAttribute("font-size", "11");
         txt.setAttribute("fill", "#6b778c");
         txt.textContent = `01 ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+        addHoverOnlyInteractivity(txt, monthTip);
         svg.appendChild(txt);
 
         d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
@@ -781,6 +844,18 @@
         weekLine.setAttribute("stroke-width", "1");
         weekLine.setAttribute("stroke-dasharray", "3 4");
         svg.appendChild(weekLine);
+        const weekTip = buildTimelineTooltipHtml("Week Start (Mon)", formatDateLong(w));
+        addHoverOnlyInteractivity(weekLine, weekTip);
+
+        const weekLineHit = document.createElementNS(svgns, "line");
+        weekLineHit.setAttribute("x1", `${x}`);
+        weekLineHit.setAttribute("x2", `${x}`);
+        weekLineHit.setAttribute("y1", `${top}`);
+        weekLineHit.setAttribute("y2", `${height - bottom}`);
+        weekLineHit.setAttribute("stroke", "transparent");
+        weekLineHit.setAttribute("stroke-width", "10");
+        addHoverOnlyInteractivity(weekLineHit, weekTip);
+        svg.appendChild(weekLineHit);
 
         const weekTxt = document.createElementNS(svgns, "text");
         weekTxt.setAttribute("x", `${x + 1}`);
@@ -788,10 +863,57 @@
         weekTxt.setAttribute("font-size", "9");
         weekTxt.setAttribute("fill", "#97a0af");
         weekTxt.textContent = `${String(w.getDate()).padStart(2, "0")}${String(w.getMonth() + 1).padStart(2, "0")}`;
+        addHoverOnlyInteractivity(weekTxt, weekTip);
         svg.appendChild(weekTxt);
       }
 
       const barPosByKey = {};
+
+      const getTestTypeText = (task) => {
+        const raw = String((ISSUE_METADATA[task.key] || {})["Test Types"] || "").trim();
+        if (raw) {
+          return raw;
+        }
+        return CATEGORY_LABELS[task.category] || task.category;
+      };
+
+      const fitLabelText = (text, widthPx) => {
+        if (!text) {
+          return "";
+        }
+        // Approximate average glyph width for small SVG labels.
+        const maxChars = Math.max(4, Math.floor((widthPx - 10) / 6));
+        if (text.length <= maxChars) {
+          return text;
+        }
+        return `${text.slice(0, Math.max(1, maxChars - 1)).trimEnd()}…`;
+      };
+
+      const appendBarLabel = (task, x, yBar, w, barH) => {
+        if (task.category === "pre requisite") {
+          return;
+        }
+        if (w < 56) {
+          return;
+        }
+        const label = fitLabelText(getTestTypeText(task), w);
+        if (!label) {
+          return;
+        }
+        const txt = document.createElementNS(svgns, "text");
+        txt.setAttribute("x", `${x + 6}`);
+        txt.setAttribute("y", `${yBar + barH / 2}`);
+        txt.setAttribute("dominant-baseline", "middle");
+        txt.setAttribute("font-size", `${barH >= 22 ? 10 : 9}`);
+        txt.setAttribute("font-weight", "600");
+        txt.setAttribute("fill", "#172b4d");
+        txt.setAttribute("paint-order", "stroke fill");
+        txt.setAttribute("stroke", "#ffffff");
+        txt.setAttribute("stroke-width", "2");
+        txt.setAttribute("pointer-events", "none");
+        txt.textContent = label;
+        svg.appendChild(txt);
+      };
 
       tasks.forEach((t, idx) => {
         const st = toDate(t.start);
@@ -871,6 +993,7 @@
           outline.setAttribute("stroke-width", "1.5");
           addInteractivity(outline, tooltipHtml);
           svg.appendChild(outline);
+          appendBarLabel(t, x, yBar, w, barH);
           barPosByKey[t.key] = { x, y: yBar, w, h: barH };
         } else {
           const rect = document.createElementNS(svgns, "rect");
@@ -885,6 +1008,7 @@
           rect.setAttribute("stroke-width", "1.5");
           addInteractivity(rect, buildTooltipHtml(t, ""));
           svg.appendChild(rect);
+          appendBarLabel(t, x, yBar, w, barH);
           barPosByKey[t.key] = { x, y: yBar, w, h: barH };
         }
       });
