@@ -113,30 +113,6 @@ def _adf_to_text(node: Any) -> str:
     if ntype in {"paragraph", "heading"}:
         text = "".join(_adf_to_text(x) for x in content).strip()
         return f"{text}\n\n" if text else ""
-    if ntype == "listItem":
-        # Merge list item child nodes into a single readable line.
-        parts = [
-            _adf_to_text(x).strip().replace("\n", " ").strip()
-            for x in content
-            if _adf_to_text(x).strip()
-        ]
-        return " ".join(parts).strip()
-    if ntype == "bulletList":
-        rows: list[str] = []
-        for item in content:
-            text = _adf_to_text(item).strip()
-            if text:
-                rows.append(f"- {text}")
-        return "\n".join(rows) + ("\n\n" if rows else "")
-    if ntype == "orderedList":
-        rows: list[str] = []
-        idx = 1
-        for item in content:
-            text = _adf_to_text(item).strip()
-            if text:
-                rows.append(f"{idx}. {text}")
-                idx += 1
-        return "\n".join(rows) + ("\n\n" if rows else "")
     return "".join(_adf_to_text(x) for x in content)
 
 
@@ -217,6 +193,7 @@ def _format_tasks(tasks: list[dict[str, str]]) -> str:
             f'title: "{task["title"].replace("\\", "\\\\").replace("\"", "\\\"")}"',
             f'start: "{task["start"]}"',
             f'end: "{task["end"]}"',
+            f'issueType: "{task.get("issueType", "").replace("\\", "\\\\").replace("\"", "\\\"")}"',
             f'category: "{task["category"]}"',
         ]
         if task.get("parent"):
@@ -368,7 +345,6 @@ def main() -> int:
 
     field_ids = {
         "platforms": _pick_field_id(field_items, "Platforms"),
-        "test_types": _pick_field_id(field_items, "Test Types"),
         "tenant": _pick_field_id(field_items, "Tenant"),
         "tenant_name": _pick_field_id(field_items, "Tenant Name"),
         "test_company": _pick_field_id(field_items, "Test Company"),
@@ -458,6 +434,7 @@ def main() -> int:
             "title": summary,
             "start": str(start),
             "end": str(end),
+            "issueType": issue_type,
             "category": category,
         }
         parent_key = str(((f.get("parent") or {}).get("key")) or "").strip()
@@ -471,7 +448,6 @@ def main() -> int:
         metadata[key] = {
             "Environment": environment_val,
             "Platforms": _normalize_value(f.get(field_ids["platforms"])) if field_ids["platforms"] else "",
-            "Test Types": _normalize_value(f.get(field_ids["test_types"])) if field_ids["test_types"] else "",
             "Tenant": _normalize_value(f.get(field_ids["tenant"])) if field_ids["tenant"] else "",
             "Tenant Name": _normalize_value(f.get(field_ids["tenant_name"])) if field_ids["tenant_name"] else "",
             "Test Company": _normalize_value(f.get(field_ids["test_company"])) if field_ids["test_company"] else "",
