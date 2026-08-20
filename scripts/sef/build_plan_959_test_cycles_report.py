@@ -201,16 +201,27 @@ def _replace_string_const(text: str, name: str, value: str) -> str:
     return new_text
 
 
+def _escape_js_string(value: str) -> str:
+    # Keep inline JS valid even when Jira fields include control characters.
+    return (
+        value.replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\r", "\\r")
+        .replace("\n", "\\n")
+        .replace("\t", "\\t")
+    )
+
+
 def _format_tasks(tasks: list[dict[str, str]]) -> str:
     lines: list[str] = []
     for task in tasks:
         parts = [
             f'key: "{task["key"]}"',
-            f'title: "{task["title"].replace("\\", "\\\\").replace("\"", "\\\"")}"',
+            f'title: "{_escape_js_string(task["title"])}"',
             f'start: "{task["start"]}"',
             f'end: "{task["end"]}"',
-            f'issueType: "{task.get("issueType", "").replace("\\", "\\\\").replace("\"", "\\\"")}"',
-            f'testType: "{task.get("testType", "").replace("\\", "\\\\").replace("\"", "\\\"")}"',
+            f'issueType: "{_escape_js_string(task.get("issueType", ""))}"',
+            f'testType: "{_escape_js_string(task.get("testType", ""))}"',
             f'category: "{task["category"]}"',
         ]
         if task.get("parent"):
