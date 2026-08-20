@@ -64,74 +64,93 @@
     .render-meta { margin: 0 0 8px; color: #5e6c84; font-size: 12px; }
   </style>
   <script type="module">
-    const RENDERED_AT = "2026-08-20 13:14:39 NZT";
+<<<<<<< HEAD
+    const RENDERED_AT = "2026-08-20 13:25:02 NZT";
     const TASKS = [
-      { key: "PDE-4683", title: "Payroll | Non Integrated Parallel | Test Planning", start: "2026-08-04", end: "2026-09-25", issueType: "Pre Requisite", category: "pre requisite", parent: "PDE-4249" },
-      { key: "PDE-4687", title: "Payroll | Non Integrated Parallel | Test Suite Preparation", start: "2026-08-10", end: "2026-09-04", issueType: "Story", category: "non integrated parallel", parent: "PDE-4683" },
-      { key: "PDE-4684", title: "SEF | Phase 1 | HCM and Payroll | Test Plan | Non Integrated Payroll Parallel Run 1", start: "2026-08-10", end: "2026-08-28", issueType: "Story", category: "parallel run testing", parent: "PDE-4683" },
-      { key: "PDE-4686", title: "Payroll | Non Integrated Parallel | Test Data Delivered", start: "2026-08-31", end: "2026-08-31", issueType: "Milestone Level Zero", category: "non integrated parallel", parent: "PDE-4683" },
-      { key: "PDE-4740", title: "Payroll | Non Integrated Parallel | Data Contract", start: "2026-08-31", end: "2026-08-31", issueType: "Story", category: "non integrated parallel", parent: "PDE-4683" },
-      { key: "PDE-4685", title: "Payroll | Non Integrated Parallel | Test Environment Delivered", start: "2026-09-25", end: "2026-09-25", issueType: "Milestone Level Zero", category: "non integrated parallel", parent: "PDE-4683" },
-      { key: "PDE-4678", title: "System Integration Testing | Test Planning", start: "2026-08-10", end: "2026-09-25", issueType: "Pre Requisite", category: "pre requisite", parent: "PDE-4249" },
-      { key: "PDE-4679", title: "SEF | Phase 1 | HCM and Payroll | Test Plan | System Integration Testing", start: "2026-08-10", end: "2026-09-01", issueType: "Story", category: "system integration testing", parent: "PDE-4678" },
-      { key: "PDE-4749", title: "Payroll | System Integration Testing | Test Suite Preparation", start: "2026-09-02", end: "2026-09-21", issueType: "Story", category: "system integration testing", parent: "PDE-4678" },
-      { key: "PDE-4750", title: "Payroll | System Integration Testing | Data Contract", start: "2026-09-11", end: "2026-09-11", issueType: "Story", category: "system integration testing", parent: "PDE-4678" },
-      { key: "PDE-4680", title: "Payroll | System Integration Testing | Environment Integration Delivered", start: "2026-09-14", end: "2026-09-21", issueType: "Milestone Level Zero", category: "system integration testing", parent: "PDE-4678" },
-      { key: "PDE-4682", title: "Payroll | System Integration Testing | Test Data Delivered", start: "2026-09-17", end: "2026-09-21", issueType: "Milestone Level Zero", category: "system integration testing", parent: "PDE-4678" },
-      { key: "PDE-4681", title: "Payroll | System Integration Testing | Test Environment Delivered", start: "2026-09-21", end: "2026-09-21", issueType: "Milestone Level Zero", category: "system integration testing", parent: "PDE-4678" },
-      { key: "PDE-4606", title: "Testing | End to End | Test Prep", start: "2026-09-13", end: "2026-10-23", issueType: "Pre Requisite", category: "pre requisite", parent: "PDE-4249" },
-      { key: "PDE-4714", title: "SEF | Phase 1 | HCM and Payroll | Test Plan | End to End Testing", start: "2026-09-13", end: "2026-10-02", issueType: "Story", category: "end to end testing", parent: "PDE-4606" },
-      { key: "PDE-4798", title: "Testing | End to End | Test Suite Preparation", start: "2026-10-05", end: "2026-10-23", issueType: "Story", category: "end to end testing", parent: "PDE-4606" },
-      { key: "PDE-4715", title: "Testing | End to End | Environment Integration Delivered", start: "2026-10-19", end: "2026-10-19", issueType: "Milestone Level Zero", category: "end to end testing", parent: "PDE-4606" },
-      { key: "PDE-4716", title: "Testing | End to End | Test Data Delivered", start: "2026-10-19", end: "2026-10-19", issueType: "Milestone Level Zero", category: "end to end testing", parent: "PDE-4606" },
-      { key: "PDE-4717", title: "Testing | End to End | Test Environment Delivered", start: "2026-10-19", end: "2026-10-19", issueType: "Milestone Level Zero", category: "end to end testing", parent: "PDE-4606" },
-      { key: "PDE-4788", title: "Testing | End to End | Data Contract", start: "2026-10-19", end: "2026-10-19", issueType: "Story", category: "end to end testing", parent: "PDE-4606" },
-      { key: "PDE-4599", title: "Payroll | Non Integrated Parallel Run One | Testing", start: "2026-09-28", end: "2026-10-23", issueType: "Test Cycle", category: "non integrated parallel", parent: "PDE-4249" },
-      { key: "PDE-4811", title: "Integration | System Integration | Connectivity Testing", start: "2026-09-28", end: "2026-10-02", issueType: "Test Cycle", category: "connectivity testing", parent: "PDE-4249" },
-      { key: "PDE-4921", title: "Integration Testing", start: "2026-10-05", end: "2026-12-18", issueType: "Test Cycle", category: "integration testing", parent: "PDE-4249" },
-      { key: "PDE-4677", title: "Integration | System Integration Testing", start: "2026-10-05", end: "2026-12-18", issueType: "Test Cycle", category: "system integration testing", parent: "PDE-4249" },
-      { key: "PDE-4703", title: "Integration | System Integration Testing | EIP - HR-02", start: "2026-10-05", end: "2026-10-16", issueType: "Story", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4704", title: "Integration | System Integration Testing | EIP - HR-04", start: "2026-10-05", end: "2026-10-16", issueType: "Story", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4705", title: "Integration | System Integration Testing | EIP - HR-01", start: "2026-10-05", end: "2026-10-16", issueType: "Story", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4706", title: "Integration | System Integration Testing | EIP - HR-03", start: "2026-10-05", end: "2026-10-16", issueType: "Story", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4804", title: "Integration | System Integration Testing | ecoPortal - HR-03", start: "2026-10-05", end: "2026-10-16", issueType: "Story", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4805", title: "Integration | System Integration Testing | ecoPortal - HR-08", start: "2026-10-05", end: "2026-10-16", issueType: "Story", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4806", title: "Integration | System Integration Testing | ecoPortal - HR-01", start: "2026-10-05", end: "2026-10-16", issueType: "Story", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4812", title: "Integration | System Integration Testing | GPC", start: "2026-10-05", end: "2026-10-16", issueType: "Story", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4884", title: "Integration | System Integration Testing | Alma - HR-01", start: "2026-10-05", end: "2026-10-16", issueType: "Story", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4885", title: "Integration | System Integration Testing | SmartConnect - HR-01", start: "2026-10-05", end: "2026-10-16", issueType: "Story", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4886", title: "Integration | System Integration Testing | Entra - HR-06", start: "2026-10-05", end: "2026-10-16", issueType: "Story", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4887", title: "Integration | System Integration Testing | Entra - HR-04", start: "2026-10-05", end: "2026-10-16", issueType: "Story", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4890", title: "Integration | System Integration Testing | Alma - HR-07", start: "2026-10-05", end: "2026-10-16", issueType: "Story", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4980", title: "Datacom | System Integration Testing", start: "2026-10-05", end: "2026-10-23", issueType: "Test Cycle Level 0", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4702", title: "Integration | System Integration Testing | EIP - HR-05", start: "2026-10-12", end: "2026-10-23", issueType: "Story", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4888", title: "Integration | System Integration Testing | DataPay - PAY-10", start: "2026-11-02", end: "2026-11-20", issueType: "Story", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4847", title: "Integration | System Integration | Test Exit Report", start: "2026-12-18", end: "2026-12-18", issueType: "Story", category: "system integration testing", parent: "PDE-4677" },
-      { key: "PDE-4727", title: "End to End | Connectivity Testing", start: "2026-10-19", end: "2026-10-23", issueType: "Test Cycle", category: "connectivity testing", parent: "PDE-4249" },
-      { key: "PDE-4883", title: "End to End | Stabilization", start: "2026-10-26", end: "2026-11-06", issueType: "Test Cycle", category: "end to end testing", parent: "PDE-4249" },
-      { key: "PDE-4837", title: "Performance Testing", start: "2026-10-26", end: "2026-11-25", issueType: "Test Cycle", category: "performance testing", parent: "PDE-4249" },
-      { key: "PDE-4838", title: "Security Testing", start: "2026-10-26", end: "2026-11-25", issueType: "Test Cycle", category: "security testing", parent: "PDE-4249" },
-      { key: "PDE-4604", title: "End to End | Testing", start: "2026-11-09", end: "2026-12-18", issueType: "Test Cycle", category: "end to end testing", parent: "PDE-4249" },
-      { key: "PDE-4607", title: "[UPDATE] Testing | User Acceptance Testing Prep", start: "2026-11-26", end: "2027-01-15", issueType: "Pre Requisite", category: "pre requisite", parent: "PDE-4249" },
-      { key: "PDE-4789", title: "SEF | Phase 1 | HCM and Payroll | Test Plan | User Acceptance Testing", start: "2026-12-16", end: "2027-01-15", issueType: "Story", category: "user acceptance testing", parent: "PDE-4607" },
-      { key: "PDE-4790", title: "Testing | User Acceptance Testing | Data Contract", start: "2026-12-16", end: "2026-12-16", issueType: "Story", category: "user acceptance testing", parent: "PDE-4607" },
-      { key: "PDE-4794", title: "Testing | User Acceptance Testing | Environment Delivered", start: "2026-12-18", end: "2026-12-18", issueType: "Milestone Level Zero", category: "user acceptance testing", parent: "PDE-4607" },
-      { key: "PDE-4795", title: "Testing | User Acceptance Testing | Test Suite Preparation", start: "2026-12-21", end: "2027-01-15", issueType: "Story", category: "user acceptance testing", parent: "PDE-4607" },
-      { key: "PDE-4792", title: "Testing | User Acceptance Testing | Test Data Delivered", start: "2027-01-14", end: "2027-01-14", issueType: "Milestone Level Zero", category: "user acceptance testing", parent: "PDE-4607" },
-      { key: "PDE-4793", title: "Testing | User Acceptance Testing | Environment Integration Delivered", start: "2027-01-14", end: "2027-01-14", issueType: "Milestone Level Zero", category: "user acceptance testing", parent: "PDE-4607" },
-      { key: "PDE-4734", title: "[UPDATE] HCM/Payroll | Parallel Testing | Test Planning", start: "2026-11-30", end: "2027-01-22", issueType: "Pre Requisite", category: "pre requisite", parent: "PDE-4249" },
-      { key: "PDE-4738", title: "SEF | Phase 1 | HCM and Payroll | Test Plan | Parallel Run 2 Testing", start: "2026-11-30", end: "2026-12-18", issueType: "Story", category: "parallel run testing", parent: "PDE-4734" },
-      { key: "PDE-4799", title: "Testing | Parallel | Test Suite Preparation", start: "2026-12-21", end: "2027-01-20", issueType: "Story", category: "system integration testing", parent: "PDE-4734" },
-      { key: "PDE-4800", title: "Testing | Parallel | Data Contract", start: "2026-12-21", end: "2026-12-21", issueType: "Story", category: "system integration testing", parent: "PDE-4734" },
-      { key: "PDE-4735", title: "Testing | Parallel | Test Data Delivered", start: "2027-01-20", end: "2027-01-20", issueType: "Milestone Level Zero", category: "system integration testing", parent: "PDE-4734" },
-      { key: "PDE-4736", title: "Testing | Parallel | Environment Integration Delivered", start: "2027-01-20", end: "2027-01-20", issueType: "Milestone Level Zero", category: "system integration testing", parent: "PDE-4734" },
-      { key: "PDE-4737", title: "Testing | Parallel | Test Environment Delivered", start: "2027-01-22", end: "2027-01-22", issueType: "Milestone Level Zero", category: "system integration testing", parent: "PDE-4734" },
-      { key: "PDE-4608", title: "Workday | User Acceptance Testing", start: "2027-01-15", end: "2027-02-19", issueType: "Test Cycle", category: "user acceptance testing", parent: "PDE-4249" },
-      { key: "PDE-4730", title: "HCM/Payroll | Parallel | Connectivity Testing", start: "2027-01-18", end: "2027-01-22", issueType: "Test Cycle", category: "connectivity testing", parent: "PDE-4249" },
-      { key: "PDE-4616", title: "Testing | Parallel Run Two | Testing", start: "2027-01-25", end: "2027-02-12", issueType: "Test Cycle", category: "parallel run testing", parent: "PDE-4249" },
-      { key: "PDE-4729", title: "Testing | Parallel Run Three | Testing", start: "2027-02-15", end: "2027-03-05", issueType: "Test Cycle", category: "parallel run testing", parent: "PDE-4249" },
-      { key: "PDE-4731", title: "Payroll | PRD | Connectivity Testing", start: "2027-03-22", end: "2027-03-26", issueType: "Test Cycle", category: "connectivity testing", parent: "PDE-4249" }
+      { key: "PDE-4683", title: "Payroll | Non Integrated Parallel | Test Planning", start: "2026-08-04", end: "2026-09-25", issueType: "Pre Requisite", testType: "Parallel", category: "pre requisite", parent: "PDE-4249" },
+      { key: "PDE-4687", title: "Payroll | Non Integrated Parallel | Test Suite Preparation", start: "2026-08-10", end: "2026-09-04", issueType: "Story", testType: "Parallel", category: "non integrated parallel", parent: "PDE-4683" },
+      { key: "PDE-4684", title: "SEF | Phase 1 | HCM and Payroll | Test Plan | Non Integrated Payroll Parallel Run 1", start: "2026-08-10", end: "2026-08-28", issueType: "Story", testType: "Parallel", category: "parallel run testing", parent: "PDE-4683" },
+      { key: "PDE-4686", title: "Payroll | Non Integrated Parallel | Test Data Delivered", start: "2026-08-31", end: "2026-08-31", issueType: "Milestone Level Zero", testType: "Parallel", category: "non integrated parallel", parent: "PDE-4683" },
+      { key: "PDE-4740", title: "Payroll | Non Integrated Parallel | Data Contract", start: "2026-08-31", end: "2026-08-31", issueType: "Story", testType: "Parallel", category: "non integrated parallel", parent: "PDE-4683" },
+      { key: "PDE-4685", title: "Payroll | Non Integrated Parallel | Test Environment Delivered", start: "2026-09-25", end: "2026-09-25", issueType: "Milestone Level Zero", testType: "Parallel", category: "non integrated parallel", parent: "PDE-4683" },
+      { key: "PDE-4678", title: "System Integration Testing | Test Planning", start: "2026-08-10", end: "2026-09-25", issueType: "Pre Requisite", testType: "Integration", category: "pre requisite", parent: "PDE-4249" },
+      { key: "PDE-4679", title: "SEF | Phase 1 | HCM and Payroll | Test Plan | System Integration Testing", start: "2026-08-10", end: "2026-09-01", issueType: "Story", testType: "Integration", category: "system integration testing", parent: "PDE-4678" },
+      { key: "PDE-4749", title: "Payroll | System Integration Testing | Test Suite Preparation", start: "2026-09-02", end: "2026-09-21", issueType: "Story", testType: "Integration", category: "system integration testing", parent: "PDE-4678" },
+      { key: "PDE-4750", title: "Payroll | System Integration Testing | Data Contract", start: "2026-09-11", end: "2026-09-11", issueType: "Story", testType: "Integration", category: "system integration testing", parent: "PDE-4678" },
+      { key: "PDE-4680", title: "Payroll | System Integration Testing | Environment Integration Delivered", start: "2026-09-14", end: "2026-09-21", issueType: "Milestone Level Zero", testType: "Integration", category: "system integration testing", parent: "PDE-4678" },
+      { key: "PDE-4682", title: "Payroll | System Integration Testing | Test Data Delivered", start: "2026-09-17", end: "2026-09-21", issueType: "Milestone Level Zero", testType: "Integration", category: "system integration testing", parent: "PDE-4678" },
+      { key: "PDE-4681", title: "Payroll | System Integration Testing | Test Environment Delivered", start: "2026-09-21", end: "2026-09-21", issueType: "Milestone Level Zero", testType: "Integration", category: "system integration testing", parent: "PDE-4678" },
+      { key: "PDE-4606", title: "Testing | End to End | Test Prep", start: "2026-09-13", end: "2026-10-23", issueType: "Pre Requisite", testType: "End to End", category: "pre requisite", parent: "PDE-4249" },
+      { key: "PDE-4714", title: "SEF | Phase 1 | HCM and Payroll | Test Plan | End to End Testing", start: "2026-09-13", end: "2026-10-02", issueType: "Story", testType: "End to End", category: "end to end testing", parent: "PDE-4606" },
+      { key: "PDE-4798", title: "Testing | End to End | Test Suite Preparation", start: "2026-10-05", end: "2026-10-23", issueType: "Story", testType: "", category: "end to end testing", parent: "PDE-4606" },
+      { key: "PDE-4715", title: "Testing | End to End | Environment Integration Delivered", start: "2026-10-19", end: "2026-10-19", issueType: "Milestone Level Zero", testType: "End to End", category: "end to end testing", parent: "PDE-4606" },
+      { key: "PDE-4716", title: "Testing | End to End | Test Data Delivered", start: "2026-10-19", end: "2026-10-19", issueType: "Milestone Level Zero", testType: "End to End", category: "end to end testing", parent: "PDE-4606" },
+      { key: "PDE-4717", title: "Testing | End to End | Test Environment Delivered", start: "2026-10-19", end: "2026-10-19", issueType: "Milestone Level Zero", testType: "End to End", category: "end to end testing", parent: "PDE-4606" },
+      { key: "PDE-4788", title: "Testing | End to End | Data Contract", start: "2026-10-19", end: "2026-10-19", issueType: "Story", testType: "", category: "end to end testing", parent: "PDE-4606" },
+      { key: "PDE-4599", title: "Payroll | Non Integrated Parallel Run One | Testing", start: "2026-09-28", end: "2026-10-23", issueType: "Test Cycle", testType: "Non Integrated Parallel", category: "non integrated parallel", parent: "PDE-4249" },
+      { key: "PDE-4811", title: "Integration | System Integration | Connectivity Testing", start: "2026-09-28", end: "2026-10-02", issueType: "Test Cycle", testType: "Connectivity", category: "connectivity testing", parent: "PDE-4249" },
+      { key: "PDE-4921", title: "Integration Testing", start: "2026-10-05", end: "2026-12-18", issueType: "Test Cycle", testType: "Integration", category: "integration testing", parent: "PDE-4249" },
+      { key: "PDE-4677", title: "Integration | System Integration Testing", start: "2026-10-05", end: "2026-12-18", issueType: "Test Cycle", testType: "System Integration", category: "system integration testing", parent: "PDE-4249" },
+      { key: "PDE-4703", title: "Integration | System Integration Testing | EIP - HR-02", start: "2026-10-05", end: "2026-10-16", issueType: "Story", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4704", title: "Integration | System Integration Testing | EIP - HR-04", start: "2026-10-05", end: "2026-10-16", issueType: "Story", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4705", title: "Integration | System Integration Testing | EIP - HR-01", start: "2026-10-05", end: "2026-10-16", issueType: "Story", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4706", title: "Integration | System Integration Testing | EIP - HR-03", start: "2026-10-05", end: "2026-10-16", issueType: "Story", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4804", title: "Integration | System Integration Testing | ecoPortal - HR-03", start: "2026-10-05", end: "2026-10-16", issueType: "Story", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4805", title: "Integration | System Integration Testing | ecoPortal - HR-08", start: "2026-10-05", end: "2026-10-16", issueType: "Story", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4806", title: "Integration | System Integration Testing | ecoPortal - HR-01", start: "2026-10-05", end: "2026-10-16", issueType: "Story", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4812", title: "Integration | System Integration Testing | GPC", start: "2026-10-05", end: "2026-10-16", issueType: "Story", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4884", title: "Integration | System Integration Testing | Alma - HR-01", start: "2026-10-05", end: "2026-10-16", issueType: "Story", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4885", title: "Integration | System Integration Testing | SmartConnect - HR-01", start: "2026-10-05", end: "2026-10-16", issueType: "Story", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4886", title: "Integration | System Integration Testing | Entra - HR-06", start: "2026-10-05", end: "2026-10-16", issueType: "Story", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4887", title: "Integration | System Integration Testing | Entra - HR-04", start: "2026-10-05", end: "2026-10-16", issueType: "Story", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4890", title: "Integration | System Integration Testing | Alma - HR-07", start: "2026-10-05", end: "2026-10-16", issueType: "Story", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4980", title: "Datacom | System Integration Testing", start: "2026-10-05", end: "2026-10-23", issueType: "Test Cycle Level 0", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4702", title: "Integration | System Integration Testing | EIP - HR-05", start: "2026-10-12", end: "2026-10-23", issueType: "Story", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4888", title: "Integration | System Integration Testing | DataPay - PAY-10", start: "2026-11-02", end: "2026-11-20", issueType: "Story", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4847", title: "Integration | System Integration | Test Exit Report", start: "2026-12-18", end: "2026-12-18", issueType: "Story", testType: "System Integration", category: "system integration testing", parent: "PDE-4677" },
+      { key: "PDE-4775", title: "System Integration Testing | Entry Gate", start: "2026-10-05", end: "2026-10-05", issueType: "Gate Level 1", testType: "System Integration", category: "system integration testing", parent: "PDE-4249" },
+      { key: "PDE-4727", title: "End to End | Connectivity Testing", start: "2026-10-19", end: "2026-10-23", issueType: "Test Cycle", testType: "", category: "connectivity testing", parent: "PDE-4249" },
+      { key: "PDE-4773", title: "End to End Testing | Entry Gate", start: "2026-10-26", end: "2026-10-26", issueType: "Gate Level 1", testType: "", category: "end to end testing", parent: "PDE-4249" },
+      { key: "PDE-4883", title: "End to End | Stabilization", start: "2026-10-26", end: "2026-11-06", issueType: "Test Cycle", testType: "", category: "end to end testing", parent: "PDE-4249" },
+      { key: "PDE-4837", title: "Performance Testing", start: "2026-10-26", end: "2026-11-25", issueType: "Test Cycle", testType: "Performance", category: "performance testing", parent: "PDE-4249" },
+      { key: "PDE-4838", title: "Security Testing", start: "2026-10-26", end: "2026-11-25", issueType: "Test Cycle", testType: "Security", category: "security testing", parent: "PDE-4249" },
+      { key: "PDE-4604", title: "End to End | Testing", start: "2026-11-09", end: "2026-12-18", issueType: "Test Cycle", testType: "End to End", category: "end to end testing", parent: "PDE-4249" },
+      { key: "PDE-4607", title: "[UPDATE] Testing | User Acceptance Testing Prep", start: "2026-11-26", end: "2027-01-15", issueType: "Pre Requisite", testType: "User Acceptance", category: "pre requisite", parent: "PDE-4249" },
+      { key: "PDE-4789", title: "SEF | Phase 1 | HCM and Payroll | Test Plan | User Acceptance Testing", start: "2026-12-16", end: "2027-01-15", issueType: "Story", testType: "", category: "user acceptance testing", parent: "PDE-4607" },
+      { key: "PDE-4790", title: "Testing | User Acceptance Testing | Data Contract", start: "2026-12-16", end: "2026-12-16", issueType: "Story", testType: "", category: "user acceptance testing", parent: "PDE-4607" },
+      { key: "PDE-4794", title: "Testing | User Acceptance Testing | Environment Delivered", start: "2026-12-18", end: "2026-12-18", issueType: "Milestone Level Zero", testType: "", category: "user acceptance testing", parent: "PDE-4607" },
+      { key: "PDE-4795", title: "Testing | User Acceptance Testing | Test Suite Preparation", start: "2026-12-21", end: "2027-01-15", issueType: "Story", testType: "", category: "user acceptance testing", parent: "PDE-4607" },
+      { key: "PDE-4792", title: "Testing | User Acceptance Testing | Test Data Delivered", start: "2027-01-14", end: "2027-01-14", issueType: "Milestone Level Zero", testType: "", category: "user acceptance testing", parent: "PDE-4607" },
+      { key: "PDE-4793", title: "Testing | User Acceptance Testing | Environment Integration Delivered", start: "2027-01-14", end: "2027-01-14", issueType: "Milestone Level Zero", testType: "", category: "user acceptance testing", parent: "PDE-4607" },
+      { key: "PDE-4734", title: "[UPDATE] HCM/Payroll | Parallel Testing | Test Planning", start: "2026-11-30", end: "2027-01-22", issueType: "Pre Requisite", testType: "Parallel", category: "pre requisite", parent: "PDE-4249" },
+      { key: "PDE-4738", title: "SEF | Phase 1 | HCM and Payroll | Test Plan | Parallel Run 2 Testing", start: "2026-11-30", end: "2026-12-18", issueType: "Story", testType: "Parallel", category: "parallel run testing", parent: "PDE-4734" },
+      { key: "PDE-4799", title: "Testing | Parallel | Test Suite Preparation", start: "2026-12-21", end: "2027-01-20", issueType: "Story", testType: "", category: "system integration testing", parent: "PDE-4734" },
+      { key: "PDE-4800", title: "Testing | Parallel | Data Contract", start: "2026-12-21", end: "2026-12-21", issueType: "Story", testType: "", category: "system integration testing", parent: "PDE-4734" },
+      { key: "PDE-4735", title: "Testing | Parallel | Test Data Delivered", start: "2027-01-20", end: "2027-01-20", issueType: "Milestone Level Zero", testType: "Parallel", category: "system integration testing", parent: "PDE-4734" },
+      { key: "PDE-4736", title: "Testing | Parallel | Environment Integration Delivered", start: "2027-01-20", end: "2027-01-20", issueType: "Milestone Level Zero", testType: "Parallel", category: "system integration testing", parent: "PDE-4734" },
+      { key: "PDE-4737", title: "Testing | Parallel | Test Environment Delivered", start: "2027-01-22", end: "2027-01-22", issueType: "Milestone Level Zero", testType: "Parallel", category: "system integration testing", parent: "PDE-4734" },
+      { key: "PDE-4608", title: "Workday | User Acceptance Testing", start: "2027-01-15", end: "2027-02-19", issueType: "Test Cycle", testType: "User Acceptance", category: "user acceptance testing", parent: "PDE-4249" },
+      { key: "PDE-4730", title: "HCM/Payroll | Parallel | Connectivity Testing", start: "2027-01-18", end: "2027-01-22", issueType: "Test Cycle", testType: "", category: "connectivity testing", parent: "PDE-4249" },
+      { key: "PDE-4616", title: "Testing | Parallel Run Two | Testing", start: "2027-01-25", end: "2027-02-12", issueType: "Test Cycle", testType: "Parallel", category: "parallel run testing", parent: "PDE-4249" },
+      { key: "PDE-4780", title: "UAT Test Gate", start: "2027-02-05", end: "2027-02-05", issueType: "Gate Level 1", testType: "User Acceptance", category: "user acceptance testing", parent: "PDE-4249" },
+      { key: "PDE-4781", title: "Parallel Test Gate", start: "2027-02-12", end: "2027-02-12", issueType: "Gate Level 1", testType: "Parallel", category: "parallel run testing", parent: "PDE-4249" },
+      { key: "PDE-4613", title: "Go/No Go", start: "2027-02-15", end: "2027-02-15", issueType: "Gate Level 1", testType: "", category: "parallel run testing", parent: "PDE-4249" },
+      { key: "PDE-4729", title: "Testing | Parallel Run Three | Testing", start: "2027-02-15", end: "2027-03-05", issueType: "Test Cycle", testType: "Parallel", category: "parallel run testing", parent: "PDE-4249" },
+      { key: "PDE-4778", title: "Test Stage Gate", start: "2027-02-19", end: "2027-02-19", issueType: "Gate Level 1", testType: "", category: "parallel run testing", parent: "PDE-4249" },
+      { key: "PDE-4783", title: "Parallel Test Gate", start: "2027-03-05", end: "2027-03-05", issueType: "Gate Level 1", testType: "Parallel", category: "parallel run testing", parent: "PDE-4249" },
+      { key: "PDE-4731", title: "Payroll | PRD | Connectivity Testing", start: "2027-03-22", end: "2027-03-26", issueType: "Test Cycle", testType: "Connectivity", category: "connectivity testing", parent: "PDE-4249" },
+      { key: "PDE-4615", title: "Go Live", start: "2027-04-19", end: "2027-04-19", issueType: "Gate Level 1", testType: "", category: "parallel run testing", parent: "PDE-4249" }
     ];
+
+    const ISSUE_TYPE_ICONS = {
+    "Gate Level 1": "https://twoa.atlassian.net/rest/api/2/universal_avatar/view/type/issuetype/avatar/12377?size=medium",
+    "Meeting": "https://twoa.atlassian.net/rest/api/2/universal_avatar/view/type/issuetype/avatar/10782?size=medium",
+    "Milestone Level Zero": "https://twoa.atlassian.net/rest/api/2/universal_avatar/view/type/issuetype/avatar/11899?size=medium",
+    "Pre Requisite": "https://twoa.atlassian.net/rest/api/2/universal_avatar/view/type/issuetype/avatar/12344?size=medium",
+    "Story": "https://twoa.atlassian.net/rest/api/2/universal_avatar/view/type/issuetype/avatar/10315?size=medium",
+    "Test Cycle": "https://twoa.atlassian.net/rest/api/2/universal_avatar/view/type/issuetype/avatar/10778?size=medium",
+    "Test Cycle Level 0": "https://twoa.atlassian.net/rest/api/2/universal_avatar/view/type/issuetype/avatar/12445?size=medium"
+    };
 
     const CATEGORY_STYLES = {
       "non integrated parallel": { fill: "#ffd166", stroke: "#cc9a06" },
@@ -157,6 +176,19 @@
       "security testing": "Security Testing",
       "user acceptance testing": "User Acceptance Testing",
       "parallel run testing": "Parallel Run Testing"
+    };
+
+    const CATEGORY_BAR_LABELS = {
+      "pre requisite": "Pre-Req",
+      "non integrated parallel": "NIP",
+      "connectivity testing": "Connectivity",
+      "integration testing": "Integration",
+      "system integration testing": "SIT",
+      "end to end testing": "E2E",
+      "performance testing": "Performance",
+      "security testing": "Security",
+      "user acceptance testing": "UAT",
+      "parallel run testing": "Parallel"
     };
 
     const CATEGORY_ORDER = [
@@ -194,6 +226,7 @@
       {"from": "PDE-4727", "to": "PDE-4883", "kind": "precursor"},
       {"from": "PDE-4730", "to": "PDE-4616", "kind": "precursor"},
       {"from": "PDE-4734", "to": "PDE-4616", "kind": "precursor"},
+      {"from": "PDE-4775", "to": "PDE-4677", "kind": "precursor"},
       {"from": "PDE-4811", "to": "PDE-4677", "kind": "precursor"},
       {"from": "PDE-4883", "to": "PDE-4604", "kind": "precursor"}
     ];
@@ -208,13 +241,18 @@
     const parentsWithChildren = TASKS.filter((t) => childCountByParent[t.key]);
     parentsWithChildren.forEach((p) => collapsedParents.add(p.key));
     const selectedCategories = new Set(CATEGORY_ORDER);
+    const PRESERVE_PREDECESSOR_CONTEXT = false;
+    const PRESERVE_PARENT_CONTEXT = false;
     let showMilestonesOnly = false;
+    let showGatesOnly = false;
     const ISSUE_DESCRIPTIONS = {
     "PDE-4599": "Non-Integrated Parallel Testing is a payroll assurance phase where payroll is run in a standalone Datapay environment without live upstream or downstream integrations. Its purpose is to prove that core payroll processing works correctly on its own: employee setup, leave setup, pay data processing, pay run execution, and variance checking. In practice, this means loading full employee data (including leave balances and 52-week earnings), running payroll in parallel with the current payroll process, and comparing outcomes to confirm gross-to-net calculations, deductions, statutory obligations, and overall payroll accuracy.\n\nNIP Testing is critical because it isolates payroll behavior from integration noise and exposes calculation, configuration, and data quality issues early. It gives the programme a controlled way to validate compliance and identify defects before integrated testing and production deployment. By documenting and triaging variances in partnership between Datapay and payroll stakeholders, NIP creates confidence that payroll outputs are accurate for all employee groups and that the system is ready to progress into end-to-end integration and go-live stages.\n\nThe programme will encourage SMEs to use the NIP environment once the variations have been resolved - this will give the business an early opportunity to interact with the new system and to execute BAU processes.",
     "PDE-4604": "The E2E Test Phase validates critical business scenarios across the integrated landscape, beginning only after connectivity testing has confirmed secure and reliable data exchange across all in-scope interfaces. Connectivity execution is expected to reuse available lower-tier environments, including downstream TWoA systems that only provide dev or test instances. Following connectivity, a stabilization phase will be run to resolve high-impact defects, harden interface reliability, and improve test-data consistency before scaling SME and Business User execution.\n\nE2E then focuses on end-to-end process assurance with significant SME and Business User participation, validating real business flows, role-based execution, and cross-system outcomes with production-like migrated data. Responsibilities are partitioned by integration path: KPMG and Datacom lead Workday-to-Datapay testing, KPMG leads Workday-to-AIS testing, and TWoA leads AIS downstream testing and downstream business-flow validation. TWoA retains overall governance accountability for E2E, including entry/exit control, defect triage oversight, evidence quality, and go-forward readiness recommendations.\n\nTo align strategy with this approach, downstream E2E validation for TWoA-owned systems should be explicitly moved from exclusions into scope, with named interfaces and clear ownership.\n\nThis phase will require high levels of coordination and cooperation to ensure all tests are covered.",
     "PDE-4606": "",
     "PDE-4607": "",
     "PDE-4608": "User Acceptance Testing (UAT) is the business-led phase where TWoA validates that the delivered solution is fit for operational use, supports intended business outcomes, and is acceptable for go-live. In this phase, business representatives execute formal and informal tests from a user perspective across in-scope processes, roles, and controls, using production-like migrated data in an integrated environment. UAT confirms that configured processes, integrations, and role-based access operate as expected in real-world scenarios, with evidence captured for traceability and decision-making.\n\nUAT is owned by TWoA, with KPMG providing support for planning, execution coordination, defect handling, and issue resolution triage. Execution is governed through defined entry and exit criteria, structured reporting, and phase gate reviews to ensure readiness and risk are transparent. Defects are managed through the programme defect process, with business impact and testing impact used to prioritise remediation, and closure based on retest evidence against agreed design. The outcome of UAT is a clear business acceptance position, including any agreed residual risks and conditions for progression toward production readiness.\n\nCould the programme team please confirm the intended UAT boundary for Phase 1, specifically whether UAT is expected to be limited to Workday and nearest-neighbour validation, or whether it explicitly includes end-to-end validation into TWoA downstream systems? The current strategy appears to position downstream system testing as out of scope at programme level, while also stating that UAT is business-led and may include steps in third-party environments. To avoid ambiguity in planning, resourcing, and entry/exit criteria, we need a clear decision on the target UAT scope, including which downstream interfaces are in scope, which are excluded, and who owns execution and sign-off for each path. Which option:\n\nUAT scope option A: Workday plus nearest-neighbour only, with downstream validation excluded.\n\nUAT scope option B: Workday plus defined TWoA downstream systems, with named ownership and sign-off.\n\nPlease confirm the selected option and the in-scope interface list so we can align the UAT plan, governance gates, and delivery dates.",
+    "PDE-4613": "",
+    "PDE-4615": "",
     "PDE-4616": "Parallel Run covers the controlled comparison of payroll outcomes between the legacy payroll process and the new Workday-to-Datapay process for the same pay periods, using representative employee data and real pay scenarios. Its purpose is to confirm that the new solution produces accurate and compliant results before go-live by reconciling gross-to-net outcomes, deductions, PAYE/KiwiSaver, leave balances and entitlements, and other statutory calculations. It also covers investigation and triage of variances, confirmation of data quality and mapping assumptions, and evidence-based sign-off that any differences are either resolved or formally accepted.\n\nIn practical terms, the phase includes execution of parallel pay runs, variance reporting and analysis, defect/workaround management, and readiness confirmation for production payroll operation. It does not replace broader business process acceptance; rather, it is the payroll assurance gate focused on payroll accuracy, control, and operational confidence for cutover.",
     "PDE-4677": "System Integration Testing (SIT) is the phase used to prove point-to-point integration behaviour and data exchange correctness between Workday and connected systems, including payroll pathways. The phase begins with mandatory connectivity testing to confirm interface availability, transport security, encryption/decryption, and operational file movement before scenario execution starts.\n\nOnce connectivity is confirmed, SIT validates inbound and outbound interface processing across agreed integrations. This includes schema and payload conformance, field-level mapping, transformation accuracy, and source-to-target data integrity. It also covers negative-path behaviour, including error handling, retries, reprocessing controls, and operational supportability, with evidence captured to show that transferred data remains consistent across participating applications.\n\nDelivery responsibilities in this phase are explicitly partitioned: KPMG and Datacom jointly execute Workday-to-Datapay testing, KPMG executes Workday-to-AIS testing, and TWoA executes AIS downstream testing. Across all streams, TWoA retains overall accountability for SIT governance and oversight, including test planning, execution control, traceability, defect triage governance, and phase-level quality reporting.\n\nSIT is therefore the integration assurance gate that establishes confidence in interface reliability and data correctness, while deliberately excluding full cross-process business validation and business acceptance. End-to-end business orchestration is validated in E2E, and business acceptance is validated in UAT. SIT evidence is used to support readiness decisions and risk-based progression into those subsequent phases.",
     "PDE-4678": "",
@@ -248,6 +286,12 @@
     "PDE-4740": "",
     "PDE-4749": "",
     "PDE-4750": "",
+    "PDE-4773": "",
+    "PDE-4775": "",
+    "PDE-4778": "",
+    "PDE-4780": "",
+    "PDE-4781": "",
+    "PDE-4783": "",
     "PDE-4788": "",
     "PDE-4789": "",
     "PDE-4790": "",
@@ -283,6 +327,8 @@
     "PDE-4606": {"Environment": "", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
     "PDE-4607": {"Environment": "", "Platforms": "", "Tenant": "TWoA5", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
     "PDE-4608": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Tenant": "TWoA5", "Tenant Name": "UAT", "Test Company": "End to End", "AIS Instance": "STG"},
+    "PDE-4613": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4615": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
     "PDE-4616": {"Environment": "", "Platforms": "datapay, workday", "Tenant": "", "Tenant Name": "Parallel", "Test Company": "Parallel", "AIS Instance": "none"},
     "PDE-4677": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
     "PDE-4678": {"Environment": "", "Platforms": "payroll, workday", "Tenant": "TWoA4", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
@@ -316,6 +362,12 @@
     "PDE-4740": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "Non Integrated Parallel", "AIS Instance": ""},
     "PDE-4749": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": ""},
     "PDE-4750": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": ""},
+    "PDE-4773": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4775": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4778": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4780": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4781": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4783": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
     "PDE-4788": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
     "PDE-4789": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
     "PDE-4790": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
@@ -350,6 +402,8 @@
     "PDE-4606": {"Elapsed Days": "41.0", "Work Days": "31.0", "Weeks": "6.0"},
     "PDE-4607": {"Elapsed Days": "51.0", "Work Days": "33.0", "Weeks": "7.0"},
     "PDE-4608": {"Elapsed Days": "36.0", "Work Days": "23.0", "Weeks": "5.0"},
+    "PDE-4613": {"Elapsed Days": "1.0", "Work Days": "1.0", "Weeks": "0.0"},
+    "PDE-4615": {"Elapsed Days": "1.0", "Work Days": "1.0", "Weeks": "0.0"},
     "PDE-4616": {"Elapsed Days": "19.0", "Work Days": "13.0", "Weeks": "3.0"},
     "PDE-4677": {"Elapsed Days": "75.0", "Work Days": "54.0", "Weeks": "11.0"},
     "PDE-4678": {"Elapsed Days": "47.0", "Work Days": "34.0", "Weeks": "7.0"},
@@ -506,11 +560,141 @@
       return issueType.includes("milestone");
     }
 
+    function isGateTask(task) {
+      const issueType = String(task.issueType || "").toLowerCase();
+      // Gate mode shows Jira Gate types at any hierarchy level only.
+      return issueType.includes("gate");
+    }
+
+    function getIssueTypeIconSpec(issueType) {
+      const type = String(issueType || "").toLowerCase();
+      if (type.includes("milestone")) {
+        return { shape: "diamond", fill: "#6f77b3", stroke: "#4f5684" };
+      }
+      if (type.includes("gate")) {
+        return { shape: "triangle", fill: "#de350b", stroke: "#a52506" };
+      }
+      if (type.includes("test cycle level 0")) {
+        return { shape: "ring", fill: "#2b86c5", stroke: "#1a5f90" };
+      }
+      if (type.includes("test cycle")) {
+        return { shape: "circle", fill: "#2b86c5", stroke: "#1a5f90" };
+      }
+      if (type.includes("pre requisite")) {
+        return { shape: "square", fill: "#7a869a", stroke: "#5e6c84" };
+      }
+      if (type.includes("story")) {
+        return { shape: "rounded", fill: "#ffffff", stroke: "#5e6c84" };
+      }
+      return { shape: "circle", fill: "#8993a4", stroke: "#5e6c84" };
+    }
+
+    function getIssueTypeIconUrl(issueType) {
+      const key = String(issueType || "").toLowerCase();
+      for (const [name, url] of Object.entries(ISSUE_TYPE_ICONS)) {
+        if (String(name).toLowerCase() === key && String(url || "").trim()) {
+          return String(url).trim();
+        }
+      }
+      return "";
+    }
+
+    function appendIssueTypeIcon(svg, svgns, issueType, xCenter, yCenter, size, tooltipHtml, addInteractivity) {
+      const iconUrl = getIssueTypeIconUrl(issueType);
+      if (iconUrl) {
+        const img = document.createElementNS(svgns, "image");
+        img.setAttribute("x", `${xCenter - size / 2}`);
+        img.setAttribute("y", `${yCenter - size / 2}`);
+        img.setAttribute("width", `${size}`);
+        img.setAttribute("height", `${size}`);
+        img.setAttribute("preserveAspectRatio", "xMidYMid meet");
+        img.setAttribute("href", iconUrl);
+        addInteractivity(img, tooltipHtml);
+        svg.appendChild(img);
+        return;
+      }
+
+      const icon = getIssueTypeIconSpec(issueType);
+      const half = size / 2;
+      let node;
+
+      if (icon.shape === "diamond") {
+        node = document.createElementNS(svgns, "polygon");
+        node.setAttribute(
+          "points",
+          `${xCenter},${yCenter - half} ${xCenter + half},${yCenter} ${xCenter},${yCenter + half} ${xCenter - half},${yCenter}`
+        );
+      } else if (icon.shape === "triangle") {
+        node = document.createElementNS(svgns, "polygon");
+        node.setAttribute(
+          "points",
+          `${xCenter},${yCenter - half} ${xCenter + half},${yCenter + half} ${xCenter - half},${yCenter + half}`
+        );
+      } else if (icon.shape === "square" || icon.shape === "rounded") {
+        node = document.createElementNS(svgns, "rect");
+        node.setAttribute("x", `${xCenter - half}`);
+        node.setAttribute("y", `${yCenter - half}`);
+        node.setAttribute("width", `${size}`);
+        node.setAttribute("height", `${size}`);
+        if (icon.shape === "rounded") {
+          node.setAttribute("rx", "2");
+          node.setAttribute("ry", "2");
+        }
+      } else {
+        node = document.createElementNS(svgns, "circle");
+        node.setAttribute("cx", `${xCenter}`);
+        node.setAttribute("cy", `${yCenter}`);
+        node.setAttribute("r", `${half}`);
+      }
+
+      node.setAttribute("fill", icon.fill);
+      node.setAttribute("stroke", icon.stroke);
+      node.setAttribute("stroke-width", "1.4");
+      addInteractivity(node, tooltipHtml);
+      svg.appendChild(node);
+
+      if (icon.shape === "ring") {
+        const core = document.createElementNS(svgns, "circle");
+        core.setAttribute("cx", `${xCenter}`);
+        core.setAttribute("cy", `${yCenter}`);
+        core.setAttribute("r", `${Math.max(1.5, half * 0.45)}`);
+        core.setAttribute("fill", "#ffffff");
+        core.setAttribute("stroke", "none");
+        addInteractivity(core, tooltipHtml);
+        svg.appendChild(core);
+      }
+    }
+
+    function getBarTestTypeLabel(task) {
+      const issueType = String(task.issueType || "").toLowerCase();
+      if (issueType.includes("story")) {
+        return "";
+      }
+      const testType = String(task.testType || "").trim();
+      if (testType) {
+        return testType;
+      }
+      if (issueType.includes("gate")) {
+        return "Gate";
+      }
+      if (issueType.includes("milestone")) {
+        return "Milestone";
+      }
+      return CATEGORY_BAR_LABELS[task.category] || "Test";
+    }
+
     function taskPassesScope(task) {
-      if (!showMilestonesOnly) {
+      if (!showMilestonesOnly && !showGatesOnly) {
         return true;
       }
-      return isMilestoneTask(task);
+      let include = false;
+      if (showMilestonesOnly) {
+        include = include || isMilestoneTask(task);
+      }
+      if (showGatesOnly) {
+        include = include || isGateTask(task);
+      }
+      return include;
     }
 
     function renderStamp() {
@@ -528,33 +712,43 @@
         scopedTasks.filter((t) => selectedCategories.has(t.category)).map((t) => t.key)
       );
 
-      // Ensure predecessor tasks stay visible when their dependent target is selected.
-      let changed = true;
-      while (changed) {
-        changed = false;
-        DEPENDENCIES.forEach((d) => {
-          if (visibleKeys.has(d.to) && !visibleKeys.has(d.from) && scopedKeys.has(d.from)) {
-            visibleKeys.add(d.from);
-            changed = true;
-          }
-        });
+      if (PRESERVE_PREDECESSOR_CONTEXT) {
+        // Optionally keep predecessor tasks visible when their dependent target is selected.
+        let changed = true;
+        while (changed) {
+          changed = false;
+          DEPENDENCIES.forEach((d) => {
+            if (visibleKeys.has(d.to) && !visibleKeys.has(d.from) && scopedKeys.has(d.from)) {
+              const fromTask = TASKS.find((t) => t.key === d.from);
+              if (fromTask && selectedCategories.has(fromTask.category)) {
+                visibleKeys.add(d.from);
+                changed = true;
+              }
+            }
+          });
+        }
       }
 
-      // Keep parent rows visible when any child row is in scope.
-      changed = true;
-      while (changed) {
-        changed = false;
-        TASKS.forEach((t) => {
-          if (
-            visibleKeys.has(t.key)
-            && t.parent
-            && !visibleKeys.has(t.parent)
-            && scopedKeys.has(t.parent)
-          ) {
-            visibleKeys.add(t.parent);
-            changed = true;
-          }
-        });
+      if (PRESERVE_PARENT_CONTEXT) {
+        // Optionally keep parent rows visible when any child row is in scope.
+        let changed = true;
+        while (changed) {
+          changed = false;
+          TASKS.forEach((t) => {
+            if (
+              visibleKeys.has(t.key)
+              && t.parent
+              && !visibleKeys.has(t.parent)
+              && scopedKeys.has(t.parent)
+            ) {
+              const parentTask = TASKS.find((p) => p.key === t.parent);
+              if (parentTask && selectedCategories.has(parentTask.category)) {
+                visibleKeys.add(t.parent);
+                changed = true;
+              }
+            }
+          });
+        }
       }
 
       return visibleKeys;
@@ -577,11 +771,22 @@
         renderAll();
       });
       mount.appendChild(btn);
+
+      const gateBtn = document.createElement("button");
+      gateBtn.type = "button";
+      gateBtn.className = `view-toggle${showGatesOnly ? "" : " inactive"}`;
+      gateBtn.textContent = `Gate Work Items Only: ${showGatesOnly ? "On" : "Off"}`;
+      gateBtn.title = "Toggle gate-only view";
+      gateBtn.addEventListener("click", () => {
+        showGatesOnly = !showGatesOnly;
+        renderAll();
+      });
+      mount.appendChild(gateBtn);
     }
 
     function getVisibleTasks() {
       const visibleKeys = getVisibleTaskKeysByFilter();
-      if (showMilestonesOnly) {
+      if (showMilestonesOnly || showGatesOnly) {
         return TASKS.filter((t) => visibleKeys.has(t.key));
       }
       const taskByKey = TASKS.reduce((acc, t) => {
@@ -669,11 +874,12 @@
       resetBtn.className = "legend-filter reset";
       resetBtn.textContent = "Reset Filters";
       resetBtn.title = "Show all test types";
-      resetBtn.disabled = selectedCategories.size === CATEGORY_ORDER.length && !showMilestonesOnly;
+      resetBtn.disabled = selectedCategories.size === CATEGORY_ORDER.length && !showMilestonesOnly && !showGatesOnly;
       resetBtn.addEventListener("click", () => {
         selectedCategories.clear();
         CATEGORY_ORDER.forEach((cat) => selectedCategories.add(cat));
         showMilestonesOnly = false;
+        showGatesOnly = false;
         renderAll();
       });
       mount.appendChild(resetBtn);
@@ -747,7 +953,7 @@
       if (!tasks.length) {
         return;
       }
-      const timelineTasks = showMilestonesOnly ? TASKS : tasks;
+      const timelineTasks = (showMilestonesOnly || showGatesOnly) ? TASKS : tasks;
       const minDate = new Date(Math.min(...timelineTasks.map((t) => toDate(t.start).getTime())));
       const maxDate = new Date(Math.max(...timelineTasks.map((t) => toDate(t.end).getTime())));
       const dayMs = 24 * 60 * 60 * 1000;
@@ -843,6 +1049,7 @@
       }
 
       const barPosByKey = {};
+      const visibleTaskKeySet = new Set(tasks.map((task) => task.key));
 
       tasks.forEach((t, idx) => {
         const st = toDate(t.start);
@@ -852,15 +1059,16 @@
         const x = left + (startDays / totalDays) * plotW;
         const w = Math.max(8, (durDays / totalDays) * plotW);
         const y = top + idx * (rowH + rowGap);
-        const isChild = Boolean(t.parent);
-        const barH = isChild ? Math.max(14, Math.round(rowH * 0.66)) : rowH;
+        const isChild = Boolean(t.parent && visibleTaskKeySet.has(t.parent));
+        const barH = isChild ? Math.max(10, Math.round(rowH * 0.44)) : rowH;
         const yBar = y + (rowH - barH) / 2;
 
         const style = CATEGORY_STYLES[t.category] || { fill: "#dfe1e6", stroke: "#b3bac5" };
         const barStyle = isChild
-          ? { fill: lightenHex(style.fill, 0.35), stroke: lightenHex(style.stroke, 0.2) }
+          ? { fill: lightenHex(style.fill, 0.68), stroke: lightenHex(style.stroke, 0.52) }
           : style;
         const dual = DUAL_STRIP_BY_KEY[t.key];
+        const tooltipHtml = buildTooltipHtml(t, dual ? `Strip: ${dual[0]} + ${dual[1]}` : "");
 
         const addInteractivity = (node, tooltipHtml) => {
           node.style.cursor = "pointer";
@@ -882,10 +1090,10 @@
           const topBase = CATEGORY_STYLES[dual[0]] || barStyle;
           const bottomBase = CATEGORY_STYLES[dual[1]] || barStyle;
           const topStyle = isChild
-            ? { fill: lightenHex(topBase.fill, 0.35), stroke: lightenHex(topBase.stroke, 0.2) }
+            ? { fill: lightenHex(topBase.fill, 0.68), stroke: lightenHex(topBase.stroke, 0.52) }
             : topBase;
           const bottomStyle = isChild
-            ? { fill: lightenHex(bottomBase.fill, 0.35), stroke: lightenHex(bottomBase.stroke, 0.2) }
+            ? { fill: lightenHex(bottomBase.fill, 0.68), stroke: lightenHex(bottomBase.stroke, 0.52) }
             : bottomBase;
           const half = barH / 2;
 
@@ -896,7 +1104,6 @@
           topRect.setAttribute("height", `${half}`);
           topRect.setAttribute("fill", topStyle.fill);
           topRect.setAttribute("stroke", "none");
-          const tooltipHtml = buildTooltipHtml(t, `Strip: ${dual[0]} + ${dual[1]}`);
           addInteractivity(topRect, tooltipHtml);
           svg.appendChild(topRect);
 
@@ -919,7 +1126,7 @@
           outline.setAttribute("height", `${barH}`);
           outline.setAttribute("fill", "none");
           outline.setAttribute("stroke", barStyle.stroke);
-          outline.setAttribute("stroke-width", "1.5");
+          outline.setAttribute("stroke-width", isChild ? "0.9" : "1.5");
           addInteractivity(outline, tooltipHtml);
           svg.appendChild(outline);
           barPosByKey[t.key] = { x, y: yBar, w, h: barH };
@@ -933,10 +1140,34 @@
           rect.setAttribute("height", `${barH}`);
           rect.setAttribute("fill", barStyle.fill);
           rect.setAttribute("stroke", barStyle.stroke);
-          rect.setAttribute("stroke-width", "1.5");
-          addInteractivity(rect, buildTooltipHtml(t, ""));
+          rect.setAttribute("stroke-width", isChild ? "0.9" : "1.5");
+          addInteractivity(rect, tooltipHtml);
           svg.appendChild(rect);
           barPosByKey[t.key] = { x, y: yBar, w, h: barH };
+        }
+
+        const iconSize = isChild ? 8 : 10;
+        const iconX = Math.max(8, x - iconSize - 3);
+        const iconY = yBar + barH / 2;
+        appendIssueTypeIcon(svg, svgns, t.issueType, iconX, iconY, iconSize, tooltipHtml, addInteractivity);
+
+        // Show a concise test-type label inside sufficiently wide bars.
+        const barLabel = getBarTestTypeLabel(t);
+        if (barLabel && w >= 54) {
+          const label = document.createElementNS(svgns, "text");
+          label.setAttribute("x", `${x + 6}`);
+          label.setAttribute("y", `${yBar + barH / 2 + 0.5}`);
+          label.setAttribute("font-size", isChild ? "9" : "10");
+          label.setAttribute("font-weight", "600");
+          label.setAttribute("dominant-baseline", "middle");
+          label.setAttribute("fill", "#101820");
+          label.setAttribute("stroke", "#ffffff");
+          label.setAttribute("stroke-width", "2.2");
+          label.setAttribute("paint-order", "stroke");
+          label.setAttribute("stroke-linejoin", "round");
+          label.textContent = barLabel;
+          addInteractivity(label, tooltipHtml);
+          svg.appendChild(label);
         }
       });
 

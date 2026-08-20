@@ -3,7 +3,7 @@
 
 Scope rule:
 - Direct children of PDE-4249
-- issueType in ("Pre Requisite", "Test Cycle")
+- issueType in ("Pre Requisite", "Test Cycle", "Test Cycle Level 0", "Gate Level 1")
 - Exclude Regression / PRT cycles (PDE-4873, PDE-4874)
 """
 
@@ -48,6 +48,17 @@ STATIC_DUAL_STRIP = {
     "PDE-4606": ["pre requisite", "end to end testing"],
     "PDE-4607": ["pre requisite", "user acceptance testing"],
     "PDE-4734": ["pre requisite", "parallel run testing"],
+}
+
+STATIC_CATEGORY_BY_KEY = {
+    "PDE-4775": "system integration testing",  # System Integration Testing | Entry Gate
+    "PDE-4773": "end to end testing",          # End to End Testing | Entry Gate
+    "PDE-4780": "user acceptance testing",     # UAT Test Gate
+    "PDE-4613": "parallel run testing",        # Go/No Go
+    "PDE-4615": "parallel run testing",        # Go Live
+    "PDE-4781": "parallel run testing",        # Parallel Test Gate
+    "PDE-4778": "parallel run testing",        # Test Stage Gate
+    "PDE-4783": "parallel run testing",        # Parallel Test Gate
 }
 
 
@@ -135,11 +146,16 @@ def _normalize_value(value: Any) -> str:
     return ""
 
 
-def _classify_category(issue_type: str, summary: str) -> str:
+def _classify_category(key: str, issue_type: str, summary: str) -> str:
+    if key in STATIC_CATEGORY_BY_KEY:
+        return STATIC_CATEGORY_BY_KEY[key]
+
     if issue_type.strip().lower() == "pre requisite":
         return "pre requisite"
 
     s = summary.lower().strip()
+    if "uat" in s or "user acceptance" in s:
+        return "user acceptance testing"
     if "non integrated parallel" in s:
         return "non integrated parallel"
     if "user acceptance testing" in s:
@@ -194,6 +210,7 @@ def _format_tasks(tasks: list[dict[str, str]]) -> str:
             f'start: "{task["start"]}"',
             f'end: "{task["end"]}"',
             f'issueType: "{task.get("issueType", "").replace("\\", "\\\\").replace("\"", "\\\"")}"',
+            f'testType: "{task.get("testType", "").replace("\\", "\\\\").replace("\"", "\\\"")}"',
             f'category: "{task["category"]}"',
         ]
         if task.get("parent"):
@@ -223,6 +240,18 @@ def _format_object_map(data: dict[str, Any], indent: str = "    ") -> str:
         lines.append(f'{indent}"{key}": {value_json},')
     lines[-1] = lines[-1].rstrip(",")
     return "\n".join(lines)
+
+
+def _build_issue_type_icon_map(issues: list[dict[str, Any]]) -> dict[str, str]:
+    icon_map: dict[str, str] = {}
+    for issue in issues:
+        fields = issue.get("fields") or {}
+        issue_type = fields.get("issuetype") or {}
+        name = str(issue_type.get("name") or "").strip()
+        icon_url = str(issue_type.get("iconUrl") or "").strip()
+        if name and icon_url and name not in icon_map:
+            icon_map[name] = icon_url
+    return dict(sorted(icon_map.items()))
 
 
 def _order_tasks_parent_first(tasks: list[dict[str, str]]) -> list[dict[str, str]]:
@@ -348,6 +377,7 @@ def main() -> int:
         "tenant": _pick_field_id(field_items, "Tenant"),
         "tenant_name": _pick_field_id(field_items, "Tenant Name"),
         "test_company": _pick_field_id(field_items, "Test Company"),
+        "test_types": _pick_field_id(field_items, "Test Types"),
         "ais_instance": _pick_field_id(field_items, "AIS Instance"),
         "elapsed_days": _pick_field_id(field_items, "Elapsed Days"),
         "work_days": _pick_field_id(field_items, "Work Days"),
@@ -366,7 +396,7 @@ def main() -> int:
     ] + [v for v in field_ids.values() if v]
 
     jql = (
-        'parent = PDE-4249 AND issuetype in ("Pre Requisite", "Test Cycle") '
+        'parent = PDE-4249 AND issuetype in ("Pre Requisite", "Test Cycle", "Test Cycle Level 0", "Gate Level 1") '
         "AND key not in (PDE-4873, PDE-4874) ORDER BY customfield_10015, key"
     )
     payload = _post_json(
@@ -425,7 +455,8 @@ def main() -> int:
 
         summary = str(f.get("summary") or "").strip()
         issue_type = str((f.get("issuetype") or {}).get("name") or "").strip()
-        category = _classify_category(issue_type, summary)
+        test_type = _normalize_value(f.get(field_ids["test_types"])) if field_ids["test_types"] else ""
+        category = _classify_category(key, issue_type, summary)
         if category not in CATEGORY_ORDER:
             category = "system integration testing"
 
@@ -435,6 +466,7 @@ def main() -> int:
             "start": str(start),
             "end": str(end),
             "issueType": issue_type,
+            "testType": test_type,
             "category": category,
         }
         parent_key = str(((f.get("parent") or {}).get("key")) or "").strip()
@@ -465,6 +497,7 @@ def main() -> int:
             }
 
     tasks = _order_tasks_parent_first(tasks)
+    issue_type_icons = _build_issue_type_icon_map(issues)
 
     keys_in_scope = {t["key"] for t in tasks}
     dependencies = _derive_dependencies_from_links(issues, keys_in_scope)
@@ -472,6 +505,7 @@ def main() -> int:
 
     template = REPORT_DOCS.read_text(encoding="utf-8")
     template = _replace_const_block(template, "TASKS", "[", "]", _format_tasks(tasks))
+    template = _replace_const_block(template, "ISSUE_TYPE_ICONS", "{", "}", _format_object_map(issue_type_icons))
     template = _replace_const_block(template, "DUAL_STRIP_BY_KEY", "{", "}", _format_object_map(dual_strip))
     template = _replace_const_block(template, "DEPENDENCIES", "[", "]", _format_object_array(dependencies))
     template = _replace_const_block(template, "ISSUE_DESCRIPTIONS", "{", "}", _format_object_map(descriptions))
