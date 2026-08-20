@@ -244,6 +244,7 @@
     const PRESERVE_PARENT_CONTEXT = false;
     let showMilestonesOnly = false;
     let showGatesOnly = false;
+    let showTestCyclesOnly = false;
     const ISSUE_DESCRIPTIONS = {
     "PDE-4599": "Non-Integrated Parallel Testing is a payroll assurance phase where payroll is run in a standalone Datapay environment without live upstream or downstream integrations. Its purpose is to prove that core payroll processing works correctly on its own: employee setup, leave setup, pay data processing, pay run execution, and variance checking. In practice, this means loading full employee data (including leave balances and 52-week earnings), running payroll in parallel with the current payroll process, and comparing outcomes to confirm gross-to-net calculations, deductions, statutory obligations, and overall payroll accuracy.\n\nNIP Testing is critical because it isolates payroll behavior from integration noise and exposes calculation, configuration, and data quality issues early. It gives the programme a controlled way to validate compliance and identify defects before integrated testing and production deployment. By documenting and triaging variances in partnership between Datapay and payroll stakeholders, NIP creates confidence that payroll outputs are accurate for all employee groups and that the system is ready to progress into end-to-end integration and go-live stages.\n\nThe programme will encourage SMEs to use the NIP environment once the variations have been resolved - this will give the business an early opportunity to interact with the new system and to execute BAU processes.",
     "PDE-4604": "The E2E Test Phase validates critical business scenarios across the integrated landscape, beginning only after connectivity testing has confirmed secure and reliable data exchange across all in-scope interfaces. Connectivity execution is expected to reuse available lower-tier environments, including downstream TWoA systems that only provide dev or test instances. Following connectivity, a stabilization phase will be run to resolve high-impact defects, harden interface reliability, and improve test-data consistency before scaling SME and Business User execution.\n\nE2E then focuses on end-to-end process assurance with significant SME and Business User participation, validating real business flows, role-based execution, and cross-system outcomes with production-like migrated data. Responsibilities are partitioned by integration path: KPMG and Datacom lead Workday-to-Datapay testing, KPMG leads Workday-to-AIS testing, and TWoA leads AIS downstream testing and downstream business-flow validation. TWoA retains overall governance accountability for E2E, including entry/exit control, defect triage oversight, evidence quality, and go-forward readiness recommendations.\n\nTo align strategy with this approach, downstream E2E validation for TWoA-owned systems should be explicitly moved from exclusions into scope, with named interfaces and clear ownership.\n\nThis phase will require high levels of coordination and cooperation to ensure all tests are covered.",
@@ -565,6 +566,12 @@
       return issueType.includes("gate");
     }
 
+    function isTestCycleTask(task) {
+      const issueType = String(task.issueType || "").toLowerCase();
+      // Test cycle mode shows Test Cycle and Test Cycle Level 0 types.
+      return issueType.includes("test cycle");
+    }
+
     function getIssueTypeIconSpec(issueType) {
       const type = String(issueType || "").toLowerCase();
       if (type.includes("milestone")) {
@@ -683,7 +690,7 @@
     }
 
     function taskPassesScope(task) {
-      if (!showMilestonesOnly && !showGatesOnly) {
+      if (!showMilestonesOnly && !showGatesOnly && !showTestCyclesOnly) {
         return true;
       }
       let include = false;
@@ -692,6 +699,9 @@
       }
       if (showGatesOnly) {
         include = include || isGateTask(task);
+      }
+      if (showTestCyclesOnly) {
+        include = include || isTestCycleTask(task);
       }
       return include;
     }
@@ -778,11 +788,22 @@
         renderAll();
       });
       mount.appendChild(gateBtn);
+
+      const cycleBtn = document.createElement("button");
+      cycleBtn.type = "button";
+      cycleBtn.className = `view-toggle${showTestCyclesOnly ? "" : " inactive"}`;
+      cycleBtn.textContent = `Test Cycle Work Items Only: ${showTestCyclesOnly ? "On" : "Off"}`;
+      cycleBtn.title = "Toggle test-cycle-only view";
+      cycleBtn.addEventListener("click", () => {
+        showTestCyclesOnly = !showTestCyclesOnly;
+        renderAll();
+      });
+      mount.appendChild(cycleBtn);
     }
 
     function getVisibleTasks() {
       const visibleKeys = getVisibleTaskKeysByFilter();
-      if (showMilestonesOnly || showGatesOnly) {
+      if (showMilestonesOnly || showGatesOnly || showTestCyclesOnly) {
         return TASKS.filter((t) => visibleKeys.has(t.key));
       }
       const taskByKey = TASKS.reduce((acc, t) => {
@@ -870,12 +891,13 @@
       resetBtn.className = "legend-filter reset";
       resetBtn.textContent = "Reset Filters";
       resetBtn.title = "Show all test types";
-      resetBtn.disabled = selectedCategories.size === CATEGORY_ORDER.length && !showMilestonesOnly && !showGatesOnly;
+      resetBtn.disabled = selectedCategories.size === CATEGORY_ORDER.length && !showMilestonesOnly && !showGatesOnly && !showTestCyclesOnly;
       resetBtn.addEventListener("click", () => {
         selectedCategories.clear();
         CATEGORY_ORDER.forEach((cat) => selectedCategories.add(cat));
         showMilestonesOnly = false;
         showGatesOnly = false;
+        showTestCyclesOnly = false;
         renderAll();
       });
       mount.appendChild(resetBtn);
@@ -949,7 +971,7 @@
       if (!tasks.length) {
         return;
       }
-      const timelineTasks = (showMilestonesOnly || showGatesOnly) ? TASKS : tasks;
+      const timelineTasks = (showMilestonesOnly || showGatesOnly || showTestCyclesOnly) ? TASKS : tasks;
       const minDate = new Date(Math.min(...timelineTasks.map((t) => toDate(t.start).getTime())));
       const maxDate = new Date(Math.max(...timelineTasks.map((t) => toDate(t.end).getTime())));
       const dayMs = 24 * 60 * 60 * 1000;
