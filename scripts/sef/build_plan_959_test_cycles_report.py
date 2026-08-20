@@ -203,13 +203,15 @@ def _replace_string_const(text: str, name: str, value: str) -> str:
 
 def _escape_js_string(value: str) -> str:
     # Keep inline JS valid even when Jira fields include control characters.
-    return (
+    escaped = (
         value.replace("\\", "\\\\")
         .replace("\"", "\\\"")
         .replace("\r", "\\r")
         .replace("\n", "\\n")
         .replace("\t", "\\t")
     )
+    # Prevent HTML parser from terminating the script block on embedded </script>.
+    return escaped.replace("</", "<\\/")
 
 
 def _format_tasks(tasks: list[dict[str, str]]) -> str:
@@ -237,7 +239,8 @@ def _format_object_array(items: list[dict[str, Any]], indent: str = "      ") ->
         return ""
     lines: list[str] = []
     for item in items:
-        lines.append(f"{indent}{json.dumps(item, ensure_ascii=True)},")
+        item_json = json.dumps(item, ensure_ascii=True).replace("</", "<\\/")
+        lines.append(f"{indent}{item_json},")
     lines[-1] = lines[-1].rstrip(",")
     return "\n".join(lines)
 
@@ -247,7 +250,7 @@ def _format_object_map(data: dict[str, Any], indent: str = "    ") -> str:
         return ""
     lines: list[str] = []
     for key in sorted(data):
-        value_json = json.dumps(data[key], ensure_ascii=True)
+        value_json = json.dumps(data[key], ensure_ascii=True).replace("</", "<\\/")
         lines.append(f'{indent}"{key}": {value_json},')
     lines[-1] = lines[-1].rstrip(",")
     return "\n".join(lines)
