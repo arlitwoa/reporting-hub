@@ -710,26 +710,26 @@
       const visibleKeys = new Set(
         scopedTasks.filter((t) => selectedCategories.has(t.category)).map((t) => t.key)
       );
+      const hasCategoryFilter = selectedCategories.size < CATEGORY_ORDER.length;
+      const preservePredecessorContext = PRESERVE_PREDECESSOR_CONTEXT || hasCategoryFilter;
+      const preserveParentContext = PRESERVE_PARENT_CONTEXT || hasCategoryFilter;
 
-      if (PRESERVE_PREDECESSOR_CONTEXT) {
-        // Optionally keep predecessor tasks visible when their dependent target is selected.
+      if (preservePredecessorContext) {
+        // Keep blocked-link context visible even when linked task categories differ.
         let changed = true;
         while (changed) {
           changed = false;
           DEPENDENCIES.forEach((d) => {
             if (visibleKeys.has(d.to) && !visibleKeys.has(d.from) && scopedKeys.has(d.from)) {
-              const fromTask = TASKS.find((t) => t.key === d.from);
-              if (fromTask && selectedCategories.has(fromTask.category)) {
-                visibleKeys.add(d.from);
-                changed = true;
-              }
+              visibleKeys.add(d.from);
+              changed = true;
             }
           });
         }
       }
 
-      if (PRESERVE_PARENT_CONTEXT) {
-        // Optionally keep parent rows visible when any child row is in scope.
+      if (preserveParentContext) {
+        // Keep parent rows visible when any child row is in scope, even across categories.
         let changed = true;
         while (changed) {
           changed = false;
@@ -740,11 +740,8 @@
               && !visibleKeys.has(t.parent)
               && scopedKeys.has(t.parent)
             ) {
-              const parentTask = TASKS.find((p) => p.key === t.parent);
-              if (parentTask && selectedCategories.has(parentTask.category)) {
-                visibleKeys.add(t.parent);
-                changed = true;
-              }
+              visibleKeys.add(t.parent);
+              changed = true;
             }
           });
         }
