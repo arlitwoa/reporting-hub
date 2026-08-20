@@ -214,6 +214,19 @@ def _escape_js_string(value: str) -> str:
     return escaped.replace("</", "<\\/")
 
 
+def _validate_template_integrity(text: str, source_name: str) -> None:
+    if "<<<<<<< " in text or "=======" in text or ">>>>>>> " in text:
+        raise RuntimeError(
+            f"Template contains unresolved merge conflict markers: {source_name}. "
+            "Resolve markers before running report generation."
+        )
+    if "<body>" not in text or '<div class="wrap"><div class="card">' not in text:
+        raise RuntimeError(
+            f"Template appears structurally incomplete: {source_name}. "
+            "Expected body wrapper elements are missing."
+        )
+
+
 def _format_tasks(tasks: list[dict[str, str]]) -> str:
     lines: list[str] = []
     for task in tasks:
@@ -518,6 +531,7 @@ def main() -> int:
     dual_strip = _derive_dual_strip(tasks, dependencies)
 
     template = REPORT_DOCS.read_text(encoding="utf-8")
+    _validate_template_integrity(template, str(REPORT_DOCS))
     template = _replace_const_block(template, "TASKS", "[", "]", _format_tasks(tasks))
     template = _replace_const_block(template, "ISSUE_TYPE_ICONS", "{", "}", _format_object_map(issue_type_icons))
     template = _replace_const_block(template, "DUAL_STRIP_BY_KEY", "{", "}", _format_object_map(dual_strip))
