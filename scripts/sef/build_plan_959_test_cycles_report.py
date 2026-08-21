@@ -28,6 +28,7 @@ REPORT_MIRROR = Path("reports/sef/sef-plan-959-test-cycles-only-excluding-prt-re
 
 CATEGORY_ORDER = [
     "pre requisite",
+    "data migration testing",
     "non integrated parallel",
     "connectivity testing",
     "integration testing",
@@ -36,6 +37,8 @@ CATEGORY_ORDER = [
     "performance testing",
     "security testing",
     "user acceptance testing",
+    "production verification testing",
+    "dress rehearsal testing",
     "parallel run testing",
 ]
 
@@ -59,6 +62,12 @@ STATIC_CATEGORY_BY_KEY = {
     "PDE-4781": "parallel run testing",        # Parallel Test Gate
     "PDE-4778": "parallel run testing",        # Test Stage Gate
     "PDE-4783": "parallel run testing",        # Parallel Test Gate
+}
+
+# Temporary schedule fallback for scoped cycles that are approved but not yet dated in Jira.
+# Remove once source issues have explicit start/end dates.
+STATIC_DATE_FALLBACK_BY_KEY: dict[str, tuple[str, str]] = {
+    "PDE-4984": ("2027-01-15", "2027-02-19"),  # Dress Rehearsal (aligned to PDE-4611 window)
 }
 
 
@@ -146,7 +155,7 @@ def _normalize_value(value: Any) -> str:
     return ""
 
 
-def _classify_category(key: str, issue_type: str, summary: str) -> str:
+def _classify_category(key: str, issue_type: str, summary: str, test_type: str = "") -> str:
     if key in STATIC_CATEGORY_BY_KEY:
         return STATIC_CATEGORY_BY_KEY[key]
 
@@ -154,12 +163,20 @@ def _classify_category(key: str, issue_type: str, summary: str) -> str:
         return "pre requisite"
 
     s = summary.lower().strip()
+    tt = test_type.lower().strip()
+    haystack = f"{s} | {tt}"
+    if "data migration testing" in haystack:
+        return "data migration testing"
     if "uat" in s or "user acceptance" in s:
         return "user acceptance testing"
     if "non integrated parallel" in s:
         return "non integrated parallel"
     if "user acceptance testing" in s:
         return "user acceptance testing"
+    if "production verification" in haystack:
+        return "production verification testing"
+    if "dress rehearsal" in haystack:
+        return "dress rehearsal testing"
     if "parallel run" in s:
         return "parallel run testing"
     if "connectivity testing" in s:
@@ -476,6 +493,8 @@ def main() -> int:
         f = issue.get("fields") or {}
         start = f.get("customfield_10015")
         end = f.get("duedate")
+        if (not start or not end) and key in STATIC_DATE_FALLBACK_BY_KEY:
+            start, end = STATIC_DATE_FALLBACK_BY_KEY[key]
         if not start or not end:
             # Skip unscheduled rows to keep chart render stable.
             continue
@@ -483,7 +502,7 @@ def main() -> int:
         summary = str(f.get("summary") or "").strip()
         issue_type = str((f.get("issuetype") or {}).get("name") or "").strip()
         test_type = _normalize_value(f.get(field_ids["test_types"])) if field_ids["test_types"] else ""
-        category = _classify_category(key, issue_type, summary)
+        category = _classify_category(key, issue_type, summary, test_type)
         if category not in CATEGORY_ORDER:
             category = "system integration testing"
 
