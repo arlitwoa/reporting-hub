@@ -64,7 +64,7 @@
     .render-meta { margin: 0 0 8px; color: #5e6c84; font-size: 12px; }
   </style>
   <script type="module">
-    const RENDERED_AT = "2026-08-21 16:05:38 NZT";
+    const RENDERED_AT = "2026-08-21 16:45:09 NZT";
     const TASKS = [
       { key: "PDE-4683", title: "Payroll | Non Integrated Parallel | Test Planning", start: "2026-08-04", end: "2026-09-25", issueType: "Pre Requisite", testType: "Parallel", category: "pre requisite", parent: "PDE-4249" },
       { key: "PDE-4687", title: "Payroll | Non Integrated Parallel | Test Suite Preparation", start: "2026-08-10", end: "2026-09-04", issueType: "Story", testType: "Parallel", category: "non integrated parallel", parent: "PDE-4683" },
@@ -142,6 +142,7 @@
       { key: "PDE-4778", title: "Test Stage Gate", start: "2027-02-19", end: "2027-02-19", issueType: "Gate Level 1", testType: "", category: "parallel run testing", parent: "PDE-4249" },
       { key: "PDE-4783", title: "Parallel Test Gate", start: "2027-03-05", end: "2027-03-05", issueType: "Gate Level 1", testType: "Parallel", category: "parallel run testing", parent: "PDE-4249" },
       { key: "PDE-4731", title: "Payroll | PRD | Connectivity Testing", start: "2027-03-22", end: "2027-03-26", issueType: "Test Cycle", testType: "Connectivity", category: "connectivity testing", parent: "PDE-4249" },
+      { key: "PDE-4982", title: "Production Verification", start: "2027-04-19", end: "2027-04-23", issueType: "Test Cycle", testType: "Production Verification", category: "system integration testing", parent: "PDE-4249" },
       { key: "PDE-4615", title: "Go Live", start: "2027-04-19", end: "2027-04-19", issueType: "Gate Level 1", testType: "", category: "parallel run testing", parent: "PDE-4249" }
     ];
 
@@ -323,6 +324,7 @@
     "PDE-4890": "",
     "PDE-4921": "The Integration phase validates that all in-scope interfaces are technically connected, secure, and able to exchange data reliably before broader scenario-based System Integration Testing begins. The primary objective is to prove interface readiness end-to-end at the transport and payload level, including connectivity, authentication, encryption/decryption, file movement, API/service invocation, scheduling, acknowledgements, and error handling.\n\nThis phase is intentionally focused on interface operability rather than full business-process coverage. It establishes confidence that integration pathways are stable, observable, and supportable in the target environment, so that downstream SIT and E2E execution can proceed with reduced technical risk. Defects and issues are managed in Xray on KPMG Jira, aligned to KPMG\u2019s defect lifecycle, severity/priority model, triage cadence, and evidence-based closure approach.",
     "PDE-4980": "Datacom-led System Integration Testing for Workday payroll pathways and related interfaces.\n\nThis cycle confirms that in-scope interfaces are technically connected, secure, and able to exchange data reliably before broader scenario-led SIT and E2E phases.\n\nThe cycle is intentionally focused on interface operability and evidence quality for stage-gate readiness.",
+    "PDE-4982": "",
     "PDE-4985": "",
     "PDE-4986": "",
     "PDE-4990": "Data Migration Testing is the final pre-End-to-End assurance phase used to prove that in-scope data can be extracted, transformed, loaded, and reconciled into Workday HCM, Workday Financials, and DataPay with repeatable outcomes.\n\nThis phase validates migration readiness before entry into PDE-4604 by executing controlled migration waves, applying reconciliation controls, and confirming business acceptance of migrated outcomes. The focus is to identify and close migration defects early so E2E execution is not consumed by upstream data-quality and load defects.\n\nThe phase provides objective evidence that migration execution, reconciliation, and governance controls are stable enough to support integrated scenario testing in the E2E cycle.",
@@ -403,6 +405,7 @@
     "PDE-4890": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
     "PDE-4921": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
     "PDE-4980": {"Environment": "", "Platforms": "datapay, workday", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4982": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
     "PDE-4985": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
     "PDE-4986": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
     "PDE-4990": {"Environment": "", "Platforms": "datapay, workday", "Tenant": "TWoA5", "Tenant Name": "End to End", "Test Company": "End to End", "AIS Instance": "STG"},
@@ -465,6 +468,7 @@
     "PDE-4890": {"Elapsed Days": "12.0", "Work Days": "10.0", "Weeks": "2.0"},
     "PDE-4921": {"Elapsed Days": "75.0", "Work Days": "54.0", "Weeks": "11.0"},
     "PDE-4980": {"Elapsed Days": "19.0", "Work Days": "15.0", "Weeks": "3.0"},
+    "PDE-4982": {"Elapsed Days": "5.0", "Work Days": "5.0", "Weeks": "1.0"},
     "PDE-4990": {"Elapsed Days": "5.0", "Work Days": "5.0", "Weeks": "1.0"},
     "PDE-4991": {"Elapsed Days": "5.0", "Work Days": "5.0", "Weeks": "1.0"}
     };
