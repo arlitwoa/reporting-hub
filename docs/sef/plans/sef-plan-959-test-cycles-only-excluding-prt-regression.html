@@ -64,7 +64,7 @@
     .render-meta { margin: 0 0 8px; color: #5e6c84; font-size: 12px; }
   </style>
   <script type="module">
-    const RENDERED_AT = "2026-08-21 11:32:04 NZT";
+    const RENDERED_AT = "2026-08-21 13:17:12 NZT";
     const TASKS = [
       { key: "PDE-4683", title: "Payroll | Non Integrated Parallel | Test Planning", start: "2026-08-04", end: "2026-09-25", issueType: "Pre Requisite", testType: "Parallel", category: "pre requisite", parent: "PDE-4249" },
       { key: "PDE-4687", title: "Payroll | Non Integrated Parallel | Test Suite Preparation", start: "2026-08-10", end: "2026-09-04", issueType: "Story", testType: "Parallel", category: "non integrated parallel", parent: "PDE-4683" },
@@ -88,6 +88,7 @@
       { key: "PDE-4716", title: "Testing | End to End | Test Data Delivered", start: "2026-10-19", end: "2026-10-19", issueType: "Milestone Level Zero", testType: "End to End", category: "end to end testing", parent: "PDE-4606" },
       { key: "PDE-4717", title: "Testing | End to End | Test Environment Delivered", start: "2026-10-19", end: "2026-10-19", issueType: "Milestone Level Zero", testType: "End to End", category: "end to end testing", parent: "PDE-4606" },
       { key: "PDE-4788", title: "Testing | End to End | Data Contract", start: "2026-10-19", end: "2026-10-19", issueType: "Story", testType: "", category: "end to end testing", parent: "PDE-4606" },
+      { key: "PDE-4990", title: "Testing | End to End | Data Migration Testing", start: "2026-10-19", end: "2026-10-23", issueType: "Test Cycle Level 0", testType: "Data Migration", category: "end to end testing", parent: "PDE-4606" },
       { key: "PDE-4599", title: "Payroll | Non Integrated Parallel Run One | Testing", start: "2026-09-28", end: "2026-10-23", issueType: "Test Cycle", testType: "Non Integrated Parallel", category: "non integrated parallel", parent: "PDE-4249" },
       { key: "PDE-4811", title: "Integration | System Integration | Connectivity Testing", start: "2026-09-28", end: "2026-10-02", issueType: "Test Cycle", testType: "Connectivity", category: "connectivity testing", parent: "PDE-4249" },
       { key: "PDE-4921", title: "Integration Testing", start: "2026-10-05", end: "2026-12-18", issueType: "Test Cycle", testType: "Integration", category: "integration testing", parent: "PDE-4249" },
@@ -121,6 +122,7 @@
       { key: "PDE-4790", title: "Testing | User Acceptance Testing | Data Contract", start: "2026-12-16", end: "2026-12-16", issueType: "Story", testType: "", category: "user acceptance testing", parent: "PDE-4607" },
       { key: "PDE-4794", title: "Testing | User Acceptance Testing | Environment Delivered", start: "2026-12-18", end: "2026-12-18", issueType: "Milestone Level Zero", testType: "", category: "user acceptance testing", parent: "PDE-4607" },
       { key: "PDE-4795", title: "Testing | User Acceptance Testing | Test Suite Preparation", start: "2026-12-21", end: "2027-01-15", issueType: "Story", testType: "", category: "user acceptance testing", parent: "PDE-4607" },
+      { key: "PDE-4991", title: "Testing | User Acceptance | Data Migration Testing", start: "2027-01-11", end: "2027-01-15", issueType: "Test Cycle Level 0", testType: "Data Migration", category: "user acceptance testing", parent: "PDE-4607" },
       { key: "PDE-4792", title: "Testing | User Acceptance Testing | Test Data Delivered", start: "2027-01-14", end: "2027-01-14", issueType: "Milestone Level Zero", testType: "", category: "user acceptance testing", parent: "PDE-4607" },
       { key: "PDE-4793", title: "Testing | User Acceptance Testing | Environment Integration Delivered", start: "2027-01-14", end: "2027-01-14", issueType: "Milestone Level Zero", testType: "", category: "user acceptance testing", parent: "PDE-4607" },
       { key: "PDE-4734", title: "[UPDATE] HCM/Payroll | Parallel Testing | Test Planning", start: "2026-11-30", end: "2027-01-22", issueType: "Pre Requisite", testType: "Parallel", category: "pre requisite", parent: "PDE-4249" },
@@ -130,7 +132,7 @@
       { key: "PDE-4735", title: "Testing | Parallel | Test Data Delivered", start: "2027-01-20", end: "2027-01-20", issueType: "Milestone Level Zero", testType: "Parallel", category: "system integration testing", parent: "PDE-4734" },
       { key: "PDE-4736", title: "Testing | Parallel | Environment Integration Delivered", start: "2027-01-20", end: "2027-01-20", issueType: "Milestone Level Zero", testType: "Parallel", category: "system integration testing", parent: "PDE-4734" },
       { key: "PDE-4737", title: "Testing | Parallel | Test Environment Delivered", start: "2027-01-22", end: "2027-01-22", issueType: "Milestone Level Zero", testType: "Parallel", category: "system integration testing", parent: "PDE-4734" },
-      { key: "PDE-4608", title: "Workday | User Acceptance Testing", start: "2027-01-15", end: "2027-02-19", issueType: "Test Cycle", testType: "User Acceptance", category: "user acceptance testing", parent: "PDE-4249" },
+      { key: "PDE-4608", title: "User Acceptance Testing", start: "2027-01-15", end: "2027-02-19", issueType: "Test Cycle", testType: "User Acceptance", category: "user acceptance testing", parent: "PDE-4249" },
       { key: "PDE-4730", title: "HCM/Payroll | Parallel | Connectivity Testing", start: "2027-01-18", end: "2027-01-22", issueType: "Test Cycle", testType: "", category: "connectivity testing", parent: "PDE-4249" },
       { key: "PDE-4616", title: "Testing | Parallel Run Two | Testing", start: "2027-01-25", end: "2027-02-12", issueType: "Test Cycle", testType: "Parallel", category: "parallel run testing", parent: "PDE-4249" },
       { key: "PDE-4780", title: "UAT Test Gate", start: "2027-02-05", end: "2027-02-05", issueType: "Gate Level 1", testType: "User Acceptance", category: "user acceptance testing", parent: "PDE-4249" },
@@ -322,7 +324,9 @@
     "PDE-4921": "The Integration phase validates that all in-scope interfaces are technically connected, secure, and able to exchange data reliably before broader scenario-based System Integration Testing begins. The primary objective is to prove interface readiness end-to-end at the transport and payload level, including connectivity, authentication, encryption/decryption, file movement, API/service invocation, scheduling, acknowledgements, and error handling.\n\nThis phase is intentionally focused on interface operability rather than full business-process coverage. It establishes confidence that integration pathways are stable, observable, and supportable in the target environment, so that downstream SIT and E2E execution can proceed with reduced technical risk. Defects and issues are managed in Xray on KPMG Jira, aligned to KPMG\u2019s defect lifecycle, severity/priority model, triage cadence, and evidence-based closure approach.",
     "PDE-4980": "Datacom-led System Integration Testing for Workday payroll pathways and related interfaces.\n\nThis cycle confirms that in-scope interfaces are technically connected, secure, and able to exchange data reliably before broader scenario-led SIT and E2E phases.\n\nThe cycle is intentionally focused on interface operability and evidence quality for stage-gate readiness.",
     "PDE-4985": "",
-    "PDE-4986": ""
+    "PDE-4986": "",
+    "PDE-4990": "",
+    "PDE-4991": ""
     };
     const ISSUE_CONTEXT_FIELDS = ["Environment", "Platforms", "Tenant", "Tenant Name", "Test Company", "AIS Instance", "Elapsed Days", "Work Days", "Weeks"];
     const ISSUE_METADATA = {
@@ -400,7 +404,9 @@
     "PDE-4921": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
     "PDE-4980": {"Environment": "", "Platforms": "datapay, workday", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
     "PDE-4985": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4986": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""}
+    "PDE-4986": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4990": {"Environment": "", "Platforms": "datapay, workday", "Tenant": "TWoA5", "Tenant Name": "End to End", "Test Company": "End to End", "AIS Instance": "STG"},
+    "PDE-4991": {"Environment": "", "Platforms": "datapay, workday", "Tenant": "TWoA5", "Tenant Name": "UAT", "Test Company": "End to End", "AIS Instance": "STG"}
     };
     const ISSUE_METRICS = {
     "PDE-4599": {"Elapsed Days": "26.0", "Work Days": "20.0", "Weeks": "4.0"},
@@ -458,7 +464,9 @@
     "PDE-4888": {"Elapsed Days": "19.0", "Work Days": "15.0", "Weeks": "3.0"},
     "PDE-4890": {"Elapsed Days": "12.0", "Work Days": "10.0", "Weeks": "2.0"},
     "PDE-4921": {"Elapsed Days": "75.0", "Work Days": "54.0", "Weeks": "11.0"},
-    "PDE-4980": {"Elapsed Days": "19.0", "Work Days": "15.0", "Weeks": "3.0"}
+    "PDE-4980": {"Elapsed Days": "19.0", "Work Days": "15.0", "Weeks": "3.0"},
+    "PDE-4990": {"Elapsed Days": "5.0", "Work Days": "5.0", "Weeks": "1.0"},
+    "PDE-4991": {"Elapsed Days": "5.0", "Work Days": "5.0", "Weeks": "1.0"}
     };
     const DESCRIPTION_FALLBACK = "No Description is currently entered in Jira for this item.";
 
