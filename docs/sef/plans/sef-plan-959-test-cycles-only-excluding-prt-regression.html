@@ -13,13 +13,15 @@
     h1 a { color:inherit; text-decoration:none; border-bottom:1px solid #c3ccda; }
     h1 a:hover { text-decoration:underline; border-bottom-color:#8ea7cf; }
     .meta { margin:0 0 16px; color:var(--muted); font-size:14px; line-height:1.5; }
-    .chart { overflow-x:auto; border:1px solid var(--border); border-radius:8px; padding:10px; background:#fff; }
+    .chart { overflow-x:auto; border:1px solid var(--border); border-radius:8px; padding:10px; background:#f4f7fb; }
     .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#deebff; color:var(--accent); font-size:12px; font-weight:600; margin-right:6px; }
-    .legend { margin:10px 0 14px; display:flex; flex-wrap:wrap; gap:8px 12px; font-size:12px; color:var(--muted); }
+    .legend { margin:8px 0 12px; display:flex; flex-wrap:wrap; gap:6px 10px; font-size:12px; color:var(--muted); }
     .legend-item { display:inline-flex; align-items:center; gap:6px; }
-    .legend-filter { border:1px solid #c3ccda; background:#f4f7fc; color:#253858; border-radius:999px; padding:4px 10px; font-size:12px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
+    #legendFilters.legend-item { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+    .legend-filter { border:1px solid #c3ccda; background:#f4f7fc; color:#253858; border-radius:999px; padding:3px 8px; font-size:11px; line-height:1.1; display:inline-flex; align-items:center; gap:5px; cursor:pointer; white-space:nowrap; }
     .legend-filter.inactive { background:#fff; color:#6b778c; border-color:#dfe1e6; opacity:0.8; }
     .legend-filter.reset { font-weight:600; border-color:#9db4d8; background:#eaf2ff; }
+    .legend-filter .label { display:inline-block; }
     .swatch { width:12px; height:12px; border-radius:3px; border:1px solid rgba(9,30,66,.2); display:inline-block; }
     .swatch-nip { background:#ffd166; }
     .swatch-connectivity { background:#73c2fb; }
@@ -64,7 +66,7 @@
     .render-meta { margin: 0 0 8px; color: #5e6c84; font-size: 12px; }
   </style>
   <script type="module">
-    const RENDERED_AT = "2026-08-21 11:32:04 NZT";
+    const RENDERED_AT = "2026-08-21 16:59:15 NZT";
     const TASKS = [
       { key: "PDE-4683", title: "Payroll | Non Integrated Parallel | Test Planning", start: "2026-08-04", end: "2026-09-25", issueType: "Pre Requisite", testType: "Parallel", category: "pre requisite", parent: "PDE-4249" },
       { key: "PDE-4687", title: "Payroll | Non Integrated Parallel | Test Suite Preparation", start: "2026-08-10", end: "2026-09-04", issueType: "Story", testType: "Parallel", category: "non integrated parallel", parent: "PDE-4683" },
@@ -84,6 +86,7 @@
       { key: "PDE-4606", title: "Testing | End to End | Test Prep", start: "2026-09-13", end: "2026-10-23", issueType: "Pre Requisite", testType: "End to End", category: "pre requisite", parent: "PDE-4249" },
       { key: "PDE-4714", title: "SEF | Phase 1 | HCM and Payroll | Test Plan | End to End Testing", start: "2026-09-13", end: "2026-10-02", issueType: "Story", testType: "End to End", category: "end to end testing", parent: "PDE-4606" },
       { key: "PDE-4798", title: "Testing | End to End | Test Suite Preparation", start: "2026-10-05", end: "2026-10-23", issueType: "Story", testType: "", category: "end to end testing", parent: "PDE-4606" },
+      { key: "PDE-4990", title: "Testing | End to End | Data Migration Testing", start: "2026-10-19", end: "2026-10-23", issueType: "Test Cycle Level 0", testType: "Data Migration, End to End", category: "data migration testing", parent: "PDE-4606" },
       { key: "PDE-4715", title: "Testing | End to End | Environment Integration Delivered", start: "2026-10-19", end: "2026-10-19", issueType: "Milestone Level Zero", testType: "End to End", category: "end to end testing", parent: "PDE-4606" },
       { key: "PDE-4716", title: "Testing | End to End | Test Data Delivered", start: "2026-10-19", end: "2026-10-19", issueType: "Milestone Level Zero", testType: "End to End", category: "end to end testing", parent: "PDE-4606" },
       { key: "PDE-4717", title: "Testing | End to End | Test Environment Delivered", start: "2026-10-19", end: "2026-10-19", issueType: "Milestone Level Zero", testType: "End to End", category: "end to end testing", parent: "PDE-4606" },
@@ -121,6 +124,7 @@
       { key: "PDE-4790", title: "Testing | User Acceptance Testing | Data Contract", start: "2026-12-16", end: "2026-12-16", issueType: "Story", testType: "", category: "user acceptance testing", parent: "PDE-4607" },
       { key: "PDE-4794", title: "Testing | User Acceptance Testing | Environment Delivered", start: "2026-12-18", end: "2026-12-18", issueType: "Milestone Level Zero", testType: "", category: "user acceptance testing", parent: "PDE-4607" },
       { key: "PDE-4795", title: "Testing | User Acceptance Testing | Test Suite Preparation", start: "2026-12-21", end: "2027-01-15", issueType: "Story", testType: "", category: "user acceptance testing", parent: "PDE-4607" },
+      { key: "PDE-4991", title: "Testing | User Acceptance | Data Migration Testing", start: "2027-01-11", end: "2027-01-15", issueType: "Test Cycle Level 0", testType: "Data Migration, User Acceptance", category: "data migration testing", parent: "PDE-4607" },
       { key: "PDE-4792", title: "Testing | User Acceptance Testing | Test Data Delivered", start: "2027-01-14", end: "2027-01-14", issueType: "Milestone Level Zero", testType: "", category: "user acceptance testing", parent: "PDE-4607" },
       { key: "PDE-4793", title: "Testing | User Acceptance Testing | Environment Integration Delivered", start: "2027-01-14", end: "2027-01-14", issueType: "Milestone Level Zero", testType: "", category: "user acceptance testing", parent: "PDE-4607" },
       { key: "PDE-4734", title: "[UPDATE] HCM/Payroll | Parallel Testing | Test Planning", start: "2026-11-30", end: "2027-01-22", issueType: "Pre Requisite", testType: "Parallel", category: "pre requisite", parent: "PDE-4249" },
@@ -130,7 +134,8 @@
       { key: "PDE-4735", title: "Testing | Parallel | Test Data Delivered", start: "2027-01-20", end: "2027-01-20", issueType: "Milestone Level Zero", testType: "Parallel", category: "system integration testing", parent: "PDE-4734" },
       { key: "PDE-4736", title: "Testing | Parallel | Environment Integration Delivered", start: "2027-01-20", end: "2027-01-20", issueType: "Milestone Level Zero", testType: "Parallel", category: "system integration testing", parent: "PDE-4734" },
       { key: "PDE-4737", title: "Testing | Parallel | Test Environment Delivered", start: "2027-01-22", end: "2027-01-22", issueType: "Milestone Level Zero", testType: "Parallel", category: "system integration testing", parent: "PDE-4734" },
-      { key: "PDE-4608", title: "Workday | User Acceptance Testing", start: "2027-01-15", end: "2027-02-19", issueType: "Test Cycle", testType: "User Acceptance", category: "user acceptance testing", parent: "PDE-4249" },
+      { key: "PDE-4608", title: "User Acceptance Testing", start: "2027-01-15", end: "2027-02-19", issueType: "Test Cycle", testType: "User Acceptance", category: "user acceptance testing", parent: "PDE-4249" },
+      { key: "PDE-4984", title: "Dress Rehearsal", start: "2027-01-15", end: "2027-02-19", issueType: "Test Cycle", testType: "Dress Rehearsal", category: "dress rehearsal testing", parent: "PDE-4249" },
       { key: "PDE-4730", title: "HCM/Payroll | Parallel | Connectivity Testing", start: "2027-01-18", end: "2027-01-22", issueType: "Test Cycle", testType: "", category: "connectivity testing", parent: "PDE-4249" },
       { key: "PDE-4616", title: "Testing | Parallel Run Two | Testing", start: "2027-01-25", end: "2027-02-12", issueType: "Test Cycle", testType: "Parallel", category: "parallel run testing", parent: "PDE-4249" },
       { key: "PDE-4780", title: "UAT Test Gate", start: "2027-02-05", end: "2027-02-05", issueType: "Gate Level 1", testType: "User Acceptance", category: "user acceptance testing", parent: "PDE-4249" },
@@ -140,6 +145,7 @@
       { key: "PDE-4778", title: "Test Stage Gate", start: "2027-02-19", end: "2027-02-19", issueType: "Gate Level 1", testType: "", category: "parallel run testing", parent: "PDE-4249" },
       { key: "PDE-4783", title: "Parallel Test Gate", start: "2027-03-05", end: "2027-03-05", issueType: "Gate Level 1", testType: "Parallel", category: "parallel run testing", parent: "PDE-4249" },
       { key: "PDE-4731", title: "Payroll | PRD | Connectivity Testing", start: "2027-03-22", end: "2027-03-26", issueType: "Test Cycle", testType: "Connectivity", category: "connectivity testing", parent: "PDE-4249" },
+      { key: "PDE-4982", title: "Production Verification", start: "2027-04-19", end: "2027-04-23", issueType: "Test Cycle", testType: "Production Verification", category: "production verification testing", parent: "PDE-4249" },
       { key: "PDE-4615", title: "Go Live", start: "2027-04-19", end: "2027-04-19", issueType: "Gate Level 1", testType: "", category: "parallel run testing", parent: "PDE-4249" }
     ];
 
@@ -155,6 +161,7 @@
 
     const CATEGORY_STYLES = {
       "non integrated parallel": { fill: "#ffd166", stroke: "#cc9a06" },
+      "data migration testing": { fill: "#4ecdc4", stroke: "#2a9d8f" },
       "connectivity testing": { fill: "#73c2fb", stroke: "#2b86c5" },
       "integration testing": { fill: "#7b2cbf", stroke: "#5a189a" },
       "system integration testing": { fill: "#06d6a0", stroke: "#0b8f6d" },
@@ -162,12 +169,15 @@
       "performance testing": { fill: "#118ab2", stroke: "#0b5f7a" },
       "security testing": { fill: "#ef476f", stroke: "#b31942" },
       "user acceptance testing": { fill: "#cdb4db", stroke: "#8f6ca3" },
+      "production verification testing": { fill: "#5e60ce", stroke: "#3f37a4" },
+      "dress rehearsal testing": { fill: "#d65db1", stroke: "#a63f88" },
       "parallel run testing": { fill: "#95d5b2", stroke: "#4b9b73" },
       "pre requisite": { fill: "#b8c0ff", stroke: "#6f77b3" }
     };
 
     const CATEGORY_LABELS = {
       "pre requisite": "Pre Requisite",
+      "data migration testing": "Data Migration Testing",
       "non integrated parallel": "Non Integrated Parallel",
       "connectivity testing": "Connectivity Testing",
       "integration testing": "Integration Testing",
@@ -176,11 +186,14 @@
       "performance testing": "Performance Testing",
       "security testing": "Security Testing",
       "user acceptance testing": "User Acceptance Testing",
+      "production verification testing": "Production Verification Testing",
+      "dress rehearsal testing": "Dress Rehearsal Testing",
       "parallel run testing": "Parallel Run Testing"
     };
 
     const CATEGORY_BAR_LABELS = {
       "pre requisite": "Pre-Req",
+      "data migration testing": "Data Migration",
       "non integrated parallel": "NIP",
       "connectivity testing": "Connectivity",
       "integration testing": "Integration",
@@ -189,11 +202,46 @@
       "performance testing": "Performance",
       "security testing": "Security",
       "user acceptance testing": "UAT",
+      "production verification testing": "PVT",
+      "dress rehearsal testing": "Dress Rehearsal",
+      "parallel run testing": "Parallel"
+    };
+
+    const CATEGORY_TINY_LABELS = {
+      "pre requisite": "PR",
+      "data migration testing": "DM",
+      "non integrated parallel": "NIP",
+      "connectivity testing": "CONN",
+      "integration testing": "INT",
+      "system integration testing": "SIT",
+      "end to end testing": "E2E",
+      "performance testing": "PERF",
+      "security testing": "SEC",
+      "user acceptance testing": "UAT",
+      "production verification testing": "PVT",
+      "dress rehearsal testing": "DR",
+      "parallel run testing": "PRL"
+    };
+
+    const CATEGORY_FILTER_LABELS = {
+      "pre requisite": "Pre-Req",
+      "data migration testing": "Data Migration",
+      "non integrated parallel": "NIP",
+      "connectivity testing": "Connectivity",
+      "integration testing": "Integration",
+      "system integration testing": "SIT",
+      "end to end testing": "E2E",
+      "performance testing": "Performance",
+      "security testing": "Security",
+      "user acceptance testing": "UAT",
+      "production verification testing": "PVT",
+      "dress rehearsal testing": "Dress Rehearsal",
       "parallel run testing": "Parallel"
     };
 
     const CATEGORY_ORDER = [
       "pre requisite",
+      "data migration testing",
       "non integrated parallel",
       "connectivity testing",
       "integration testing",
@@ -202,6 +250,8 @@
       "performance testing",
       "security testing",
       "user acceptance testing",
+      "production verification testing",
+      "dress rehearsal testing",
       "parallel run testing"
     ];
 
@@ -309,8 +359,8 @@
     "PDE-4806": "",
     "PDE-4811": "Focused pre-SIT connectivity gate for system-integration pathways, confirming interface transport readiness and technical handshake integrity before full system integration execution begins.",
     "PDE-4812": "",
-    "PDE-4837": "",
-    "PDE-4838": "",
+    "PDE-4837": "to work with TWoA to determine if and what is required here.",
+    "PDE-4838": "to work with TWoA to determine if and what is required here.",
     "PDE-4847": "",
     "PDE-4883": "",
     "PDE-4884": "",
@@ -321,8 +371,12 @@
     "PDE-4890": "",
     "PDE-4921": "The Integration phase validates that all in-scope interfaces are technically connected, secure, and able to exchange data reliably before broader scenario-based System Integration Testing begins. The primary objective is to prove interface readiness end-to-end at the transport and payload level, including connectivity, authentication, encryption/decryption, file movement, API/service invocation, scheduling, acknowledgements, and error handling.\n\nThis phase is intentionally focused on interface operability rather than full business-process coverage. It establishes confidence that integration pathways are stable, observable, and supportable in the target environment, so that downstream SIT and E2E execution can proceed with reduced technical risk. Defects and issues are managed in Xray on KPMG Jira, aligned to KPMG\u2019s defect lifecycle, severity/priority model, triage cadence, and evidence-based closure approach.",
     "PDE-4980": "Datacom-led System Integration Testing for Workday payroll pathways and related interfaces.\n\nThis cycle confirms that in-scope interfaces are technically connected, secure, and able to exchange data reliably before broader scenario-led SIT and E2E phases.\n\nThe cycle is intentionally focused on interface operability and evidence quality for stage-gate readiness.",
+    "PDE-4982": "",
+    "PDE-4984": "",
     "PDE-4985": "",
-    "PDE-4986": ""
+    "PDE-4986": "",
+    "PDE-4990": "Data Migration Testing is the final pre-End-to-End assurance phase used to prove that in-scope data can be extracted, transformed, loaded, and reconciled into Workday HCM, Workday Financials, and DataPay with repeatable outcomes.\n\nThis phase validates migration readiness before entry into PDE-4604 by executing controlled migration waves, applying reconciliation controls, and confirming business acceptance of migrated outcomes. The focus is to identify and close migration defects early so E2E execution is not consumed by upstream data-quality and load defects.\n\nThe phase provides objective evidence that migration execution, reconciliation, and governance controls are stable enough to support integrated scenario testing in the E2E cycle.",
+    "PDE-4991": "Data Migration Testing for User Acceptance is the assurance activity that confirms migrated data is complete, accurate, and operationally usable before and during business-led UAT execution.\n\nThis phase ensures that production-like migrated data in the UAT environment supports real user scenarios, role-based execution, and business validation outcomes. It focuses on reconciliation confidence, exception resolution, and data stability so UAT effort is spent validating business processes rather than correcting upstream migration defects.\n\nSuccessful completion gives TWoA a clear data-readiness position for UAT continuation and go-forward decision-making."
     };
     const ISSUE_CONTEXT_FIELDS = ["Environment", "Platforms", "Tenant", "Tenant Name", "Test Company", "AIS Instance", "Elapsed Days", "Work Days", "Weeks"];
     const ISSUE_METADATA = {
@@ -399,8 +453,12 @@
     "PDE-4890": {"Environment": "", "Platforms": "", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
     "PDE-4921": {"Environment": "", "Platforms": "alma, azure-integration-services, broadbean, checkmate, datapay, ecoportal, entra-id, firstadvantage, greatplains, microsoft-fabric, sana, smartconnect, workday", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
     "PDE-4980": {"Environment": "", "Platforms": "datapay, workday", "Tenant": "TWoA4", "Tenant Name": "Integration", "Test Company": "Foundation", "AIS Instance": "TST"},
+    "PDE-4982": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4984": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
     "PDE-4985": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
-    "PDE-4986": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""}
+    "PDE-4986": {"Environment": "", "Platforms": "", "Tenant": "", "Tenant Name": "", "Test Company": "", "AIS Instance": ""},
+    "PDE-4990": {"Environment": "", "Platforms": "datapay, workday", "Tenant": "TWoA5", "Tenant Name": "End to End", "Test Company": "End to End", "AIS Instance": "STG"},
+    "PDE-4991": {"Environment": "", "Platforms": "datapay, workday", "Tenant": "TWoA5", "Tenant Name": "UAT", "Test Company": "End to End", "AIS Instance": "STG"}
     };
     const ISSUE_METRICS = {
     "PDE-4599": {"Elapsed Days": "26.0", "Work Days": "20.0", "Weeks": "4.0"},
@@ -458,7 +516,10 @@
     "PDE-4888": {"Elapsed Days": "19.0", "Work Days": "15.0", "Weeks": "3.0"},
     "PDE-4890": {"Elapsed Days": "12.0", "Work Days": "10.0", "Weeks": "2.0"},
     "PDE-4921": {"Elapsed Days": "75.0", "Work Days": "54.0", "Weeks": "11.0"},
-    "PDE-4980": {"Elapsed Days": "19.0", "Work Days": "15.0", "Weeks": "3.0"}
+    "PDE-4980": {"Elapsed Days": "19.0", "Work Days": "15.0", "Weeks": "3.0"},
+    "PDE-4982": {"Elapsed Days": "5.0", "Work Days": "5.0", "Weeks": "1.0"},
+    "PDE-4990": {"Elapsed Days": "5.0", "Work Days": "5.0", "Weeks": "1.0"},
+    "PDE-4991": {"Elapsed Days": "5.0", "Work Days": "5.0", "Weeks": "1.0"}
     };
     const DESCRIPTION_FALLBACK = "No Description is currently entered in Jira for this item.";
 
@@ -696,6 +757,70 @@
       return CATEGORY_BAR_LABELS[task.category] || "Test";
     }
 
+    function getCompactBarLabel(task) {
+      const testType = String(task.testType || "").trim();
+      const tt = testType.toLowerCase();
+      if (!testType) {
+        return CATEGORY_BAR_LABELS[task.category] || "Test";
+      }
+      if (tt.includes("data migration")) {
+        return "Data Migration";
+      }
+      if (tt.includes("dress rehearsal")) {
+        return "Dress Rehearsal";
+      }
+      if (tt.includes("production verification")) {
+        return "PVT";
+      }
+      if (tt.includes("system integration")) {
+        return "SIT";
+      }
+      if (tt.includes("end to end")) {
+        return "E2E";
+      }
+      if (tt.includes("user acceptance")) {
+        return "UAT";
+      }
+      if (tt.includes("parallel")) {
+        return "Parallel";
+      }
+      if (testType.includes(",")) {
+        return testType.split(",")[0].trim();
+      }
+      return testType;
+    }
+
+    function getTinyBarLabel(task) {
+      const compact = getCompactBarLabel(task);
+      if (!compact) {
+        return "";
+      }
+      const lc = compact.toLowerCase();
+      if (lc === "data migration") return "DM";
+      if (lc === "dress rehearsal") return "DR";
+      if (lc === "parallel") return "PRL";
+      if (lc === "connectivity") return "CONN";
+      if (lc === "integration") return "INT";
+      if (lc === "performance") return "PERF";
+      if (lc === "security") return "SEC";
+      return CATEGORY_TINY_LABELS[task.category] || compact;
+    }
+
+    function getBarLabelRenderSpec(task, widthPx) {
+      const full = getBarTestTypeLabel(task);
+      if (!full) {
+        return null;
+      }
+      if (widthPx >= 120) {
+        return { text: full, mode: "full" };
+      }
+      if (widthPx >= 90) {
+        return { text: getCompactBarLabel(task), mode: "compact" };
+      }
+      // For short bars, prefer external pill labels for legibility.
+      return null;
+    }
+
     function taskPassesScope(task) {
       if (!showMilestonesOnly && !showGatesOnly && !showTestCyclesOnly) {
         return true;
@@ -867,14 +992,35 @@
       }
       mount.innerHTML = "";
 
-      CATEGORY_ORDER.forEach((cat) => {
+      const categoryStartByType = new Map();
+      TASKS.forEach((task) => {
+        if (!task.category || !task.start) {
+          return;
+        }
+        const current = categoryStartByType.get(task.category);
+        if (!current || task.start < current) {
+          categoryStartByType.set(task.category, task.start);
+        }
+      });
+      const orderedCategories = [...CATEGORY_ORDER].sort((a, b) => {
+        const aStart = categoryStartByType.get(a) || "9999-12-31";
+        const bStart = categoryStartByType.get(b) || "9999-12-31";
+        if (aStart !== bStart) {
+          return aStart.localeCompare(bStart);
+        }
+        return CATEGORY_ORDER.indexOf(a) - CATEGORY_ORDER.indexOf(b);
+      });
+
+      orderedCategories.forEach((cat) => {
         const style = CATEGORY_STYLES[cat] || { fill: "#dfe1e6", stroke: "#b3bac5" };
         const active = selectedCategories.has(cat);
+        const fullLabel = CATEGORY_LABELS[cat] || cat;
+        const compactLabel = CATEGORY_FILTER_LABELS[cat] || fullLabel;
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = `legend-filter${active ? "" : " inactive"}`;
-        btn.title = `${active ? "Hide" : "Show"} ${CATEGORY_LABELS[cat] || cat}`;
-        btn.innerHTML = `<span class="swatch" style="background:${style.fill};border-color:${style.stroke};"></span>${CATEGORY_LABELS[cat] || cat}`;
+        btn.title = `${active ? "Hide" : "Show"} ${fullLabel}`;
+        btn.innerHTML = `<span class="swatch" style="background:${style.fill};border-color:${style.stroke};"></span><span class="label">${compactLabel}</span>`;
         btn.addEventListener("click", () => {
           const allSelected = selectedCategories.size === CATEGORY_ORDER.length;
           if (allSelected && selectedCategories.has(cat)) {
@@ -990,7 +1136,7 @@
       const left = 40;
       const top = 24;
       const bottom = 56;
-      const width = left + plotW + 20;
+      const width = left + plotW + 180;
       const height = top + tasks.length * (rowH + rowGap) + bottom;
 
       const svgns = "http://www.w3.org/2000/svg";
@@ -1047,7 +1193,7 @@
         line.setAttribute("x2", `${x}`);
         line.setAttribute("y1", `${top}`);
         line.setAttribute("y2", `${height - bottom}`);
-        line.setAttribute("stroke", "#dfe1e6");
+        line.setAttribute("stroke", "#c3ccda");
         line.setAttribute("stroke-width", "1");
         const monthLabel = `01 ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
         addGridlineRollover(line, "Month boundary", monthLabel);
@@ -1061,6 +1207,16 @@
         txt.textContent = monthLabel;
         addGridlineRollover(txt, "Month boundary", monthLabel);
         svg.appendChild(txt);
+
+        // Add an explicit hover target near the month label so rollover is easy to trigger.
+        const monthHit = document.createElementNS(svgns, "rect");
+        monthHit.setAttribute("x", `${x - 10}`);
+        monthHit.setAttribute("y", `${height - 34}`);
+        monthHit.setAttribute("width", "64");
+        monthHit.setAttribute("height", "26");
+        monthHit.setAttribute("fill", "transparent");
+        addGridlineRollover(monthHit, "Month boundary", monthLabel);
+        svg.appendChild(monthHit);
 
         d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
       }
@@ -1079,7 +1235,7 @@
         weekLine.setAttribute("x2", `${x}`);
         weekLine.setAttribute("y1", `${top}`);
         weekLine.setAttribute("y2", `${height - bottom}`);
-        weekLine.setAttribute("stroke", "#edf1f6");
+        weekLine.setAttribute("stroke", "#d0d9e7");
         weekLine.setAttribute("stroke-width", "1");
         weekLine.setAttribute("stroke-dasharray", "3 4");
         const weekLabel = `${String(w.getDate()).padStart(2, "0")}${String(w.getMonth() + 1).padStart(2, "0")}`;
@@ -1095,10 +1251,21 @@
         weekTxt.textContent = weekLabel;
         addGridlineRollover(weekTxt, "Week commencing", weekVerbose);
         svg.appendChild(weekTxt);
+
+        // Add an explicit hover target near the week label for reliable date rollovers.
+        const weekHit = document.createElementNS(svgns, "rect");
+        weekHit.setAttribute("x", `${x - 6}`);
+        weekHit.setAttribute("y", `${height - 36}`);
+        weekHit.setAttribute("width", "34");
+        weekHit.setAttribute("height", "16");
+        weekHit.setAttribute("fill", "transparent");
+        addGridlineRollover(weekHit, "Week commencing", weekVerbose);
+        svg.appendChild(weekHit);
       }
 
       const barPosByKey = {};
       const visibleTaskKeySet = new Set(tasks.map((task) => task.key));
+      const externalLabelLayers = [];
 
       tasks.forEach((t, idx) => {
         const st = toDate(t.start);
@@ -1200,9 +1367,10 @@
         const iconY = yBar + barH / 2;
         appendIssueTypeIcon(svg, svgns, t.issueType, iconX, iconY, iconSize, tooltipHtml, addInteractivity);
 
-        // Show a concise test-type label inside sufficiently wide bars.
-        const barLabel = getBarTestTypeLabel(t);
-        if (barLabel && w >= 54) {
+        // Tiered label strategy keeps short bars readable: full/compact/tiny in-bar,
+        // and for very short bars render the same compact label outside the bar.
+        const barLabelSpec = getBarLabelRenderSpec(t, w);
+        if (barLabelSpec && barLabelSpec.text) {
           const label = document.createElementNS(svgns, "text");
           label.setAttribute("x", `${x + 6}`);
           label.setAttribute("y", `${yBar + barH / 2 + 0.5}`);
@@ -1214,9 +1382,48 @@
           label.setAttribute("stroke-width", "2.2");
           label.setAttribute("paint-order", "stroke");
           label.setAttribute("stroke-linejoin", "round");
-          label.textContent = barLabel;
+          label.textContent = barLabelSpec.text;
           addInteractivity(label, tooltipHtml);
           svg.appendChild(label);
+        } else {
+          const shortLabel = getCompactBarLabel(t);
+          if (shortLabel) {
+            const label = document.createElementNS(svgns, "text");
+            const rightX = x + w + 4;
+            label.setAttribute("x", `${rightX}`);
+            label.setAttribute("y", `${yBar + barH / 2 + 0.5}`);
+            label.setAttribute("font-size", isChild ? "9.5" : "10");
+            label.setAttribute("font-weight", "600");
+            label.setAttribute("dominant-baseline", "middle");
+            label.setAttribute("fill", "#ffffff");
+            label.setAttribute("stroke", "#0b1220");
+            label.setAttribute("stroke-width", "1");
+            label.setAttribute("paint-order", "stroke");
+            label.textContent = shortLabel;
+            addInteractivity(label, tooltipHtml);
+            svg.appendChild(label);
+
+            // Add a high-contrast pill behind external labels for readability over gridlines.
+            const bbox = label.getBBox();
+            const bg = document.createElementNS(svgns, "rect");
+            const padX = 3;
+            const padY = 2;
+            bg.setAttribute("x", `${bbox.x - padX}`);
+            bg.setAttribute("y", `${bbox.y - padY}`);
+            bg.setAttribute("width", `${bbox.width + padX * 2}`);
+            bg.setAttribute("height", `${bbox.height + padY * 2}`);
+            bg.setAttribute("rx", "3");
+            bg.setAttribute("ry", "3");
+            bg.setAttribute("fill", "#0f172a");
+            bg.setAttribute("fill-opacity", "0.94");
+            bg.setAttribute("stroke", "#ffffff");
+            bg.setAttribute("stroke-width", "0.8");
+            addInteractivity(bg, tooltipHtml);
+            svg.insertBefore(bg, label);
+
+            // Repaint these above dependency lines after they are drawn.
+            externalLabelLayers.push(bg, label);
+          }
         }
       });
 
@@ -1243,6 +1450,11 @@
         tt.textContent = `${d.from} -> ${d.to} (${d.kind})`;
         path.appendChild(tt);
         svg.appendChild(path);
+      });
+
+      // Keep external short-bar labels readable by layering them above connectors.
+      externalLabelLayers.forEach((node) => {
+        svg.appendChild(node);
       });
 
       // Today marker (draw last so it stays on top of bars/dependencies).
