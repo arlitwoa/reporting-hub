@@ -64,14 +64,41 @@ jobs:
           cp config/profiles/twoa-programme.template.json config/profiles/twoa-programme.json
           printf '%s' "$ARTIFACT_CREDENTIALS_JSON" > /tmp/credentials.local.json
 
-      - name: Refresh report snapshots
+      - name: Refresh quarterly snapshots
         env:
           ARTIFACT_PROGRAMME_REGISTRY: ${{ github.workspace }}/config/programme-registry.json
           ARTIFACT_PROFILES_DIR: ${{ github.workspace }}/config/profiles
           ARTIFACT_ROLE_REGISTRY: ${{ github.workspace }}/config/role-registry.json
           ARTIFACT_LOCAL_CREDENTIALS: /tmp/credentials.local.json
           ARTIFACT_USER_EMAIL: ${{ secrets.ARTIFACT_USER_EMAIL }}
-        run: bash scripts/refresh_github_pages_reports.sh
+        run: bash scripts/refresh_github_pages_reports.sh --stage quarterly
+
+      - name: Refresh SEF snapshots
+        env:
+          ARTIFACT_PROGRAMME_REGISTRY: ${{ github.workspace }}/config/programme-registry.json
+          ARTIFACT_PROFILES_DIR: ${{ github.workspace }}/config/profiles
+          ARTIFACT_ROLE_REGISTRY: ${{ github.workspace }}/config/role-registry.json
+          ARTIFACT_LOCAL_CREDENTIALS: /tmp/credentials.local.json
+          ARTIFACT_USER_EMAIL: ${{ secrets.ARTIFACT_USER_EMAIL }}
+        run: bash scripts/refresh_github_pages_reports.sh --stage sef
+
+      - name: Refresh delivery health snapshots
+        env:
+          ARTIFACT_PROGRAMME_REGISTRY: ${{ github.workspace }}/config/programme-registry.json
+          ARTIFACT_PROFILES_DIR: ${{ github.workspace }}/config/profiles
+          ARTIFACT_ROLE_REGISTRY: ${{ github.workspace }}/config/role-registry.json
+          ARTIFACT_LOCAL_CREDENTIALS: /tmp/credentials.local.json
+          ARTIFACT_USER_EMAIL: ${{ secrets.ARTIFACT_USER_EMAIL }}
+        run: bash scripts/refresh_github_pages_reports.sh --stage delivery-health
+
+      - name: Refresh site index
+        env:
+          ARTIFACT_PROGRAMME_REGISTRY: ${{ github.workspace }}/config/programme-registry.json
+          ARTIFACT_PROFILES_DIR: ${{ github.workspace }}/config/profiles
+          ARTIFACT_ROLE_REGISTRY: ${{ github.workspace }}/config/role-registry.json
+          ARTIFACT_LOCAL_CREDENTIALS: /tmp/credentials.local.json
+          ARTIFACT_USER_EMAIL: ${{ secrets.ARTIFACT_USER_EMAIL }}
+        run: bash scripts/refresh_github_pages_reports.sh --stage site-index
 
       - name: Commit and publish if changed
         run: |
