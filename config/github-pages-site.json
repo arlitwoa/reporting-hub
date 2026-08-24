@@ -60,7 +60,13 @@
       "id": "enterprise",
       "title": "Enterprise reporting",
       "description": "Cross-programme and enterprise-wide reporting snapshots.",
-      "reports": []
+      "reports": [
+        {
+          "href": "enterprise/github-copilot-governance.html",
+          "title": "GitHub Copilot governance summary",
+          "description": "monthly total, EPC/TWoA split, plus user additions and removals since last run"
+        }
+      ]
     }
   ]
 }
