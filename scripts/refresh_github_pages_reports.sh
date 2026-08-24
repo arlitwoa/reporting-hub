@@ -15,4 +15,5 @@ bash scripts/quarterly/refresh_dashboard_pages.sh "$@"
 "$PY" scripts/sef/publish_sef_test_plan_reports.py --write
 "$PY" scripts/sef/build_plan_959_test_cycles_report.py --write-mirror
 bash scripts/refresh_delivery_health_pages.sh "$@"
+"$PY" scripts/github_copilot_governance_summary.py
 "$PY" scripts/publish_github_pages_site_index.py
