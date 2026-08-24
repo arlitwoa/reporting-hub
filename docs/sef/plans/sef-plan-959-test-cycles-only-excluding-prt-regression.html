@@ -932,9 +932,6 @@
 
     function getVisibleTasks() {
       const visibleKeys = getVisibleTaskKeysByFilter();
-      if (showMilestonesOnly || showGatesOnly || showTestCyclesOnly) {
-        return TASKS.filter((t) => visibleKeys.has(t.key));
-      }
       const taskByKey = TASKS.reduce((acc, t) => {
         acc[t.key] = t;
         return acc;
@@ -967,13 +964,14 @@
       };
 
       // Render roots first, then any remaining visible orphans.
+      // If a parent is filtered out, show visible children as temporary roots.
       TASKS.forEach((t) => {
-        if (!t.parent || !taskByKey[t.parent]) {
+        if (!t.parent || !taskByKey[t.parent] || !visibleKeys.has(t.parent)) {
           pushTaskTree(t);
         }
       });
       TASKS.forEach((t) => {
-        if (t.parent && taskByKey[t.parent]) {
+        if (t.parent && taskByKey[t.parent] && visibleKeys.has(t.parent)) {
           return;
         }
         pushTaskTree(t);
