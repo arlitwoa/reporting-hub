@@ -86,8 +86,8 @@ fi
 for stage in "${SELECTED_STAGES[@]}"; do
 	case "$stage" in
 		quarterly)
-			[[ -x scripts/quarterly/refresh_dashboard_pages.sh ]] || {
-				echo "Missing executable: scripts/quarterly/refresh_dashboard_pages.sh" >&2
+			[[ -f scripts/quarterly/refresh_dashboard_pages.sh ]] || {
+				echo "Missing file: scripts/quarterly/refresh_dashboard_pages.sh" >&2
 				exit 1
 			}
 			[[ -f scripts/quarterly/milestone_scope_report.py ]] || {
@@ -102,8 +102,8 @@ for stage in "${SELECTED_STAGES[@]}"; do
 			}
 			;;
 		delivery-health)
-			[[ -x scripts/refresh_delivery_health_pages.sh ]] || {
-				echo "Missing executable: scripts/refresh_delivery_health_pages.sh" >&2
+			[[ -f scripts/refresh_delivery_health_pages.sh ]] || {
+				echo "Missing file: scripts/refresh_delivery_health_pages.sh" >&2
 				exit 1
 			}
 			;;
