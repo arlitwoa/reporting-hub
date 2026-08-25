@@ -1,9 +1,9 @@
 {
   "sources": {
-    "per_user_csv": "reports\\github-billing\\per-user-billing-estimates-2026-08-20.csv",
-    "org_usage": "reports\\github-billing\\data\\org-usage-2026-08-20.json",
-    "copilot_seats": "reports\\github-billing\\data\\copilot-seats-2026-08-20.json",
-    "org_budgets": "reports\\github-billing\\data\\org-budgets-2026-08-20.json"
+    "per_user_csv": "reports/github-billing/per-user-billing-estimates-2026-08-20.csv",
+    "org_usage": "reports/github-billing/data/org-usage-2026-08-20.json",
+    "copilot_seats": "reports/github-billing/data/copilot-seats-2026-08-20.json",
+    "org_budgets": "reports/github-billing/data/org-budgets-2026-08-20.json"
   },
   "currency": "NZD",
   "usd_to_nzd_rate": 1.65,
