@@ -4,7 +4,7 @@
 Scope rule:
 - Direct children of PDE-4249
 - issueType in ("Pre Requisite", "Test Cycle", "Test Cycle Level 0", "Gate Level 1")
-- Exclude Regression / PRT cycles (PDE-4873, PDE-4874)
+- Exclude Regression cycle (PDE-4873)
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 PARENT_KEY = "PDE-4249"
-EXCLUDED_KEYS = {"PDE-4873", "PDE-4874"}
+EXCLUDED_KEYS = {"PDE-4873"}
 
 REPORT_DOCS = Path("docs/sef/plans/sef-plan-959-test-cycles-only-excluding-prt-regression.html")
 REPORT_MIRROR = Path("reports/sef/sef-plan-959-test-cycles-only-excluding-prt-regression.html")
@@ -171,6 +171,10 @@ def _classify_category(key: str, issue_type: str, summary: str, test_type: str =
         return "user acceptance testing"
     if "non integrated parallel" in s:
         return "non integrated parallel"
+    if "non integrated parallel" in tt:
+        return "non integrated parallel"
+    if "non integrated" in haystack and "parallel" in haystack:
+        return "non integrated parallel"
     if "user acceptance testing" in s:
         return "user acceptance testing"
     if "production verification" in haystack:
@@ -179,6 +183,11 @@ def _classify_category(key: str, issue_type: str, summary: str, test_type: str =
         return "dress rehearsal testing"
     if "parallel run" in s:
         return "parallel run testing"
+    # Jira summaries often use "Testing | Parallel | ..." without "parallel run" text.
+    if "parallel" in haystack:
+        return "parallel run testing"
+    if tt == "integration":
+        return "integration testing"
     if "connectivity testing" in s:
         return "connectivity testing"
     # Keep SIT distinct. Only classify explicit integration test phases as Integration Testing.
@@ -441,7 +450,7 @@ def main() -> int:
 
     jql = (
         'parent = PDE-4249 AND issuetype in ("Pre Requisite", "Test Cycle", "Test Cycle Level 0", "Gate Level 1") '
-        "AND key not in (PDE-4873, PDE-4874) ORDER BY customfield_10015, key"
+        "AND key not in (PDE-4873) ORDER BY customfield_10015, key"
     )
     payload = _post_json(
         base,
@@ -461,7 +470,7 @@ def main() -> int:
     child_issues: list[dict[str, Any]] = []
     if base_keys:
         parent_list = ", ".join(base_keys)
-        child_jql = f"parent in ({parent_list}) AND key not in (PDE-4873, PDE-4874) ORDER BY parent, customfield_10015, key"
+        child_jql = f"parent in ({parent_list}) AND key not in (PDE-4873) ORDER BY parent, customfield_10015, key"
         child_payload = _post_json(
             base,
             auth,
