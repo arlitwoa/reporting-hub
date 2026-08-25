@@ -33,6 +33,12 @@ class RefreshReportsScriptSmokeTests(unittest.TestCase):
         self.assertIn("Preflight passed.", result.stdout)
         self.assertIn("Preflight-only mode complete.", result.stdout)
 
+    def test_quarterly_preflight_only(self):
+        result = self._run("--stage", "quarterly", "--preflight-only")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("Preflight passed.", result.stdout)
+        self.assertIn("Preflight-only mode complete.", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
