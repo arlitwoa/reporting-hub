@@ -1201,13 +1201,52 @@
       });
       mount.appendChild(expandAll);
 
-      parentsWithChildren.forEach((p) => {
+      const categoryStartByType = new Map();
+      TASKS.forEach((task) => {
+        if (!task.category || !task.start) {
+          return;
+        }
+        const issueType = String(task.issueType || "").toLowerCase();
+        if (!issueType.includes("test cycle")) {
+          return;
+        }
+        const current = categoryStartByType.get(task.category);
+        if (!current || task.start < current) {
+          categoryStartByType.set(task.category, task.start);
+        }
+      });
+      const categoriesInData = new Set(
+        TASKS.map((task) => String(task.category || "").trim()).filter(Boolean)
+      );
+      const orderedCategories = [...CATEGORY_ORDER].filter((cat) => categoriesInData.has(cat)).sort((a, b) => {
+        const aStart = categoryStartByType.get(a) || "9999-12-31";
+        const bStart = categoryStartByType.get(b) || "9999-12-31";
+        if (aStart !== bStart) {
+          return aStart.localeCompare(bStart);
+        }
+        return CATEGORY_ORDER.indexOf(a) - CATEGORY_ORDER.indexOf(b);
+      });
+      const categoryRank = new Map(orderedCategories.map((cat, idx) => [cat, idx]));
+      const orderedParents = [...parentsWithChildren].sort((a, b) => {
+        const aRank = categoryRank.has(a.category) ? categoryRank.get(a.category) : Number.MAX_SAFE_INTEGER;
+        const bRank = categoryRank.has(b.category) ? categoryRank.get(b.category) : Number.MAX_SAFE_INTEGER;
+        if (aRank !== bRank) {
+          return aRank - bRank;
+        }
+        if (a.start !== b.start) {
+          return String(a.start || "").localeCompare(String(b.start || ""));
+        }
+        return String(a.key || "").localeCompare(String(b.key || ""));
+      });
+
+      orderedParents.forEach((p) => {
         const isCollapsed = collapsedParents.has(p.key);
+        const groupLabel = getCompactBarLabel(p) || CATEGORY_FILTER_LABELS[p.category] || p.key;
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = `parent-toggle${isCollapsed ? " collapsed" : ""}`;
-        btn.textContent = `${isCollapsed ? "▸" : "▾"} ${p.key} (${childCountByParent[p.key]})`;
-        btn.title = `${isCollapsed ? "Expand" : "Collapse"} children for ${p.key}`;
+        btn.textContent = `${isCollapsed ? "▸" : "▾"} ${groupLabel} (${childCountByParent[p.key]})`;
+        btn.title = `${isCollapsed ? "Expand" : "Collapse"} children for ${groupLabel} (${p.key})`;
         btn.addEventListener("click", () => {
           if (collapsedParents.has(p.key)) {
             collapsedParents.delete(p.key);
