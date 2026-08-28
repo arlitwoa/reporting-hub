@@ -1296,14 +1296,16 @@ def _append_label_link(
     blocked_by_keys: list[str] | None = None,
     blocks_keys: list[str] | None = None,
     rows_by_key: dict[str, dict[str, Any]] | None = None,
+    clip_path: str | None = "sef-plan-label-col",
 ) -> None:
     del indent
     text_fill = fill or ATL["ink"]
     data_key_attr = (
         f' data-sef-key="{html.escape(row_key)}" data-sef-row="1"' if row_key else ""
     )
+    clip_attr = f' clip-path="url(#{clip_path})"' if clip_path else ""
     parts.append(
-        f'<g clip-path="url(#sef-plan-label-col)"{data_key_attr}>{_svg_embedded_title(tooltip)}'
+        f"<g{clip_attr}{data_key_attr}>{_svg_embedded_title(tooltip)}"
     )
     parts.append(f'<a href="{url}" target="_blank" rel="noopener">')
     visible_label = html.escape(_truncate_label(text))
@@ -1348,13 +1350,15 @@ def _append_label_text(
     font_weight: str = "600",
     fill: str | None = None,
     row_key: str = "",
+    clip_path: str | None = "sef-plan-label-col",
 ) -> None:
     text_fill = fill or ATL["ink"]
     data_key_attr = (
         f' data-sef-key="{html.escape(row_key)}" data-sef-row="1"' if row_key else ""
     )
+    clip_attr = f' clip-path="url(#{clip_path})"' if clip_path else ""
     parts.append(
-        f'<g clip-path="url(#sef-plan-label-col)"{data_key_attr}>{_svg_embedded_title(tooltip)}'
+        f"<g{clip_attr}{data_key_attr}>{_svg_embedded_title(tooltip)}"
     )
     parts.append(
         f'<text x="{x:.1f}" y="{y_center:.1f}" text-anchor="start" dominant-baseline="middle" '
@@ -1505,6 +1509,7 @@ def _append_timeline_bar(
     blocked_by_keys: list[str] | None = None,
     blocks_keys: list[str] | None = None,
     rows_by_key: dict[str, dict[str, Any]] | None = None,
+    render_scope_overlay: bool = True,
 ) -> None:
     row_key = str(row.get("key") or "").strip()
     focus_payload = _blocked_focus_payload(
@@ -1559,7 +1564,7 @@ def _append_timeline_bar(
         f'height="{bar_h:.1f}" rx="{rx}" fill="{fill}" opacity="{opacity}"/>'
     )
     scope = row.get("scopeRollup")
-    if scope:
+    if scope and render_scope_overlay:
         segments = lane_bar_segments(scope, segment_order=timeline_bar_segment_order())
         if segments:
             append_scope_composition_overlay(

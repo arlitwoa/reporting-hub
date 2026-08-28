@@ -8,7 +8,7 @@ cd "$ROOT"
 
 PY="${PYTHON:-python}"
 
-STAGES=("quarterly" "sef" "delivery-health" "site-index")
+STAGES=("quarterly" "sef" "sefk" "delivery-health" "site-index")
 SELECTED_STAGES=()
 EXTRA_ARGS=()
 PREFLIGHT_ONLY=0
@@ -26,6 +26,7 @@ Options:
 Available stages:
 	quarterly
 	sef
+	sefk
 	delivery-health
 	site-index
 EOF
@@ -101,6 +102,12 @@ for stage in "${SELECTED_STAGES[@]}"; do
 				exit 1
 			}
 			;;
+		sefk)
+			[[ -f scripts/sefk/fetch_sefk_project_plan_timeline.py ]] || {
+				echo "Missing file: scripts/sefk/fetch_sefk_project_plan_timeline.py" >&2
+				exit 1
+			}
+			;;
 		delivery-health)
 			[[ -f scripts/refresh_delivery_health_pages.sh ]] || {
 				echo "Missing file: scripts/refresh_delivery_health_pages.sh" >&2
@@ -133,6 +140,10 @@ for stage in "${SELECTED_STAGES[@]}"; do
 			"$PY" scripts/sef/sef_project_plan_report.py --write
 			"$PY" scripts/sef/publish_sef_test_plan_reports.py --write
 			"$PY" scripts/sef/build_plan_959_test_cycles_report.py --write-mirror
+			;;
+		sefk)
+			"$PY" scripts/sefk/fetch_sefk_project_plan_timeline.py --write
+			"$PY" scripts/sefk/sefk_project_plan_report.py --write
 			;;
 		delivery-health)
 			bash scripts/refresh_delivery_health_pages.sh "${EXTRA_ARGS[@]}"
