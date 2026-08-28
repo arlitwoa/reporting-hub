@@ -79,7 +79,7 @@ class GitHubPagesPublishTests(unittest.TestCase):
         config = load_github_pages_site_config(root / "config" / "github-pages-site.json")
         self.assertEqual(config.site_title, "TWoA reporting hub")
         ids = [programme.id for programme in config.programmes]
-        self.assertEqual(ids, ["epc", "sef", "enterprise"])
+        self.assertEqual(ids, ["epc", "sef", "sefk", "enterprise"])
 
     def test_root_index_groups_by_programme(self):
         root = Path(__file__).resolve().parents[1]

@@ -25,7 +25,7 @@ class RefreshReportsScriptSmokeTests(unittest.TestCase):
         result = self._run("--list-stages")
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-        self.assertEqual(lines, ["quarterly", "sef", "delivery-health", "site-index"])
+        self.assertEqual(lines, ["quarterly", "sef", "sefk", "delivery-health", "site-index"])
 
     def test_site_index_preflight_only(self):
         result = self._run("--stage", "site-index", "--preflight-only")
