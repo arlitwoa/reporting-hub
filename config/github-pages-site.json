@@ -57,6 +57,18 @@
       ]
     },
     {
+      "id": "sefk",
+      "title": "SEFK",
+      "description": "Student Experience Framework — Kaiako stream integrated project planning.",
+      "reports": [
+        {
+          "href": "sefk/project-plan.html",
+          "title": "Integrated project plan",
+          "description": "Phase → Sub-Phase → Work Stream → Epic Gantt with D-Train scope colours"
+        }
+      ]
+    },
+    {
       "id": "enterprise",
       "title": "Enterprise reporting",
       "description": "Cross-programme and enterprise-wide reporting snapshots.",
