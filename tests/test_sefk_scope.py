@@ -32,6 +32,11 @@ class SefkScopeExclusionTests(unittest.TestCase):
         self.assertIn(sefk_scope_exclusion_jql(), jql)
         self.assertIn("parent in (SEFK-1, SEFK-2)", jql)
 
+    def test_scope_exclusion_jql_keeps_unlabeled_issues(self) -> None:
+        jql = sefk_scope_exclusion_jql()
+        self.assertIn("labels is EMPTY", jql)
+        self.assertIn("kpmg-deleted", jql)
+
 
 if __name__ == "__main__":
     unittest.main()

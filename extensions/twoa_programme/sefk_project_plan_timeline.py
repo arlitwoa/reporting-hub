@@ -35,6 +35,9 @@ from extensions.twoa_programme.quarterly_dashboard_svg_core import (
     QUARTERLY_REPORT_MIN_PLOT_WIDTH,
     _append_today_marker,
     _chart_today_in_quarter,
+    _svg_week_month_grid_config_element,
+    _svg_week_month_grid_lines,
+    _week_month_grid_line_specs,
     _svg_x_axis_labels,
     _svg_x_bottom_margin,
 )
@@ -98,6 +101,7 @@ SEFK_EPIC_LABEL_MAX_CHARS = 36
 
 SEFK_EXTRA_CSS = """
 .chart-wrap-sefk.chart-wrap-timeline {
+  position: relative;
   max-height: none;
   overflow-x: auto;
   overflow-y: visible;
@@ -110,6 +114,30 @@ SEFK_EXTRA_CSS = """
 }
 .chart-wrap-sefk svg a text { text-decoration: none; }
 .chart-wrap-sefk svg a:hover text { text-decoration: underline; }
+.chart-grid-tooltip {
+  position: absolute;
+  z-index: 4;
+  display: none;
+  pointer-events: none;
+  max-width: 240px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.35;
+  box-shadow: 0 4px 12px rgba(9, 30, 66, 0.15);
+  white-space: nowrap;
+}
+.chart-wrap-sefk svg .chart-week-grid-line.is-hovered {
+  stroke-width: 1.2;
+  opacity: 0.95;
+}
+.chart-wrap-sefk svg .chart-month-grid-line.is-hovered {
+  stroke-width: 1.4;
+  opacity: 0.85;
+}
 .chart-key--dtrain .chart-key-phase-strip {
   display: flex;
   flex-wrap: wrap;
@@ -290,6 +318,118 @@ SEFK_COLLAPSE_SCRIPT = """
       evt.preventDefault();
     }, { passive: false });
   });
+
+  function initGridLineTooltips() {
+    document.querySelectorAll('.chart-wrap-sefk').forEach(function (wrap) {
+      var cfgEl = wrap.querySelector('#sefk-grid-lines');
+      var svg = wrap.querySelector('svg');
+      if (!cfgEl || !svg) return;
+
+      var cfg;
+      try {
+        cfg = JSON.parse((cfgEl.getAttribute('data-grid') || '{}').replace(/&quot;/g, '"'));
+      } catch (_err) {
+        return;
+      }
+
+      var lines = cfg.lines || [];
+      if (!lines.length) return;
+
+      var plotTop = cfg.plotTop;
+      var plotBottom = cfg.plotBottom;
+      var plotLeft = cfg.plotLeft;
+      var plotRight = cfg.plotRight;
+      var hitHalf = cfg.hitHalfWidth || 8;
+
+      var tipEl = document.createElement('div');
+      tipEl.className = 'chart-grid-tooltip';
+      tipEl.setAttribute('role', 'tooltip');
+      wrap.appendChild(tipEl);
+
+      var activeId = null;
+
+      function clearHover() {
+        if (activeId) {
+          var prev = svg.getElementById(activeId);
+          if (prev) prev.classList.remove('is-hovered');
+          activeId = null;
+        }
+        tipEl.style.display = 'none';
+        tipEl.textContent = '';
+      }
+
+      function svgCoords(evt) {
+        var pt = svg.createSVGPoint();
+        pt.x = evt.clientX;
+        pt.y = evt.clientY;
+        var ctm = svg.getScreenCTM();
+        if (!ctm) return null;
+        return pt.matrixTransform(ctm.inverse());
+      }
+
+      function lineDomId(line) {
+        return 'sefk-grid-' + line.kind + '-' + line.idx;
+      }
+
+      function nearestLine(svgX, svgY) {
+        if (svgY < plotTop || svgY > plotBottom || svgX < plotLeft || svgX > plotRight) return null;
+        var best = null;
+        var bestDist = hitHalf + 1;
+        lines.forEach(function (line) {
+          var dist = Math.abs(svgX - line.x);
+          if (dist > hitHalf) return;
+          if (
+            !best ||
+            dist < bestDist ||
+            (dist === bestDist && line.kind === 'month' && best.kind !== 'month')
+          ) {
+            best = line;
+            bestDist = dist;
+          }
+        });
+        return best;
+      }
+
+      function positionTip(evt, text) {
+        var rect = wrap.getBoundingClientRect();
+        tipEl.textContent = text;
+        tipEl.style.display = 'block';
+        var tipRect = tipEl.getBoundingClientRect();
+        var left = evt.clientX - rect.left + wrap.scrollLeft + 12;
+        var top = evt.clientY - rect.top + wrap.scrollTop - tipRect.height - 10;
+        if (left + tipRect.width > wrap.clientWidth - 4) {
+          left = evt.clientX - rect.left + wrap.scrollLeft - tipRect.width - 12;
+        }
+        if (top < 4) top = evt.clientY - rect.top + wrap.scrollTop + 16;
+        tipEl.style.left = left + 'px';
+        tipEl.style.top = top + 'px';
+      }
+
+      svg.addEventListener('mousemove', function (evt) {
+        var pt = svgCoords(evt);
+        if (!pt) return;
+        var line = nearestLine(pt.x, pt.y);
+        if (!line) {
+          clearHover();
+          return;
+        }
+        var domId = lineDomId(line);
+        if (activeId !== domId) {
+          clearHover();
+          var el = svg.getElementById(domId);
+          if (el) {
+            el.classList.add('is-hovered');
+            activeId = domId;
+          }
+        }
+        positionTip(evt, line.tip);
+      });
+
+      svg.addEventListener('mouseleave', clearHover);
+    });
+  }
+
+  initGridLineTooltips();
 })();
 """
 
@@ -989,6 +1129,8 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
     def x_for(day: date) -> float:
         return plot_left + ((day - x_min).days / span_days) * plot_width
 
+    grid_specs = _week_month_grid_line_specs(x_min=x_min, x_max=x_max, x_for=x_for)
+
     parts: list[str] = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{svg_width:.0f}" '
         f'height="{svg_height:.0f}" viewBox="0 0 {svg_width:.0f} {svg_height:.0f}">',
@@ -1004,6 +1146,12 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
     parts.append(
         f'<line x1="{plot_left:.1f}" y1="{plot_top:.1f}" x2="{plot_right:.1f}" y2="{plot_top:.1f}" '
         f'stroke="{ATL["line"]}" stroke-width="1"/>'
+    )
+    _svg_week_month_grid_lines(
+        parts,
+        specs=grid_specs,
+        plot_top=plot_top,
+        plot_bottom=plot_bottom,
     )
 
     y_cursor = plot_top
@@ -1267,6 +1415,15 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
         plot_left=plot_left,
         plot_right=plot_right,
         x_for=x_for,
+    )
+
+    _svg_week_month_grid_config_element(
+        parts,
+        specs=grid_specs,
+        plot_top=plot_top,
+        plot_bottom=plot_bottom,
+        plot_left=plot_left,
+        plot_right=plot_right,
     )
 
     if sub_phase_manifest:

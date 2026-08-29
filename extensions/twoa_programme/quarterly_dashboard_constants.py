@@ -57,6 +57,7 @@ ATL = {
     "text_subtle": "#5e6c84",
     "line": "#dfe1e6",
     "grid": "#ebecf0",
+    "page": "#f4f5f7",
     "blue": "#0052cc",
     "green": "#00875a",
     "red": "#de350b",

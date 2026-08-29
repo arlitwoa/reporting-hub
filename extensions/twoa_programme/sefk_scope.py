@@ -55,7 +55,8 @@ def issue_excluded_from_sefk_project_plan(issue: dict[str, Any]) -> bool:
 
 
 def sefk_scope_exclusion_jql() -> str:
-    return f"labels not in ({KPMG_DELETED_LABEL})"
+    # Jira treats `labels not in (...)` as false when labels is empty; keep unlabeled issues.
+    return f"(labels is EMPTY OR labels not in ({KPMG_DELETED_LABEL}))"
 
 
 def resolve_sefk_issue_dtrain_phase(

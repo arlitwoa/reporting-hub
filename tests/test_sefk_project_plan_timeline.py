@@ -48,6 +48,11 @@ class SefkProjectPlanTimelineTests(unittest.TestCase):
     def test_svg_renders_four_hierarchy_layers(self) -> None:
         svg = sefk_project_plan_timeline_svg(self.payload)
         self.assertIn("SEFK Phase 1 | Student Experience", svg)
+        self.assertIn('class="chart-week-month-grid"', svg)
+        self.assertIn('id="sefk-grid-lines"', svg)
+        self.assertIn("data-grid=", svg)
+        self.assertIn("Week start:", svg)
+        self.assertIn("Month start:", svg)
         self.assertIn("Mobilisation", svg)
         self.assertIn("Functional Stream", svg)
         self.assertIn("Establish student profile foundations", svg)
