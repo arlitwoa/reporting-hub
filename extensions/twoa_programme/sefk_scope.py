@@ -14,6 +14,8 @@ from extensions.twoa_programme.milestone_scope_chart import (
 )
 from extensions.twoa_programme.quarter_scope import issue_excluded_from_analysis
 
+KPMG_DELETED_LABEL = "kpmg-deleted"
+
 DEFAULT_SCOPE_ISSUE_TYPES: tuple[str, ...] = (
     "Task",
     "Action",
@@ -39,6 +41,23 @@ DEFAULT_STATUS_DTRAIN: dict[str, str] = {
 _WIP_STATUS_RE = re.compile(r"^WIP\s*\(", re.IGNORECASE)
 
 
+def issue_has_kpmg_deleted_label(issue: dict[str, Any]) -> bool:
+    labels = (issue.get("fields") or {}).get("labels") or []
+    if not isinstance(labels, list):
+        return False
+    folded = {str(label).strip().casefold() for label in labels if str(label).strip()}
+    return KPMG_DELETED_LABEL.casefold() in folded
+
+
+def issue_excluded_from_sefk_project_plan(issue: dict[str, Any]) -> bool:
+    """Omit tombstoned KPMG-deleted peers and other analysis exclusions from SEFK plan scope."""
+    return issue_excluded_from_analysis(issue) or issue_has_kpmg_deleted_label(issue)
+
+
+def sefk_scope_exclusion_jql() -> str:
+    return f"labels not in ({KPMG_DELETED_LABEL})"
+
+
 def resolve_sefk_issue_dtrain_phase(
     status: str | None,
     *,
@@ -62,7 +81,11 @@ def sefk_epic_scope_jql(
     scope_issue_types: tuple[str, ...] = DEFAULT_SCOPE_ISSUE_TYPES,
 ) -> str:
     types = ", ".join(scope_issue_types)
-    return f"issuetype in ({types}) AND status != Rejected AND parent in ({parent_keys_csv})"
+    return (
+        f"issuetype in ({types}) AND status != Rejected "
+        f"AND {sefk_scope_exclusion_jql()} "
+        f"AND parent in ({parent_keys_csv})"
+    )
 
 
 def rollup_sefk_epic_phases(
@@ -71,7 +94,7 @@ def rollup_sefk_epic_phases(
     epic_keys: list[str],
     scope_issue_types: tuple[str, ...] = DEFAULT_SCOPE_ISSUE_TYPES,
     status_map: dict[str, str] | None = None,
-    skip_issue=issue_excluded_from_analysis,
+    skip_issue=issue_excluded_from_sefk_project_plan,
 ) -> dict[str, dict[str, Any]]:
     """Per-epic D-Train phase counts (weight 1 per in-scope child issue)."""
     allowed_types = set(scope_issue_types)

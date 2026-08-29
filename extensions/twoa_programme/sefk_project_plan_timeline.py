@@ -20,12 +20,14 @@ from extensions.twoa_programme.milestone_scope_chart import (
     chart_dtrain_phases,
 )
 from extensions.twoa_programme.sefk_scope import (
+    issue_excluded_from_sefk_project_plan,
+    issue_has_kpmg_deleted_label,
     resolve_sefk_issue_dtrain_phase,
     rollup_sefk_epic_phases,
     sefk_epic_scope_jql,
+    sefk_scope_exclusion_jql,
 )
 from extensions.twoa_programme.milestone_timeline import MILESTONE_TIMELINE_EXTRA_CSS
-from extensions.twoa_programme.quarter_scope import issue_excluded_from_analysis
 from extensions.twoa_programme.quarterly_dashboard_constants import ATL, JIRA_SERVER, SVG_FONT
 from extensions.twoa_programme.quarterly_dashboard_markup import REPORT_CSS, _svg_embedded_title
 from extensions.twoa_programme.quarterly_dashboard_svg_core import (
@@ -452,7 +454,7 @@ def _attach_epic_scope_rollups(
         epic_keys=epic_keys,
         scope_issue_types=config.scope_issue_types,
         status_map=config.status_dtrain,
-        skip_issue=issue_excluded_from_analysis,
+        skip_issue=issue_excluded_from_sefk_project_plan,
     )
 
 
@@ -583,6 +585,8 @@ def _build_sefk_hierarchy_from_flat(
         key = str(issue.get("key") or "")
         if not key:
             continue
+        if issue_has_kpmg_deleted_label(issue):
+            continue
         if _issue_type_name(issue) in allowed_types:
             by_key[key] = issue
 
@@ -706,6 +710,7 @@ def _attach_rollups_to_phases(
         adapter,
         block_issues=block_issues,
         story_points_field=story_points_field,
+        skip_issue=issue_excluded_from_sefk_project_plan,
     )
     for phase in phases:
         phase_key = str(phase.get("key") or "")
@@ -823,6 +828,7 @@ def fetch_sefk_project_plan_timeline(
     hub_keys: list[str] = []
 
     if scope_filter_jql:
+        scope_filter_jql = f"({scope_filter_jql}) AND {sefk_scope_exclusion_jql()}"
         all_issues = search_all(adapter, scope_filter_jql, scope_fields)
         phases, hub_keys, build_warnings, block_issues, epic_issues = _build_sefk_hierarchy_from_flat(
             all_issues,

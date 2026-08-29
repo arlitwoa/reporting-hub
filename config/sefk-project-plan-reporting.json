@@ -46,5 +46,5 @@
     "sitePath": "sefk/project-plan.html",
     "pageTitle": "SEFK | Integrated Project Plan"
   },
-  "notes": "Hierarchy is built from smart-project-sefk filter issues via parent links (Phase → Sub-Phase → Work Stream → Epic). chartWindow is a fallback only; fetch computes the x-axis from live dates."
+  "notes": "Hierarchy is built from smart-project-sefk filter issues via parent links (Phase → Sub-Phase → Work Stream → Epic). Issues labelled kpmg-deleted (KPMG source removed by sync-hub tombstone) are excluded from scope counts and hierarchy. chartWindow is a fallback only; fetch computes the x-axis from live dates."
 }
