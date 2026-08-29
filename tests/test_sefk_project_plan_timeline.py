@@ -48,6 +48,11 @@ class SefkProjectPlanTimelineTests(unittest.TestCase):
     def test_svg_renders_four_hierarchy_layers(self) -> None:
         svg = sefk_project_plan_timeline_svg(self.payload)
         self.assertIn("SEFK Phase 1 | Student Experience", svg)
+        self.assertIn('class="chart-week-month-grid"', svg)
+        self.assertIn('id="sefk-grid-lines"', svg)
+        self.assertIn("data-grid=", svg)
+        self.assertIn("Week start:", svg)
+        self.assertIn("Month start:", svg)
         self.assertIn("Mobilisation", svg)
         self.assertIn("Functional Stream", svg)
         self.assertIn("Establish student profile foundations", svg)
@@ -215,6 +220,45 @@ class SefkProjectPlanTimelineTests(unittest.TestCase):
         self.assertEqual(phases[0]["subPhases"][0]["workStreams"][0]["epics"][0]["key"], "EPCE-9001")
         self.assertIn("PDE-9003", block_issues)
         self.assertIn("EPCE-9001", epic_issues)
+        self.assertEqual(warnings, [])
+
+    def test_build_hierarchy_skips_kpmg_deleted_issues(self) -> None:
+        config = load_sefk_project_plan_reporting_config(_REPO / "config" / "sefk-project-plan-reporting.json")
+        issues = [
+            {
+                "key": "SEFK-1",
+                "fields": {
+                    "summary": "Phase",
+                    "issuetype": {"name": "Phase"},
+                    "status": {"name": "Open"},
+                    "customfield_10015": "2026-06-01",
+                    "duedate": "2027-06-01",
+                },
+            },
+            {
+                "key": "SEFK-2",
+                "fields": {
+                    "summary": "Deleted epic",
+                    "issuetype": {"name": "Epic"},
+                    "status": {"name": "Closed"},
+                    "labels": ["kpmg-deleted"],
+                    "parent": {"key": "SEFK-1"},
+                    "customfield_10015": "2026-06-01",
+                    "duedate": "2026-07-01",
+                },
+            },
+        ]
+        from datetime import date
+
+        phases, hub_keys, warnings, block_issues, epic_issues = _build_sefk_hierarchy_from_flat(
+            issues,
+            config,
+            fallback_start=date(2026, 6, 1),
+            fallback_end=date(2027, 12, 31),
+        )
+        self.assertEqual(hub_keys, ["SEFK-1"])
+        self.assertEqual(phases[0]["subPhases"], [])
+        self.assertNotIn("SEFK-2", epic_issues)
         self.assertEqual(warnings, [])
 
 

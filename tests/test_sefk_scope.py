@@ -1,45 +1,41 @@
-"""Tests for SEFK D-Train scope rollups."""
+"""Tests for SEFK scope exclusion rules."""
 
 from __future__ import annotations
 
 import unittest
 
 from extensions.twoa_programme.sefk_scope import (
-    resolve_sefk_issue_dtrain_phase,
-    rollup_sefk_epic_phases,
+    issue_excluded_from_sefk_project_plan,
+    issue_has_kpmg_deleted_label,
+    sefk_epic_scope_jql,
+    sefk_scope_exclusion_jql,
 )
 
 
-class SefkScopeTests(unittest.TestCase):
-    def test_status_maps_to_dtrain_phase(self) -> None:
-        self.assertEqual(resolve_sefk_issue_dtrain_phase("Not Started"), "Dream")
-        self.assertEqual(resolve_sefk_issue_dtrain_phase("Completed"), "Drive")
-        self.assertEqual(resolve_sefk_issue_dtrain_phase("WIP (50%)"), "Develop")
+class SefkScopeExclusionTests(unittest.TestCase):
+    def test_detects_kpmg_deleted_label(self) -> None:
+        issue = {"fields": {"labels": ["kpmg-deleted", "other"]}}
+        self.assertTrue(issue_has_kpmg_deleted_label(issue))
 
-    def test_rollup_counts_children_by_epic_and_phase(self) -> None:
-        children = [
-            {
-                "key": "SEFK-100",
-                "fields": {
-                    "issuetype": {"name": "Task"},
-                    "status": {"name": "Not Started"},
-                    "parent": {"key": "SEFK-59"},
-                },
-            },
-            {
-                "key": "SEFK-101",
-                "fields": {
-                    "issuetype": {"name": "Task"},
-                    "status": {"name": "Completed"},
-                    "parent": {"key": "SEFK-59"},
-                },
-            },
-        ]
-        rollups = rollup_sefk_epic_phases(children, epic_keys=["SEFK-59"])
-        bucket = rollups["SEFK-59"]
-        self.assertEqual(bucket["totalWeight"], 2.0)
-        self.assertEqual(bucket["phases"]["Dream"], 1.0)
-        self.assertEqual(bucket["phases"]["Drive"], 1.0)
+    def test_ignores_issues_without_tombstone_label(self) -> None:
+        issue = {"fields": {"labels": ["sync-hub"], "status": {"name": "Open"}}}
+        self.assertFalse(issue_excluded_from_sefk_project_plan(issue))
+
+    def test_excludes_rejected_and_kpmg_deleted(self) -> None:
+        rejected = {"fields": {"labels": [], "status": {"name": "Rejected"}}}
+        tombstoned = {"fields": {"labels": ["kpmg-deleted"], "status": {"name": "Open"}}}
+        self.assertTrue(issue_excluded_from_sefk_project_plan(rejected))
+        self.assertTrue(issue_excluded_from_sefk_project_plan(tombstoned))
+
+    def test_epic_scope_jql_excludes_kpmg_deleted(self) -> None:
+        jql = sefk_epic_scope_jql(parent_keys_csv="SEFK-1, SEFK-2")
+        self.assertIn(sefk_scope_exclusion_jql(), jql)
+        self.assertIn("parent in (SEFK-1, SEFK-2)", jql)
+
+    def test_scope_exclusion_jql_keeps_unlabeled_issues(self) -> None:
+        jql = sefk_scope_exclusion_jql()
+        self.assertIn("labels is EMPTY", jql)
+        self.assertIn("kpmg-deleted", jql)
 
 
 if __name__ == "__main__":
