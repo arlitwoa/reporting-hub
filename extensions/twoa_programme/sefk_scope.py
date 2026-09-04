@@ -81,7 +81,7 @@ def sefk_epic_scope_jql(
     parent_keys_csv: str,
     scope_issue_types: tuple[str, ...] = DEFAULT_SCOPE_ISSUE_TYPES,
 ) -> str:
-    types = ", ".join(scope_issue_types)
+    types = ", ".join(f'"{name.replace("\\", "\\\\").replace("\"", "\\\"")}"' for name in scope_issue_types)
     return (
         f"issuetype in ({types}) AND status != Rejected "
         f"AND {sefk_scope_exclusion_jql()} "

@@ -560,11 +560,11 @@ def _issue_timeline_row(
     }
     if issue_type:
         row["issueType"] = issue_type
+    if issue_type_icon_url:
+        row["issueTypeIconUrl"] = issue_type_icon_url
     if _is_milestone_issue_type(issue_type, milestone_issue_types):
         if "meeting gate" in issue_type.strip().lower():
             row["isMeetingGate"] = True
-        if issue_type_icon_url:
-            row["issueTypeIconUrl"] = issue_type_icon_url
     workstreams = _issue_dimension_values(issue, source_field="workstreams")
     if workstreams:
         row["workstreams"] = workstreams
@@ -1510,6 +1510,7 @@ def _append_timeline_bar(
     blocks_keys: list[str] | None = None,
     rows_by_key: dict[str, dict[str, Any]] | None = None,
     render_scope_overlay: bool = True,
+    render_dependency_icon: bool = True,
 ) -> None:
     row_key = str(row.get("key") or "").strip()
     focus_payload = _blocked_focus_payload(
@@ -1519,10 +1520,22 @@ def _append_timeline_bar(
         rows_by_key=rows_by_key,
     )
     role_attr = f' data-sef-role="{html.escape(role)}"' if role else ""
+    issue_type = str(row.get("issueType") or "")
+    issue_type_attr = f' data-sef-issue-type="{html.escape(issue_type)}"'
+    is_gate = bool(row.get("isMeetingGate")) or "gate" in issue_type.casefold()
+    special_attr = (
+        f' data-sef-special="gate"' if is_gate
+        else f' data-sef-special="milestone"' if _is_milestone_row(row)
+        else ""
+    )
+    dependency_attr = ' data-sef-has-dependency="1"' if focus_payload else ""
     data_key_attr = (
         f' data-sef-key="{html.escape(row_key)}" data-sef-row="1"{role_attr}' if row_key else role_attr
     )
-    parts.append(f'<g{data_key_attr}>{_svg_embedded_title(_bar_tooltip(row))}')
+    parts.append(
+        f'<g{data_key_attr}{issue_type_attr}{special_attr}{dependency_attr}>'
+        f'{_svg_embedded_title(_bar_tooltip(row))}'
+    )
     if _is_milestone_row(row):
         cx = x1
         icon_url = _milestone_icon_url(row)
@@ -1545,7 +1558,7 @@ def _append_timeline_bar(
             parts.append(
                 f'<polygon points="{points}" fill="{MILESTONE_TRIANGLE_FILL}" opacity="0.95"/>'
             )
-        if focus_payload:
+        if focus_payload and render_dependency_icon:
             linked_csv, link_tooltip, direction = focus_payload
             _append_block_link_icon(
                 parts,
@@ -1579,7 +1592,7 @@ def _append_timeline_bar(
                 link_class="block-scope-segment",
             )
 
-    if focus_payload:
+    if focus_payload and render_dependency_icon:
         linked_csv, link_tooltip, direction = focus_payload
         icon_size = max(9.0, min(12.0, bar_h))
         icon_x = x1 + max(icon_size / 2.0 + 1.0, bar_w - icon_size / 2.0 - 1.0)

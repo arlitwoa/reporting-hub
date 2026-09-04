@@ -39,6 +39,9 @@ class SefkProjectPlanReportingConfig:
     sub_phase_issue_type: str
     work_stream_issue_type: str
     epic_issue_type: str
+    milestone_issue_types: tuple[str, ...]
+    gate_issue_types: tuple[str, ...]
+    additional_epic_types: tuple[str, ...]
     scope_filter_id: str | None
     scope_filter_name: str | None
     timeline_artifact: str
@@ -48,6 +51,7 @@ class SefkProjectPlanReportingConfig:
     page_title: str
     scope_issue_types: tuple[str, ...]
     status_dtrain: dict[str, str]
+    sub_phase_order: tuple[str, ...]
 
     def output_root(self, repo_root: Path | None = None) -> Path:
         from extensions.twoa_programme.quarterly_reporting import load_quarterly_reporting_config
@@ -95,6 +99,11 @@ def load_sefk_project_plan_reporting_config(
         for status, phase in status_dtrain_raw.items()
         if str(status).strip() and str(phase).strip()
     } or dict(DEFAULT_STATUS_DTRAIN)
+    sub_phase_order_raw = raw.get("subPhaseOrder") or []
+    sub_phase_order = tuple(str(name).strip() for name in sub_phase_order_raw if str(name).strip())
+    milestone_types_raw = issue_types.get("milestones") or []
+    gate_types_raw = issue_types.get("gates") or []
+    additional_epic_types_raw = issue_types.get("additionalEpicTypes") or []
     return SefkProjectPlanReportingConfig(
         project_key=str(raw.get("projectKey") or "PDE"),
         phase_hub_keys=tuple(str(key) for key in hubs),
@@ -105,6 +114,9 @@ def load_sefk_project_plan_reporting_config(
         sub_phase_issue_type=str(issue_types.get("subPhase") or "Block Level One"),
         work_stream_issue_type=str(issue_types.get("workStream") or "Block Level Zero"),
         epic_issue_type=str(issue_types.get("epic") or "Epic"),
+        milestone_issue_types=tuple(str(name).strip() for name in milestone_types_raw if str(name).strip()),
+        gate_issue_types=tuple(str(name).strip() for name in gate_types_raw if str(name).strip()),
+        additional_epic_types=tuple(str(name).strip() for name in additional_epic_types_raw if str(name).strip()),
         scope_filter_id=str(scope_filter.get("filterId") or "").strip() or None,
         scope_filter_name=str(scope_filter.get("filterName") or "").strip() or None,
         timeline_artifact=str(artifacts.get("timelineJson") or "sefk-project-plan-timeline.json"),
@@ -114,6 +126,7 @@ def load_sefk_project_plan_reporting_config(
         page_title=str(pages.get("pageTitle") or "SEFK | Integrated Project Plan"),
         scope_issue_types=scope_issue_types,
         status_dtrain=status_dtrain,
+        sub_phase_order=sub_phase_order,
     )
 
 
