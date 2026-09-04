@@ -8,16 +8,20 @@ from pathlib import Path
 
 from extensions.twoa_programme.sefk_project_plan_reporting import load_sefk_project_plan_reporting_config
 from extensions.twoa_programme.sefk_project_plan_timeline import (
+    SEFK_EPIC_LABEL_X,
+    SEFK_PHASE_LABEL_X,
     _bubble_scope_rollups,
     _build_sefk_hierarchy_from_flat,
     _merge_scope_rollups,
     _sefk_bar_fill,
     _sefk_render_scope_overlay,
     _sefk_work_stream_display_label,
+    _sort_sub_phase_sibling_keys,
     build_sefk_project_plan_report_html,
     resolve_chart_window_for_phases,
     sefk_dtrain_key_html,
     sefk_project_plan_timeline_svg,
+    sub_phase_order_index,
 )
 
 _FIXTURE = Path(__file__).resolve().parent / "fixtures" / "sefk-project-plan-timeline.json"
@@ -36,9 +40,47 @@ class SefkProjectPlanTimelineTests(unittest.TestCase):
         self.assertEqual(config.epic_issue_type, "Epic")
         self.assertEqual(config.scope_filter_name, "smart-project-sefk")
         self.assertIn("Task", config.scope_issue_types)
+        self.assertIn("Milestone Level Zero", config.scope_issue_types)
         self.assertEqual(config.status_dtrain.get("Completed"), "Drive")
         self.assertIn("issuetype = Phase", config.phase_hub_discovery.jql or "")
         self.assertEqual(config.pages_publish_path, "docs/sefk/project-plan.html")
+        self.assertEqual(
+            config.sub_phase_order,
+            ("Mobilisation", "Architecture", "Test", "Cross Phases", "Deploy"),
+        )
+
+    def test_sub_phase_order_sorts_configured_summaries(self) -> None:
+        order = ("Mobilisation", "Architecture", "Test", "Cross Phases", "Deploy")
+        by_key = {
+            "SEFK-26": {"key": "SEFK-26", "fields": {"summary": "Deploy"}},
+            "SEFK-27": {"key": "SEFK-27", "fields": {"summary": "Mobilisation and Planning"}},
+            "SEFK-25": {"key": "SEFK-25", "fields": {"summary": "Architecture and Configure"}},
+            "SEFK-1210": {"key": "SEFK-1210", "fields": {"summary": "Test"}},
+            "SEFK-1307": {"key": "SEFK-1307", "fields": {"summary": "Cross Phases"}},
+        }
+        ordered = _sort_sub_phase_sibling_keys(list(by_key.keys()), by_key, order)
+        self.assertEqual(ordered, ["SEFK-27", "SEFK-25", "SEFK-1210", "SEFK-1307", "SEFK-26"])
+        self.assertEqual(sub_phase_order_index(by_key["SEFK-25"], order), 1)
+        self.assertEqual(sub_phase_order_index({"fields": {"summary": "Architect & Configure"}}, order), 1)
+
+    def test_sub_phase_order_prefers_run_order(self) -> None:
+        order = ("Mobilisation", "Architecture", "Test", "Cross Phases", "Deploy")
+        by_key = {
+            "SEFK-26": {
+                "key": "SEFK-26",
+                "fields": {"summary": "Deploy", "customfield_10541": 1},
+            },
+            "SEFK-27": {
+                "key": "SEFK-27",
+                "fields": {"summary": "Mobilisation", "customfield_10541": 3},
+            },
+            "SEFK-25": {
+                "key": "SEFK-25",
+                "fields": {"summary": "Architecture", "customfield_10541": 2},
+            },
+        }
+        ordered = _sort_sub_phase_sibling_keys(list(by_key.keys()), by_key, order)
+        self.assertEqual(ordered, ["SEFK-26", "SEFK-25", "SEFK-27"])
 
     def test_chart_window_spans_fixture_dates(self) -> None:
         start, end = resolve_chart_window_for_phases(self.payload["phases"])
@@ -61,11 +103,91 @@ class SefkProjectPlanTimelineTests(unittest.TestCase):
         self.assertIn('id="sefk-chev-sp-', svg)
         self.assertIn('id="sefk-cm-sp"', svg)
         self.assertIn('id="sefk-cfg"', svg)
+        self.assertIn('id="sefk-x-axis"', svg)
+        self.assertIn('data-parent-map=', svg)
+        self.assertIn('&quot;baseSubH&quot;', svg)
 
     def test_svg_includes_work_stream_chevron_when_epics_present(self) -> None:
         svg = sefk_project_plan_timeline_svg(self.payload)
         self.assertIn('id="sefk-chev-ws-', svg)
         self.assertIn('id="sefk-sub-ws-', svg)
+
+    def test_svg_renders_issue_type_icons(self) -> None:
+        self.payload["phases"][0]["issueTypeIconUrl"] = "https://twoa.atlassian.net/icon/phase.png"
+        self.payload["phases"][0]["subPhases"][0]["issueTypeIconUrl"] = "https://twoa.atlassian.net/icon/sub-phase.png"
+        self.payload["phases"][0]["subPhases"][0]["workStreams"][0]["issueTypeIconUrl"] = "https://twoa.atlassian.net/icon/work-stream.png"
+        self.payload["phases"][0]["subPhases"][0]["workStreams"][0]["epics"][0]["issueTypeIconUrl"] = "https://twoa.atlassian.net/icon/epic.png"
+
+        svg = sefk_project_plan_timeline_svg(self.payload)
+
+        self.assertEqual(svg.count('data-sefk-icon="1"'), 4)
+        self.assertIn(f'<text x="{SEFK_PHASE_LABEL_X:.1f}"', svg)
+
+    def test_svg_uses_dedicated_icons_for_milestone_and_gate_levels(self) -> None:
+        epics = self.payload["phases"][0]["subPhases"][0]["workStreams"][0]["epics"]
+        epics[0]["issueType"] = "Milestone Level One"
+        epics[0]["levelZero"] = [
+            {
+                "key": "SEFK-GATE-1",
+                "summary": "Approval gate",
+                "status": "Open",
+                "startDate": "2026-06-10",
+                "endDate": "2026-06-10",
+                "issueType": "Gate Level One",
+                "issueTypeIconUrl": "https://twoa.atlassian.net/icon/gate.png",
+            }
+        ]
+
+        svg = sefk_project_plan_timeline_svg(self.payload)
+
+        self.assertIn('<polygon points=', svg)
+        self.assertIn('fill="#de350b"', svg)
+        self.assertIn('href="https://twoa.atlassian.net/icon/gate.png"', svg)
+        self.assertIn('data-sef-issue-type="Milestone Level One" data-sef-special="milestone"', svg)
+        self.assertIn('data-sef-issue-type="Gate Level One" data-sef-special="gate"', svg)
+
+    def test_svg_renders_dependency_marker_for_linked_sefk_epics(self) -> None:
+        epics = self.payload["phases"][0]["subPhases"][0]["workStreams"][0]["epics"]
+        blocker = epics[0]
+        blocked = dict(blocker)
+        blocked["key"] = "SEFK-DEPENDENT"
+        blocked["summary"] = "Dependent epic"
+        blocked["blockedByKeys"] = [blocker["key"]]
+        epics.append(blocked)
+
+        svg = sefk_project_plan_timeline_svg(self.payload)
+
+        self.assertIn('data-sef-key="' + blocker["key"] + '" data-sef-row="1" data-sef-role="epic-bar"', svg)
+        self.assertIn('data-sef-has-dependency="1"', svg)
+        self.assertNotIn('class="sef-block-link-icon"', svg)
+        self.assertIn(f'data-sef-dep-from="{blocker["key"]}" data-sef-dep-to="SEFK-DEPENDENT"', svg)
+        self.assertIn('class="sefk-dependency-connector"', svg)
+        self.assertIn('class="sefk-dependency-hit-area"', svg)
+        self.assertIn(f"Dependency: {blocker['key']} blocks SEFK-DEPENDENT", svg)
+        self.assertIn('<circle ', svg)
+        self.assertIn(' C ', svg)
+        self.assertIn('marker-end="url(#dep-arrow)"', svg)
+
+    def test_svg_renders_level_zero_rows_under_epics(self) -> None:
+        epic = self.payload["phases"][0]["subPhases"][0]["workStreams"][0]["epics"][0]
+        epic["levelZero"] = [
+            {
+                "key": "SEFK-LEVEL0",
+                "summary": "Level 0 delivery task",
+                "status": "In Progress",
+                "startDate": "2026-06-10",
+                "endDate": "2026-06-20",
+                "issueType": "Task",
+            }
+        ]
+
+        svg = sefk_project_plan_timeline_svg(self.payload)
+
+        self.assertIn("Level 0 delivery task", svg)
+        self.assertIn('data-sef-key="SEFK-LEVEL0" data-sef-row="1" data-sef-role="level-zero-bar"', svg)
+        self.assertIn('id="sefk-sub-epic-', svg)
+        self.assertIn('visibility="hidden" style="display:none"', svg)
+        self.assertIn(f'x="{SEFK_EPIC_LABEL_X - 24:.1f}"', svg)
 
     def test_work_stream_labels_use_horizontal_clip_inside_transforms(self) -> None:
         svg = sefk_project_plan_timeline_svg(self.payload)
@@ -117,6 +239,24 @@ class SefkProjectPlanTimelineTests(unittest.TestCase):
         self.assertIn("D-Train phases left to right", html_doc)
         self.assertIn("sefkToggleSubPhase", html_doc)
         self.assertIn("sefkToggleWorkStream", html_doc)
+        self.assertIn("sefkToggleEpic", html_doc)
+        self.assertIn("[id^=\"sefk-sub-epic-\"]", html_doc)
+        self.assertIn("sefkShowPhaseLevel", html_doc)
+        self.assertIn("sefkShowWorkStreamLevel", html_doc)
+        self.assertIn("sefkShowEpicLevel", html_doc)
+        self.assertIn('data-hierarchy-level="workstream"', html_doc)
+        self.assertIn("reflowWorkStreamEpics", html_doc)
+        self.assertIn("cumulativeShift += currentSubH - baseSubH", html_doc)
+        self.assertIn("svg.getElementById('sefk-x-axis')", html_doc)
+        self.assertIn("function refreshDependencyGeometry", html_doc)
+        self.assertIn("path.setAttribute('d', pathD)", html_doc)
+        self.assertIn("dependencyParentMap", html_doc)
+        self.assertIn("node.style.opacity = visibleKeys[key] ? '1' : '0.16'", html_doc)
+        self.assertIn("'[data-sef-special=\"' + kind + '\"]'", html_doc)
+        self.assertIn("expandHierarchyPath", html_doc)
+        self.assertIn("restoreHierarchyExpansionState", html_doc)
+        self.assertIn("bindDependencyHover", html_doc)
+        self.assertIn("sefk-dependency-related", html_doc)
         self.assertIn("collapse or expand", html_doc)
 
     def test_dtrain_key_lists_phases(self) -> None:

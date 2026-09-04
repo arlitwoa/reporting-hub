@@ -32,6 +32,13 @@ class SefkScopeExclusionTests(unittest.TestCase):
         self.assertIn(sefk_scope_exclusion_jql(), jql)
         self.assertIn("parent in (SEFK-1, SEFK-2)", jql)
 
+    def test_epic_scope_jql_quotes_multi_word_issue_types(self) -> None:
+        jql = sefk_epic_scope_jql(
+            parent_keys_csv="SEFK-1",
+            scope_issue_types=("Task", "Milestone Level Zero"),
+        )
+        self.assertIn('issuetype in ("Task", "Milestone Level Zero")', jql)
+
     def test_scope_exclusion_jql_keeps_unlabeled_issues(self) -> None:
         jql = sefk_scope_exclusion_jql()
         self.assertIn("labels is EMPTY", jql)

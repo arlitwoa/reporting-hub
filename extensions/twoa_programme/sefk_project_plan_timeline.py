@@ -89,6 +89,8 @@ from extensions.twoa_programme.jira_search import search_all
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 EPIC_ROW_HEIGHT = 22
 EPIC_BAR_HEIGHT = EPIC_ROW_HEIGHT - 4
+LEVEL_ZERO_ROW_HEIGHT = 20
+LEVEL_ZERO_BAR_HEIGHT = LEVEL_ZERO_ROW_HEIGHT - 4
 EPIC_LABEL_INDENT = 52
 DTRAIN_BASE_FILL = ATL["grid"]
 SUB_PHASE_BAR_HEIGHT = CHAPTER_BAR_HEIGHT
@@ -98,6 +100,137 @@ WORK_STREAM_BAR_HEIGHT = STREAM_BAR_HEIGHT
 SEFK_LABEL_WIDTH_CAP = 420
 SEFK_WORK_STREAM_LABEL_MAX_CHARS = 32
 SEFK_EPIC_LABEL_MAX_CHARS = 36
+SEFK_PHASE_LABEL_X = LABEL_PAD_X + 18
+SEFK_SUB_PHASE_LABEL_X = LABEL_PAD_X + 42
+SEFK_WORK_STREAM_LABEL_X = LABEL_PAD_X + 70
+SEFK_EPIC_LABEL_X = LABEL_PAD_X + 102
+SEFK_LEVEL_ZERO_LABEL_X = LABEL_PAD_X + 126
+RUN_ORDER_FIELD = "customfield_10541"
+
+
+def _sefk_issue_type_icon_url(row: dict[str, Any]) -> str:
+    raw = str(row.get("issueTypeIconUrl") or "").strip()
+    if not raw:
+        return ""
+    if raw.startswith(("http://", "https://")):
+        return raw
+    if raw.startswith("/"):
+        return f"{JIRA_SERVER}{raw}"
+    return f"{JIRA_SERVER}/{raw}"
+
+
+def _append_sefk_issue_type_icon(
+    parts: list[str],
+    *,
+    row: dict[str, Any],
+    x: float,
+    y_center: float,
+    size: float = 14.0,
+) -> None:
+    issue_type = str(row.get("issueType") or "").strip()
+    issue_type_folded = issue_type.casefold()
+    row_key = str(row.get("key") or "").strip()
+    data_key_attr = f' data-sef-key="{html.escape(row_key)}" data-sef-row="1"' if row_key else ""
+    if "milestone" in issue_type_folded:
+        half = size / 2
+        points = f"{x:.1f},{y_center - half:.1f} {x + half:.1f},{y_center:.1f} {x:.1f},{y_center + half:.1f} {x - half:.1f},{y_center:.1f}"
+        parts.append(
+            f'<polygon points="{points}" fill="#de350b" stroke="#a12d10" stroke-width="0.8" '
+            f'data-sefk-icon="1"{data_key_attr} role="img"><title>{html.escape(issue_type)}</title></polygon>'
+        )
+        return
+    if "gate" in issue_type_folded:
+        icon_url = _sefk_issue_type_icon_url(row)
+        if icon_url:
+            parts.append(
+                f'<image href="{html.escape(icon_url)}" x="{x - size / 2:.1f}" '
+                f'y="{y_center - size / 2:.1f}" width="{size:.1f}" height="{size:.1f}" '
+                f'preserveAspectRatio="xMidYMid meet" data-sefk-icon="1"{data_key_attr} role="img">'
+                f'<title>{html.escape(issue_type)}</title></image>'
+            )
+            return
+        half = size / 2
+        parts.append(
+            f'<rect x="{x - half:.1f}" y="{y_center - half:.1f}" width="{size:.1f}" height="{size:.1f}" '
+            f'rx="1.5" fill="#6554c0" stroke="#403294" stroke-width="0.8" '
+            f'data-sefk-icon="1"{data_key_attr} role="img"><title>{html.escape(issue_type)}</title></rect>'
+        )
+        return
+    icon_url = _sefk_issue_type_icon_url(row)
+    if not icon_url:
+        return
+    parts.append(
+        f'<image href="{html.escape(icon_url)}" x="{x - size / 2:.1f}" '
+        f'y="{y_center - size / 2:.1f}" width="{size:.1f}" height="{size:.1f}" '
+        f'preserveAspectRatio="xMidYMid meet" data-sefk-icon="1"{data_key_attr} role="img">'
+        f'<title>{html.escape(str(row.get("issueType") or "Issue type"))}</title></image>'
+    )
+
+
+def _sub_phase_order_tokens(token: str) -> tuple[str, ...]:
+    folded = token.strip().casefold()
+    if folded == "architecture":
+        return ("architecture", "architect")
+    return (folded,) if folded else ()
+
+
+def sub_phase_order_index(issue: dict[str, Any], order: tuple[str, ...]) -> int:
+    """Return sort index for a Sub-Phase issue summary against configured order."""
+    if not order:
+        return 0
+    summary = str(((issue.get("fields") or {}).get("summary") or "")).strip().casefold()
+    for index, entry in enumerate(order):
+        for part in _sub_phase_order_tokens(entry):
+            if entry.strip().casefold() == "test":
+                if summary == "test":
+                    return index
+                continue
+            if summary.startswith(part) or part in summary:
+                return index
+    return len(order)
+
+
+def _sort_sub_phase_sibling_keys(
+    keys: list[str],
+    by_key: dict[str, dict[str, Any]],
+    order: tuple[str, ...],
+) -> list[str]:
+    if not order:
+        return _sort_sibling_keys(keys, by_key)
+
+    def sort_key(key: str) -> tuple[int, float, int, date, str]:
+        issue = by_key[key]
+        start, issue_key = _issue_start_sort_key(issue)
+        run_order = _run_order_sort_value(issue)
+        return (*run_order, sub_phase_order_index(issue, order), start, issue_key)
+
+    return sorted(keys, key=sort_key)
+
+
+def _sort_sub_phase_issues(
+    issues: list[dict[str, Any]],
+    order: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    if not order:
+        return sorted(issues, key=_issue_start_sort_key)
+
+    def sort_key(issue: dict[str, Any]) -> tuple[int, float, int, date, str]:
+        start, issue_key = _issue_start_sort_key(issue)
+        run_order = _run_order_sort_value(issue)
+        return (*run_order, sub_phase_order_index(issue, order), start, issue_key)
+
+    return sorted(issues, key=sort_key)
+
+
+def _run_order_sort_value(issue: dict[str, Any]) -> tuple[int, float]:
+    raw = (issue.get("fields") or {}).get(RUN_ORDER_FIELD)
+    if raw is None or str(raw).strip() == "":
+        return 1, 0.0
+    try:
+        return 0, float(raw)
+    except (TypeError, ValueError):
+        return 1, 0.0
+
 
 SEFK_EXTRA_CSS = """
 .chart-wrap-sefk.chart-wrap-timeline {
@@ -156,6 +289,74 @@ SEFK_EXTRA_CSS = """
   cursor: pointer;
   user-select: none;
 }
+.sefk-view-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 10px;
+}
+.sefk-view-controls button {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--card-bg);
+    color: var(--text);
+    cursor: pointer;
+    padding: 5px 10px;
+    font: inherit;
+    font-size: 12px;
+}
+.sefk-view-controls button.is-active {
+    background: #deebff;
+    border-color: #4c6fff;
+}
+.sefk-filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 10px;
+}
+.sefk-filter-controls button {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card-bg);
+    color: var(--text);
+    cursor: pointer;
+    padding: 4px 9px;
+    font: inherit;
+    font-size: 12px;
+}
+.sefk-filter-controls button.is-active {
+    background: #deebff;
+    border-color: #4c6fff;
+}
+.sefk-dependency-connector {
+    cursor: help;
+}
+.sefk-dependency-hit-area {
+    pointer-events: stroke;
+}
+.sefk-dependency-path,
+.sefk-dependency-endpoint {
+    transition: stroke 120ms ease, stroke-width 120ms ease, fill 120ms ease;
+}
+.sefk-dependency-connector:hover .sefk-dependency-path,
+.sefk-dependency-connector.sefk-dependency-related .sefk-dependency-path {
+    stroke: #0052cc;
+    stroke-width: 2.2;
+}
+.sefk-dependency-connector:hover .sefk-dependency-endpoint,
+.sefk-dependency-connector.sefk-dependency-related .sefk-dependency-endpoint {
+    stroke: #0052cc;
+    stroke-width: 2;
+    fill: #deebff;
+}
+.chart-wrap-sefk svg [data-sef-key].sefk-dependency-related > rect {
+    stroke: #0052cc;
+    stroke-width: 2;
+}
+.chart-wrap-sefk svg [data-sef-key].sefk-dependency-related a text {
+    fill: #0052cc;
+}
 """
 
 SEFK_COLLAPSE_SCRIPT = """
@@ -185,6 +386,16 @@ SEFK_COLLAPSE_SCRIPT = """
     }
   }
 
+    function dependencyParentMap() {
+        var el = document.getElementById('sefk-cfg');
+        if (!el) return {};
+        try {
+            return JSON.parse((el.getAttribute('data-parent-map') || '{}').replace(/&quot;/g, '"'));
+        } catch (_err) {
+            return {};
+        }
+    }
+
   function resizeSvg(svg, delta) {
     if (!svg || !isFinite(delta) || delta === 0) return;
     var vb = (svg.getAttribute('viewBox') || '0 0 0 0').split(' ').map(Number);
@@ -193,11 +404,86 @@ SEFK_COLLAPSE_SCRIPT = """
     svg.setAttribute('viewBox', vb.join(' '));
     var h = parseFloat(svg.getAttribute('height') || '0');
     if (isFinite(h)) svg.setAttribute('height', String(Math.max(100, h + delta)));
+        svg.querySelectorAll('.chart-week-grid-line, .chart-month-grid-line, .chart-today-line').forEach(function (line) {
+            var y2 = parseFloat(line.getAttribute('y2') || '0');
+            if (isFinite(y2)) line.setAttribute('y2', String(y2 + delta));
+        });
+        var axis = svg.getElementById('sefk-x-axis');
+        if (axis) {
+            var axisOffset = parseFloat(axis.getAttribute('data-offset-y') || '0') || 0;
+            axisOffset += delta;
+            axis.setAttribute('data-offset-y', String(axisOffset));
+            axis.setAttribute('transform', 'translate(0,' + axisOffset + ')');
+        }
   }
 
   function isHidden(node) {
     return !node || node.getAttribute('visibility') === 'hidden' || node.style.display === 'none';
   }
+
+    function isEffectivelyHidden(node) {
+        for (var current = node; current; current = current.parentElement) {
+            if (isHidden(current)) return true;
+        }
+        return false;
+    }
+
+    function refreshDependencyVisibility(svg) {
+        if (!svg) return;
+        svg.querySelectorAll('[data-sef-dep-from][data-sef-dep-to]').forEach(function (connector) {
+            var from = (connector.getAttribute('data-sef-dep-from') || '').trim();
+            var to = (connector.getAttribute('data-sef-dep-to') || '').trim();
+            var fromNode = svg.querySelector('[data-sef-key="' + from + '"]');
+            var toNode = svg.querySelector('[data-sef-key="' + to + '"]');
+            connector.setAttribute('visibility', !isEffectivelyHidden(fromNode) && !isEffectivelyHidden(toNode) ? 'visible' : 'hidden');
+        });
+    }
+
+    function refreshDependencyGeometry(svg) {
+        if (!svg) return;
+        var svgRect = svg.getBoundingClientRect();
+        var viewBox = (svg.getAttribute('viewBox') || '0 0 0 0').split(' ').map(Number);
+        if (!svgRect.width || !svgRect.height || viewBox.length < 4) return;
+        var scaleX = viewBox[2] / svgRect.width;
+        var scaleY = viewBox[3] / svgRect.height;
+
+        function barRect(key) {
+            var bar = svg.querySelector('[data-sef-key="' + key + '"][data-sef-role$="-bar"] rect');
+            return bar ? bar.getBoundingClientRect() : null;
+        }
+        function xFor(clientX) { return viewBox[0] + ((clientX - svgRect.left) * scaleX); }
+        function yFor(clientY) { return viewBox[1] + ((clientY - svgRect.top) * scaleY); }
+
+        svg.querySelectorAll('[data-sef-dep-from][data-sef-dep-to]').forEach(function (connector) {
+            var from = (connector.getAttribute('data-sef-dep-from') || '').trim();
+            var to = (connector.getAttribute('data-sef-dep-to') || '').trim();
+            var fromRect = barRect(from);
+            var toRect = barRect(to);
+            if (!fromRect || !toRect) return;
+            var pointsForward = toRect.left >= fromRect.right;
+            var startX = xFor(pointsForward ? fromRect.right : fromRect.left) + (pointsForward ? 4 : -4);
+            var endX = xFor(pointsForward ? toRect.left : toRect.right) + (pointsForward ? -4 : 4);
+            var startY = yFor(fromRect.top + (fromRect.height / 2));
+            var endY = yFor(toRect.top + (toRect.height / 2));
+            var controlOffset = Math.min(64, Math.max(18, Math.abs(endX - startX) * 0.45)) * (pointsForward ? 1 : -1);
+            var pathD = 'M ' + startX.toFixed(1) + ' ' + startY.toFixed(1) +
+                ' C ' + (startX + controlOffset).toFixed(1) + ' ' + startY.toFixed(1) +
+                ', ' + (endX - controlOffset).toFixed(1) + ' ' + endY.toFixed(1) +
+                ', ' + endX.toFixed(1) + ' ' + endY.toFixed(1);
+            connector.querySelectorAll('.sefk-dependency-hit-area, .sefk-dependency-path').forEach(function (path) {
+                path.setAttribute('d', pathD);
+            });
+            var endpoints = connector.querySelectorAll('.sefk-dependency-endpoint');
+            if (endpoints[0]) {
+                endpoints[0].setAttribute('cx', startX.toFixed(1));
+                endpoints[0].setAttribute('cy', startY.toFixed(1));
+            }
+            if (endpoints[1]) {
+                endpoints[1].setAttribute('cx', endX.toFixed(1));
+                endpoints[1].setAttribute('cy', endY.toFixed(1));
+            }
+        });
+    }
 
   function workStreamBlockHeight(wsKey) {
     var sub = document.getElementById('sefk-sub-ws-' + wsKey);
@@ -205,6 +491,19 @@ SEFK_COLLAPSE_SCRIPT = """
     if (isHidden(sub)) return WORK_STREAM_ROW_H;
     return WORK_STREAM_ROW_H + epicH;
   }
+
+    function reflowWorkStreamEpics(wsGroup) {
+        if (!wsGroup) return;
+        var cumulativeShift = 0;
+        wsGroup.querySelectorAll('.sefk-epic-row').forEach(function (epicGroup) {
+            epicGroup.setAttribute('transform', cumulativeShift ? ('translate(0,' + cumulativeShift + ')') : 'translate(0,0)');
+            var epicKey = (epicGroup.getAttribute('data-epic-key') || '').trim();
+            var sub = document.getElementById('sefk-sub-epic-' + epicKey);
+            if (!isHidden(sub)) {
+                cumulativeShift += parseInt(epicGroup.getAttribute('data-level-zero-h') || '0', 10) || 0;
+            }
+        });
+    }
 
   function reflowSubPhaseContent(spKey) {
     var border = document.getElementById('sefk-bd-' + spKey);
@@ -239,8 +538,11 @@ SEFK_COLLAPSE_SCRIPT = """
       if (!g) return;
       g.setAttribute('transform', cumulativeShift ? ('translate(0,' + cumulativeShift + ')') : 'translate(0,0)');
       var sub = document.getElementById('sefk-sub-sp-' + ch.key);
-      var collapsed = isHidden(sub);
-      if (collapsed) cumulativeShift -= parseInt(ch.subH, 10) || 0;
+            var baseSubH = parseInt(ch.baseSubH, 10) || 0;
+            var currentSubH = isHidden(sub)
+                ? 0
+                : (parseInt(g.getAttribute('data-sub-h') || '0', 10) || 0);
+            cumulativeShift += currentSubH - baseSubH;
     });
   }
 
@@ -276,7 +578,47 @@ SEFK_COLLAPSE_SCRIPT = """
 
     var svg = wsGroup.closest('svg');
     resizeSvg(svg, delta);
+        refreshDependencyVisibility(svg);
+    refreshDependencyGeometry(svg);
   };
+
+    window.sefkToggleEpic = function (evt, epicKey) {
+        if (evt) evt.stopPropagation();
+        var sub = document.getElementById('sefk-sub-epic-' + epicKey);
+        var epicGroup = document.getElementById('sefk-epic-' + epicKey);
+        var chev = document.getElementById('sefk-chev-epic-' + epicKey);
+        if (!sub || !epicGroup) return;
+
+        var open = isHidden(sub);
+        var levelZeroH = parseInt(epicGroup.getAttribute('data-level-zero-h') || '0', 10) || 0;
+        var wsGroup = epicGroup.closest('[id^="sefk-ws-"]');
+        var spKey = wsGroup ? (wsGroup.getAttribute('data-sp-key') || '').trim() : '';
+        if (open) {
+            sub.setAttribute('visibility', 'visible');
+            sub.style.display = '';
+            if (chev) chev.textContent = '\u25BC';
+        } else {
+            sub.setAttribute('visibility', 'hidden');
+            sub.style.display = 'none';
+            if (chev) chev.textContent = '\u25B6';
+        }
+        if (wsGroup) {
+            var epicH = parseInt(wsGroup.getAttribute('data-epic-h') || '0', 10) || 0;
+            wsGroup.setAttribute('data-epic-h', String(epicH + (open ? levelZeroH : -levelZeroH)));
+            reflowWorkStreamEpics(wsGroup);
+        }
+        if (spKey) {
+            reflowSubPhaseContent(spKey);
+            reflowSubPhaseBlocks();
+            var chapters = parseManifest('data-chapters');
+            var entry = chapters.find(function (c) { return c.key === spKey; });
+            if (entry) entry.subH = parseInt((document.getElementById('sefk-sp-' + spKey) || {}).getAttribute('data-sub-h') || '0', 10) || entry.subH;
+        }
+        var svg = epicGroup.closest('svg');
+        resizeSvg(svg, open ? levelZeroH : -levelZeroH);
+        refreshDependencyVisibility(svg);
+        refreshDependencyGeometry(svg);
+    };
 
   window.sefkToggleSubPhase = function (evt, spKey) {
     if (evt) evt.stopPropagation();
@@ -305,7 +647,218 @@ SEFK_COLLAPSE_SCRIPT = """
     reflowSubPhaseBlocks();
     var svg = spGroup.closest('svg');
     resizeSvg(svg, open ? subH : -subH);
+        refreshDependencyVisibility(svg);
+    refreshDependencyGeometry(svg);
   };
+
+    window.sefkCollapseAll = function () {
+        document.querySelectorAll('[id^="sefk-sub-epic-"]').forEach(function (sub) {
+            var epicKey = sub.id.replace('sefk-sub-epic-', '');
+            if (!isHidden(sub)) window.sefkToggleEpic(null, epicKey);
+        });
+        document.querySelectorAll('[id^="sefk-sub-ws-"]').forEach(function (sub) {
+            var wsKey = sub.id.replace('sefk-sub-ws-', '');
+            if (!isHidden(sub)) window.sefkToggleWorkStream(null, wsKey);
+        });
+        document.querySelectorAll('[id^="sefk-sub-sp-"]').forEach(function (sub) {
+            var spKey = sub.id.replace('sefk-sub-sp-', '');
+            if (!isHidden(sub)) window.sefkToggleSubPhase(null, spKey);
+        });
+    };
+
+    window.sefkExpandAll = function () {
+        document.querySelectorAll('[id^="sefk-sub-sp-"]').forEach(function (sub) {
+            var spKey = sub.id.replace('sefk-sub-sp-', '');
+            if (isHidden(sub)) window.sefkToggleSubPhase(null, spKey);
+        });
+        document.querySelectorAll('[id^="sefk-sub-ws-"]').forEach(function (sub) {
+            var wsKey = sub.id.replace('sefk-sub-ws-', '');
+            if (isHidden(sub)) window.sefkToggleWorkStream(null, wsKey);
+        });
+        document.querySelectorAll('[id^="sefk-sub-epic-"]').forEach(function (sub) {
+            var epicKey = sub.id.replace('sefk-sub-epic-', '');
+            if (isHidden(sub)) window.sefkToggleEpic(null, epicKey);
+        });
+    };
+
+    function setHierarchyView(level, button) {
+        window.sefkCollapseAll();
+        if (level === 'workstream' || level === 'epic') {
+            document.querySelectorAll('[id^="sefk-sub-sp-"]').forEach(function (sub) {
+                var spKey = sub.id.replace('sefk-sub-sp-', '');
+                if (isHidden(sub)) window.sefkToggleSubPhase(null, spKey);
+            });
+        }
+        if (level === 'epic') {
+            document.querySelectorAll('[id^="sefk-sub-ws-"]').forEach(function (sub) {
+                var wsKey = sub.id.replace('sefk-sub-ws-', '');
+                if (isHidden(sub)) window.sefkToggleWorkStream(null, wsKey);
+            });
+        }
+        document.querySelectorAll('.sefk-view-controls [data-hierarchy-level]').forEach(function (control) {
+            control.classList.toggle('is-active', control === button);
+        });
+    }
+
+    window.sefkShowPhaseLevel = function (button) {
+        setHierarchyView('phase', button);
+    };
+
+    window.sefkShowWorkStreamLevel = function (button) {
+        setHierarchyView('workstream', button);
+    };
+
+    window.sefkShowEpicLevel = function (button) {
+        setHierarchyView('epic', button);
+    };
+
+    function hierarchyExpansionState(svg) {
+        var state = {};
+        svg.querySelectorAll('[id^="sefk-sub-sp-"], [id^="sefk-sub-ws-"], [id^="sefk-sub-epic-"]').forEach(function (sub) {
+            state[sub.id] = !isHidden(sub);
+        });
+        return state;
+    }
+
+    function restoreHierarchyExpansionState(svg) {
+        var raw = svg.getAttribute('data-sefk-filter-expansion-state');
+        svg.removeAttribute('data-sefk-filter-expansion-state');
+        if (!raw) return;
+        var state;
+        try {
+            state = JSON.parse(raw);
+        } catch (_err) {
+            return;
+        }
+        window.sefkCollapseAll();
+        Object.keys(state).filter(function (id) { return state[id] && id.indexOf('sefk-sub-sp-') === 0; }).forEach(function (id) {
+            window.sefkToggleSubPhase(null, id.replace('sefk-sub-sp-', ''));
+        });
+        Object.keys(state).filter(function (id) { return state[id] && id.indexOf('sefk-sub-ws-') === 0; }).forEach(function (id) {
+            window.sefkToggleWorkStream(null, id.replace('sefk-sub-ws-', ''));
+        });
+        Object.keys(state).filter(function (id) { return state[id] && id.indexOf('sefk-sub-epic-') === 0; }).forEach(function (id) {
+            window.sefkToggleEpic(null, id.replace('sefk-sub-epic-', ''));
+        });
+    }
+
+    function expandHierarchyPath(svg, key, parents) {
+        var ancestors = [];
+        var parent = String(parents[key] || '').trim();
+        while (parent) {
+            ancestors.push(parent);
+            parent = String(parents[parent] || '').trim();
+        }
+        ancestors.reverse().forEach(function (ancestor) {
+            if (document.getElementById('sefk-sub-sp-' + ancestor) && isHidden(document.getElementById('sefk-sub-sp-' + ancestor))) {
+                window.sefkToggleSubPhase(null, ancestor);
+            } else if (document.getElementById('sefk-sub-ws-' + ancestor) && isHidden(document.getElementById('sefk-sub-ws-' + ancestor))) {
+                window.sefkToggleWorkStream(null, ancestor);
+            } else if (document.getElementById('sefk-sub-epic-' + ancestor) && isHidden(document.getElementById('sefk-sub-epic-' + ancestor))) {
+                window.sefkToggleEpic(null, ancestor);
+            }
+        });
+    }
+
+    window.sefkToggleFilter = function (kind, button) {
+        var active = button.classList.toggle('is-active');
+        var section = button.closest('.chart-section');
+        var svg = section ? section.querySelector('svg') : null;
+        if (!svg) return;
+
+        if (!active) {
+            svg.querySelectorAll('[data-sef-key]').forEach(function (node) {
+                node.setAttribute('visibility', 'visible');
+                node.style.opacity = '';
+            });
+            svg.querySelectorAll('[data-sef-dep-from][data-sef-dep-to]').forEach(function (node) {
+                node.setAttribute('visibility', 'visible');
+                node.style.opacity = '';
+            });
+            restoreHierarchyExpansionState(svg);
+            return;
+        }
+
+        svg.setAttribute('data-sefk-filter-expansion-state', JSON.stringify(hierarchyExpansionState(svg)));
+        var visibleKeys = {};
+        var selector = kind === 'dependency'
+            ? '[data-sef-has-dependency="1"]'
+            : '[data-sef-special="' + kind + '"]';
+        svg.querySelectorAll(selector).forEach(function (node) {
+            var key = (node.getAttribute('data-sef-key') || '').trim();
+            if (key) visibleKeys[key] = true;
+        });
+        var parents = dependencyParentMap();
+        if (kind === 'milestone' || kind === 'gate') {
+            Object.keys(visibleKeys).forEach(function (key) {
+                expandHierarchyPath(svg, key, parents);
+            });
+        }
+        Object.keys(visibleKeys).forEach(function (key) {
+            var parent = String(parents[key] || '').trim();
+            while (parent && !visibleKeys[parent]) {
+                visibleKeys[parent] = true;
+                parent = String(parents[parent] || '').trim();
+            }
+        });
+        svg.querySelectorAll('[data-sef-key]').forEach(function (node) {
+            var key = (node.getAttribute('data-sef-key') || '').trim();
+            node.setAttribute('visibility', 'visible');
+            node.style.opacity = visibleKeys[key] ? '1' : '0.16';
+        });
+        svg.querySelectorAll('[data-sef-dep-from][data-sef-dep-to]').forEach(function (node) {
+            var from = (node.getAttribute('data-sef-dep-from') || '').trim();
+            var to = (node.getAttribute('data-sef-dep-to') || '').trim();
+            node.setAttribute('visibility', 'visible');
+            node.style.opacity = visibleKeys[from] && visibleKeys[to] ? '1' : '0.16';
+        });
+    };
+
+    function setDependencyHighlight(svg, fromKey, toKey, active) {
+        var relatedKeys = {};
+        relatedKeys[fromKey] = true;
+        relatedKeys[toKey] = true;
+        svg.querySelectorAll('[data-sef-key]').forEach(function (node) {
+            var key = (node.getAttribute('data-sef-key') || '').trim();
+            if (relatedKeys[key]) node.classList.toggle('sefk-dependency-related', active);
+        });
+        svg.querySelectorAll('[data-sef-dep-from][data-sef-dep-to]').forEach(function (node) {
+            var from = (node.getAttribute('data-sef-dep-from') || '').trim();
+            var to = (node.getAttribute('data-sef-dep-to') || '').trim();
+            if (from === fromKey && to === toKey) node.classList.toggle('sefk-dependency-related', active);
+        });
+    }
+
+    function bindDependencyHover(svg) {
+        svg.querySelectorAll('[data-sef-dep-from][data-sef-dep-to]').forEach(function (connector) {
+            var from = (connector.getAttribute('data-sef-dep-from') || '').trim();
+            var to = (connector.getAttribute('data-sef-dep-to') || '').trim();
+            connector.addEventListener('mouseenter', function () { setDependencyHighlight(svg, from, to, true); });
+            connector.addEventListener('mouseleave', function () { setDependencyHighlight(svg, from, to, false); });
+        });
+        svg.querySelectorAll('[data-sef-key]').forEach(function (node) {
+            var key = (node.getAttribute('data-sef-key') || '').trim();
+            if (!key) return;
+            var connectors = Array.from(svg.querySelectorAll('[data-sef-dep-from][data-sef-dep-to]')).filter(function (connector) {
+                return connector.getAttribute('data-sef-dep-from') === key || connector.getAttribute('data-sef-dep-to') === key;
+            });
+            if (!connectors.length) return;
+            node.addEventListener('mouseenter', function () {
+                connectors.forEach(function (connector) {
+                    setDependencyHighlight(svg, connector.getAttribute('data-sef-dep-from'), connector.getAttribute('data-sef-dep-to'), true);
+                });
+            });
+            node.addEventListener('mouseleave', function () {
+                connectors.forEach(function (connector) {
+                    setDependencyHighlight(svg, connector.getAttribute('data-sef-dep-from'), connector.getAttribute('data-sef-dep-to'), false);
+                });
+            });
+        });
+    }
+
+    document.querySelectorAll('.chart-wrap-sefk svg').forEach(bindDependencyHover);
+    document.querySelectorAll('.chart-wrap-sefk svg').forEach(refreshDependencyVisibility);
+    document.querySelectorAll('.chart-wrap-sefk svg').forEach(refreshDependencyGeometry);
 
   document.querySelectorAll('.chart-wrap-sefk').forEach(function (wrap) {
     wrap.addEventListener('wheel', function (evt) {
@@ -480,6 +1033,13 @@ def _sefk_label_column_width(phases: list[dict[str, Any]]) -> float:
                             SEFK_EPIC_LABEL_MAX_CHARS,
                         )
                     )
+                    for level_zero in epic.get("levelZero") or []:
+                        labels.append(
+                            _sefk_truncate_label(
+                                str(level_zero.get("summary") or level_zero.get("key") or ""),
+                                SEFK_EPIC_LABEL_MAX_CHARS,
+                            )
+                        )
     longest = max((len(item.strip()) for item in labels if str(item).strip()), default=0)
     dynamic = 24 + (longest * 6.4)
     return min(max(float(LABEL_WIDTH), dynamic), float(SEFK_LABEL_WIDTH_CAP))
@@ -507,8 +1067,87 @@ def _iter_sefk_rows(phases: list[dict[str, Any]]) -> list[dict[str, Any]]:
             rows.append(sub_phase)
             for work_stream in sub_phase.get("workStreams") or []:
                 rows.append(work_stream)
-                rows.extend(work_stream.get("epics") or [])
+                for epic in work_stream.get("epics") or []:
+                    rows.append(epic)
+                    rows.extend(epic.get("levelZero") or [])
     return rows
+
+
+def _sefk_rows_by_key(phases: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        str(row.get("key") or "").strip(): row
+        for row in _iter_sefk_rows(phases)
+        if str(row.get("key") or "").strip()
+    }
+
+
+def _build_sefk_block_link_maps(phases: list[dict[str, Any]]) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    blocked_by: dict[str, list[str]] = {}
+    blocks: dict[str, list[str]] = {}
+    for row in _iter_sefk_rows(phases):
+        blocked_key = str(row.get("key") or "").strip()
+        if not blocked_key:
+            continue
+        for blocker in row.get("blockedByKeys") or []:
+            blocker_key = str(blocker or "").strip()
+            if not blocker_key or blocker_key == blocked_key:
+                continue
+            blocked_by.setdefault(blocked_key, []).append(blocker_key)
+            blocks.setdefault(blocker_key, []).append(blocked_key)
+
+    for values in blocked_by.values():
+        values[:] = list(dict.fromkeys(values))
+    for values in blocks.values():
+        values[:] = list(dict.fromkeys(values))
+    return blocked_by, blocks
+
+
+def _append_sefk_dependency_connectors(
+    parts: list[str],
+    *,
+    edges: list[tuple[str, str]],
+    row_positions: dict[str, tuple[float, float, float]],
+) -> None:
+    for blocker_key, blocked_key in edges:
+        blocker = row_positions.get(blocker_key)
+        blocked = row_positions.get(blocked_key)
+        if not blocker or not blocked:
+            continue
+
+        _blocker_start, blocker_y, blocker_end = blocker
+        blocked_start, blocked_y, _blocked_end = blocked
+        direction = 1.0 if blocked_start >= blocker_end else -1.0
+        start_x = blocker_end + (4.0 * direction)
+        end_x = blocked_start - (4.0 * direction)
+        control_offset = min(64.0, max(18.0, abs(end_x - start_x) * 0.45)) * direction
+        path_d = (
+            f"M {start_x:.1f} {blocker_y:.1f} "
+            f"C {start_x + control_offset:.1f} {blocker_y:.1f}, "
+            f"{end_x - control_offset:.1f} {blocked_y:.1f}, "
+            f"{end_x:.1f} {blocked_y:.1f}"
+        )
+        tooltip = f"Dependency: {blocker_key} blocks {blocked_key}"
+        parts.append(
+            f'<g class="sefk-dependency-connector" data-sef-dep-from="{html.escape(blocker_key)}" '
+            f'data-sef-dep-to="{html.escape(blocked_key)}">{_svg_embedded_title(tooltip)}'
+            f'<path class="sefk-dependency-hit-area" d="{path_d}" stroke="transparent" stroke-width="12" fill="none"/>'
+            f'<path class="sefk-dependency-path" d="{path_d}" stroke="#5e6c84" stroke-width="1.4" '
+            f'stroke-linecap="round" stroke-linejoin="round" fill="none" marker-end="url(#dep-arrow)"/>'
+            f'<circle class="sefk-dependency-endpoint" cx="{start_x:.1f}" cy="{blocker_y:.1f}" r="3.4" fill="#ffffff" stroke="#5e6c84" stroke-width="1.4"/>'
+            f'<circle class="sefk-dependency-endpoint" cx="{end_x:.1f}" cy="{blocked_y:.1f}" r="3.4" fill="#ffffff" stroke="#5e6c84" stroke-width="1.4"/>'
+            f"</g>"
+        )
+
+
+def _mark_sefk_special_rows(phases: list[dict[str, Any]], config: SefkProjectPlanReportingConfig) -> None:
+    milestone_types = {name.casefold() for name in config.milestone_issue_types}
+    gate_types = {name.casefold() for name in config.gate_issue_types}
+    for row in _iter_sefk_rows(phases):
+        issue_type = str(row.get("issueType") or "").strip().casefold()
+        if issue_type in milestone_types or "milestone" in issue_type:
+            row["isMilestone"] = True
+        if issue_type in gate_types or "gate" in issue_type:
+            row["isMeetingGate"] = True
 
 
 def resolve_chart_window_for_phases(phases: list[dict[str, Any]]) -> tuple[date, date]:
@@ -598,6 +1237,53 @@ def _attach_epic_scope_rollups(
     )
 
 
+def _attach_level_zero_rows(
+    adapter: "AtlassianAdapter",
+    phases: list[dict[str, Any]],
+    *,
+    config: SefkProjectPlanReportingConfig,
+    fallback_start: date,
+    fallback_end: date,
+) -> None:
+    epics = [
+        epic
+        for phase in phases
+        for sub_phase in phase.get("subPhases") or []
+        for work_stream in sub_phase.get("workStreams") or []
+        for epic in work_stream.get("epics") or []
+        if str(epic.get("key") or "").strip()
+    ]
+    if not epics:
+        return
+    children = search_all(
+        adapter,
+        sefk_epic_scope_jql(
+            parent_keys_csv=", ".join(str(epic["key"]) for epic in epics),
+            scope_issue_types=config.scope_issue_types,
+        ),
+        ["summary", "status", "issuetype", "created", "duedate", START_DATE_FIELD, "issuelinks", "parent", "labels"],
+    )
+    children_by_parent: dict[str, list[dict[str, Any]]] = {}
+    for child in children:
+        if issue_excluded_from_sefk_project_plan(child):
+            continue
+        parent_key = str((((child.get("fields") or {}).get("parent") or {}).get("key")) or "").strip()
+        if parent_key:
+            children_by_parent.setdefault(parent_key, []).append(child)
+    for epic in epics:
+        level_zero = [
+            _issue_timeline_row(
+                child,
+                fallback_start=fallback_start,
+                fallback_end=fallback_end,
+                milestone_issue_types=(*config.milestone_issue_types, *config.gate_issue_types),
+            )
+            for child in children_by_parent.get(str(epic["key"]), [])
+        ]
+        level_zero.sort(key=lambda row: (str(row.get("startDate") or ""), str(row.get("key") or "")))
+        epic["levelZero"] = level_zero
+
+
 def _fetch_work_stream_epics(
     adapter: "AtlassianAdapter",
     config: SefkProjectPlanReportingConfig,
@@ -612,25 +1298,26 @@ def _fetch_work_stream_epics(
     epic_rows: list[dict[str, Any]] = []
     seen: set[str] = set()
 
-    for epic_issue in _fetch_children(
-        adapter,
-        parent_key=work_stream_key,
-        issue_type=config.epic_issue_type,
-        fields=fields,
-    ):
-        epic_key = str(epic_issue.get("key") or "")
-        if not epic_key or epic_key in seen:
-            continue
-        seen.add(epic_key)
-        epic_issues[epic_key] = epic_issue
-        epic_rows.append(
-            _issue_timeline_row(
-                epic_issue,
-                fallback_start=fallback_start,
-                fallback_end=fallback_end,
-                milestone_issue_types=(),
+    for epic_type in (config.epic_issue_type, *config.additional_epic_types):
+        for epic_issue in _fetch_children(
+            adapter,
+            parent_key=work_stream_key,
+            issue_type=epic_type,
+            fields=fields,
+        ):
+            epic_key = str(epic_issue.get("key") or "")
+            if not epic_key or epic_key in seen:
+                continue
+            seen.add(epic_key)
+            epic_issues[epic_key] = epic_issue
+            epic_rows.append(
+                _issue_timeline_row(
+                    epic_issue,
+                    fallback_start=fallback_start,
+                    fallback_end=fallback_end,
+                    milestone_issue_types=(*config.milestone_issue_types, *config.gate_issue_types),
+                )
             )
-        )
 
     for epic_key in _linked_epic_keys(work_stream_issue, epic_issue_type=config.epic_issue_type):
         if epic_key in seen:
@@ -646,7 +1333,7 @@ def _fetch_work_stream_epics(
                 epic_issue,
                 fallback_start=fallback_start,
                 fallback_end=fallback_end,
-                milestone_issue_types=(),
+                milestone_issue_types=(*config.milestone_issue_types, *config.gate_issue_types),
             )
         )
 
@@ -664,7 +1351,7 @@ def _epics_for_work_stream(
     fallback_start: date,
     fallback_end: date,
 ) -> list[dict[str, Any]]:
-    epic_type = {config.epic_issue_type}
+    epic_type = {config.epic_issue_type, *config.additional_epic_types}
     epic_rows: list[dict[str, Any]] = []
     seen: set[str] = set()
 
@@ -682,7 +1369,7 @@ def _epics_for_work_stream(
                 by_key[epic_key],
                 fallback_start=fallback_start,
                 fallback_end=fallback_end,
-                milestone_issue_types=(),
+                milestone_issue_types=(*config.milestone_issue_types, *config.gate_issue_types),
             )
         )
 
@@ -695,7 +1382,7 @@ def _epics_for_work_stream(
                 by_key[epic_key],
                 fallback_start=fallback_start,
                 fallback_end=fallback_end,
-                milestone_issue_types=(),
+                milestone_issue_types=(*config.milestone_issue_types, *config.gate_issue_types),
             )
         )
 
@@ -719,6 +1406,7 @@ def _build_sefk_hierarchy_from_flat(
         config.sub_phase_issue_type,
         config.work_stream_issue_type,
         config.epic_issue_type,
+        *config.additional_epic_types,
     }
     by_key: dict[str, dict[str, Any]] = {}
     for issue in issues:
@@ -756,7 +1444,7 @@ def _build_sefk_hierarchy_from_flat(
             by_key[key],
             fallback_start=fallback_start,
             fallback_end=fallback_end,
-            milestone_issue_types=(),
+            milestone_issue_types=(*config.milestone_issue_types, *config.gate_issue_types),
         )
         row["epics"] = _epics_for_work_stream(
             key,
@@ -779,7 +1467,7 @@ def _build_sefk_hierarchy_from_flat(
             by_key[key],
             fallback_start=fallback_start,
             fallback_end=fallback_end,
-            milestone_issue_types=(),
+            milestone_issue_types=(*config.milestone_issue_types, *config.gate_issue_types),
         )
         ws_keys = _child_keys_for_types(
             key,
@@ -801,7 +1489,7 @@ def _build_sefk_hierarchy_from_flat(
             by_key[hub_key],
             fallback_start=fallback_start,
             fallback_end=fallback_end,
-            milestone_issue_types=(),
+            milestone_issue_types=(*config.milestone_issue_types, *config.gate_issue_types),
         )
         sub_phase_keys = _child_keys_for_types(
             hub_key,
@@ -809,6 +1497,7 @@ def _build_sefk_hierarchy_from_flat(
             by_key=by_key,
             issue_types=sub_phase_types,
         )
+        sub_phase_keys = _sort_sub_phase_sibling_keys(sub_phase_keys, by_key, config.sub_phase_order)
         phase_row["subPhases"] = [
             make_sub_phase(sp_key)
             for sp_key in sub_phase_keys
@@ -891,7 +1580,7 @@ def _fetch_sefk_via_phase_hubs(
             hub,
             fallback_start=fallback_start,
             fallback_end=fallback_end,
-            milestone_issue_types=(),
+            milestone_issue_types=(*config.milestone_issue_types, *config.gate_issue_types),
         )
         sub_phases_raw = _fetch_children(
             adapter,
@@ -899,7 +1588,7 @@ def _fetch_sefk_via_phase_hubs(
             issue_type=config.sub_phase_issue_type,
             fields=scope_fields,
         )
-        sub_phases_raw = sorted(sub_phases_raw, key=_issue_start_sort_key)
+        sub_phases_raw = _sort_sub_phase_issues(sub_phases_raw, config.sub_phase_order)
         sub_phases: list[dict[str, Any]] = []
         for sub_phase_issue in sub_phases_raw:
             sub_phase_key = str(sub_phase_issue.get("key") or "")
@@ -908,7 +1597,7 @@ def _fetch_sefk_via_phase_hubs(
                 sub_phase_issue,
                 fallback_start=fallback_start,
                 fallback_end=fallback_end,
-                milestone_issue_types=(),
+                milestone_issue_types=(*config.milestone_issue_types, *config.gate_issue_types),
             )
             work_streams_raw = _fetch_children(
                 adapter,
@@ -925,7 +1614,7 @@ def _fetch_sefk_via_phase_hubs(
                     work_stream_issue,
                     fallback_start=fallback_start,
                     fallback_end=fallback_end,
-                    milestone_issue_types=(),
+                    milestone_issue_types=(*config.milestone_issue_types, *config.gate_issue_types),
                 )
                 work_stream_row["epics"] = _fetch_work_stream_epics(
                     adapter,
@@ -958,6 +1647,7 @@ def fetch_sefk_project_plan_timeline(
         "created",
         "duedate",
         START_DATE_FIELD,
+        RUN_ORDER_FIELD,
         "issuelinks",
         "parent",
     ]
@@ -968,7 +1658,10 @@ def fetch_sefk_project_plan_timeline(
     hub_keys: list[str] = []
 
     if scope_filter_jql:
-        scope_filter_jql = f"({scope_filter_jql}) AND {sefk_scope_exclusion_jql()}"
+        scope_filter_jql = (
+            f"project = {config.project_key} AND ({scope_filter_jql}) "
+            f"AND {sefk_scope_exclusion_jql()}"
+        )
         all_issues = search_all(adapter, scope_filter_jql, scope_fields)
         phases, hub_keys, build_warnings, block_issues, epic_issues = _build_sefk_hierarchy_from_flat(
             all_issues,
@@ -987,6 +1680,15 @@ def fetch_sefk_project_plan_timeline(
             fallback_end=fallback_end,
         )
         warnings.extend(hub_warnings)
+
+    _attach_level_zero_rows(
+        adapter,
+        phases,
+        config=config,
+        fallback_start=fallback_start,
+        fallback_end=fallback_end,
+    )
+    _mark_sefk_special_rows(phases, config)
 
     _attach_rollups_to_phases(
         adapter,
@@ -1074,6 +1776,15 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
         return '<p class="footnote">No phases. Run fetch_sefk_project_plan_timeline.py --write.</p>'
 
     status_map = dict(payload.get("statusDtrain") or {})
+    blocked_by, blocks = _build_sefk_block_link_maps(phases)
+    rows_by_key = _sefk_rows_by_key(phases)
+    dependency_edges = [
+        (blocker_key, blocked_key)
+        for blocked_key, blocker_keys in blocked_by.items()
+        for blocker_key in blocker_keys
+    ]
+    row_positions: dict[str, tuple[float, float, float]] = {}
+    parent_by_key: dict[str, str] = {}
 
     def _append_sefk_bar(
         parts_list: list[str],
@@ -1096,7 +1807,11 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
             opacity=BAR_OPACITY,
             role=role,
             scope_overlay_opacity=SCOPE_OVERLAY_OPACITY,
+            blocked_by_keys=blocked_by.get(str(row.get("key") or ""), []),
+            blocks_keys=blocks.get(str(row.get("key") or ""), []),
+            rows_by_key=rows_by_key,
             render_scope_overlay=_sefk_render_scope_overlay(row),
+            render_dependency_icon=False,
         )
 
     x_min, x_max = resolve_chart_window_for_phases(phases)
@@ -1141,6 +1856,9 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
         f'<clipPath id="sef-plan-label-col-x">'
         f'<rect x="0" y="-10000" width="{plot_left - 8:.1f}" height="20000"/>'
         f"</clipPath>",
+        f'<marker id="dep-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">'
+        f'<path d="M 0 0 L 8 4 L 0 8 z" fill="#5e6c84"/>'
+        f"</marker>",
         "</defs>",
     ]
     parts.append(
@@ -1175,6 +1893,7 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
         phase_bar_y = y_cursor + (PHASE_ROW_HEIGHT - PHASE_BAR_HEIGHT) / 2
 
         if phase_key:
+            parent_by_key[phase_key] = ""
             _append_sefk_bar(
                 parts,
                 row=phase,
@@ -1184,15 +1903,23 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                 bar_h=PHASE_BAR_HEIGHT,
                 role="phase-bar",
             )
+            row_positions[phase_key] = (phase_x1, phase_row_cy, phase_x1 + phase_bar_w)
+            _append_sefk_issue_type_icon(
+                parts,
+                row=phase,
+                x=SEFK_PHASE_LABEL_X - 11,
+                y_center=phase_row_cy,
+            )
             _append_label_link(
                 parts,
                 text=_label_with_duration_metrics(phase_label, phase),
-                x=LABEL_PAD_X,
+                x=SEFK_PHASE_LABEL_X,
                 y_center=phase_row_cy,
                 url=f"{JIRA_SERVER}/browse/{html.escape(phase_key)}",
                 tooltip=_bar_tooltip(phase),
                 font_size=13,
                 font_weight="700",
+                row_key=phase_key,
             )
         y_cursor += PHASE_ROW_HEIGHT
 
@@ -1212,6 +1939,7 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
             collapsed_h = int(BLOCK_PAD_Y * 2 + SUB_PHASE_ROW_HEIGHT)
 
             if sub_phase_key:
+                parent_by_key[sub_phase_key] = phase_key
                 parts.append(
                     f'<g id="sefk-sp-{html.escape(sub_phase_key)}" transform="translate(0,0)" '
                     f'data-sub-h="{sub_content_h}" data-collapsed-h="{collapsed_h}">'
@@ -1219,7 +1947,7 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                 parts.append(
                     f'<rect id="sefk-bd-{html.escape(sub_phase_key)}" '
                     f'x="0" y="{block_y:.1f}" width="{plot_right:.1f}" height="{block_h:.1f}" '
-                    f'data-sefk-key="{html.escape(sub_phase_key)}" data-sef-row="1" '
+                    f'data-sef-key="{html.escape(sub_phase_key)}" data-sef-row="1" '
                     f'data-sef-role="sub-phase-border" data-sef-orig-y="{block_y:.1f}" '
                     f'data-sef-orig-height="{block_h:.1f}" '
                     f'fill="none" stroke="{ATL["ink"]}" stroke-width="{BLOCK_BORDER_WIDTH}"/>'
@@ -1239,20 +1967,28 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                     bar_h=SUB_PHASE_BAR_HEIGHT,
                     role="sub-phase-bar",
                 )
+                row_positions[sub_phase_key] = (x1, row_cy, x1 + bar_w)
+                _append_sefk_issue_type_icon(
+                    parts,
+                    row=sub_phase,
+                    x=SEFK_SUB_PHASE_LABEL_X - 11,
+                    y_center=row_cy,
+                )
                 _append_label_link(
                     parts,
                     text=_label_with_duration_metrics(sub_phase_label, sub_phase),
-                    x=LABEL_PAD_X + SUB_LABEL_INDENT,
+                    x=SEFK_SUB_PHASE_LABEL_X,
                     y_center=row_cy,
                     url=f"{JIRA_SERVER}/browse/{html.escape(sub_phase_key)}",
                     tooltip=_bar_tooltip(sub_phase),
                     font_weight="600",
+                    row_key=sub_phase_key,
                 )
                 if has_work_streams:
-                    chev_x = max(LABEL_PAD_X - 3, 6)
+                    chev_x = SEFK_SUB_PHASE_LABEL_X - 24
                     parts.append(
                         f'<text id="sefk-chev-sp-{html.escape(sub_phase_key)}" '
-                        f'data-sefk-key="{html.escape(sub_phase_key)}" data-sef-row="1" '
+                        f'data-sef-key="{html.escape(sub_phase_key)}" data-sef-row="1" '
                         f'x="{chev_x:.1f}" y="{row_cy + 4:.1f}" '
                         f'font-family="{SVG_FONT}" font-size="10" fill="{ATL["ink"]}" '
                         f'style="cursor:pointer;user-select:none" text-anchor="end" '
@@ -1298,21 +2034,30 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                     bar_h=WORK_STREAM_BAR_HEIGHT,
                     role="work-stream-bar",
                 )
+                if work_stream_key:
+                    parent_by_key[work_stream_key] = sub_phase_key
+                    row_positions[work_stream_key] = (wx1, sub_cy, wx1 + ws_bar_w)
                 ws_display = _sefk_work_stream_display_label(work_stream, sub_phase)
                 if work_stream_key:
+                    label_y = ws_row_cy_rel if (sub_phase_key and work_stream_key) else sub_cy
+                    _append_sefk_issue_type_icon(
+                        parts,
+                        row=work_stream,
+                        x=SEFK_WORK_STREAM_LABEL_X - 11,
+                        y_center=label_y,
+                    )
                     if epics:
-                        chev_ws_x = LABEL_PAD_X + SUB_LABEL_INDENT * 2 - 8
+                        chev_ws_x = SEFK_WORK_STREAM_LABEL_X - 24
                         chev_ws_y = (ws_row_cy_rel + 4) if (sub_phase_key and work_stream_key) else (sub_cy + 4)
                         parts.append(
                             f'<text id="sefk-chev-ws-{html.escape(work_stream_key)}" '
-                            f'data-sefk-key="{html.escape(work_stream_key)}" data-sef-row="1" '
+                            f'data-sef-key="{html.escape(work_stream_key)}" data-sef-row="1" '
                             f'x="{chev_ws_x:.1f}" y="{chev_ws_y:.1f}" '
                             f'font-family="{SVG_FONT}" font-size="9" fill="{ATL["ink"]}" '
                             f'style="cursor:pointer;user-select:none" text-anchor="end" '
                             f'onclick="sefkToggleWorkStream(event,&apos;{html.escape(work_stream_key)}&apos;)">'
                             f"&#x25BC;</text>"
                         )
-                    label_y = ws_row_cy_rel if (sub_phase_key and work_stream_key) else sub_cy
                     ws_label_text = _sefk_truncate_label(
                         _label_with_duration_metrics(ws_display, work_stream),
                         SEFK_WORK_STREAM_LABEL_MAX_CHARS,
@@ -1320,12 +2065,13 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                     _append_label_link(
                         parts,
                         text=ws_label_text,
-                        x=LABEL_PAD_X + SUB_LABEL_INDENT * 2,
+                        x=SEFK_WORK_STREAM_LABEL_X,
                         y_center=label_y,
                         url=f"{JIRA_SERVER}/browse/{html.escape(work_stream_key)}",
                         tooltip=_bar_tooltip(work_stream),
                         font_size=11,
                         clip_path="sef-plan-label-col-x" if (sub_phase_key and work_stream_key) else "sef-plan-label-col",
+                        row_key=work_stream_key,
                     )
                 else:
                     _append_label_text(
@@ -1334,7 +2080,7 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                             _label_with_duration_metrics(ws_display, work_stream),
                             SEFK_WORK_STREAM_LABEL_MAX_CHARS,
                         ),
-                        x=LABEL_PAD_X + SUB_LABEL_INDENT * 2,
+                        x=SEFK_WORK_STREAM_LABEL_X,
                         y_center=sub_cy,
                         tooltip=_bar_tooltip(work_stream),
                         font_size=11,
@@ -1343,10 +2089,12 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                 if epics and sub_phase_key and work_stream_key:
                     parts.append(f'<g id="sefk-sub-ws-{html.escape(work_stream_key)}">')
 
-                for epic_index, epic in enumerate(epics):
+                epic_cursor = WORK_STREAM_ROW_HEIGHT
+                for epic in epics:
                     epic_key = str(epic.get("key") or "")
                     epic_label = str(epic.get("summary") or epic_key)
-                    epic_rel_y = WORK_STREAM_ROW_HEIGHT + epic_index * EPIC_ROW_HEIGHT
+                    level_zero = epic.get("levelZero") or []
+                    epic_rel_y = epic_cursor
                     epic_bar_y_rel = epic_rel_y + (EPIC_ROW_HEIGHT - EPIC_BAR_HEIGHT) / 2
                     epic_cy_rel = epic_rel_y + EPIC_ROW_HEIGHT / 2
                     epic_cy = epic_cy_rel if (sub_phase_key and work_stream_key) else (block_y + ws_rel_y + epic_cy_rel)
@@ -1356,6 +2104,12 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                     ex2 = x_for(epic_end)
                     epic_bar_w = max(ex2 - ex1, 2.0)
                     epic_bar_y = epic_bar_y_rel if (sub_phase_key and work_stream_key) else (block_y + ws_rel_y + epic_bar_y_rel)
+                    if epic_key:
+                        parts.append(
+                            f'<g id="sefk-epic-{html.escape(epic_key)}" class="sefk-epic-row" '
+                            f'data-epic-key="{html.escape(epic_key)}" transform="translate(0,0)" '
+                            f'data-level-zero-h="{len(level_zero) * LEVEL_ZERO_ROW_HEIGHT}">'
+                        )
                     _append_sefk_bar(
                         parts,
                         row=epic,
@@ -1366,16 +2120,100 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                         role="epic-bar",
                     )
                     if epic_key:
+                        parent_by_key[epic_key] = work_stream_key
+                        row_positions[epic_key] = (
+                            ex1,
+                            block_y + ws_rel_y + epic_cy_rel,
+                            ex1 + epic_bar_w,
+                        )
+                    if epic_key:
+                        _append_sefk_issue_type_icon(
+                            parts,
+                            row=epic,
+                            x=SEFK_EPIC_LABEL_X - 10,
+                            y_center=epic_cy,
+                            size=11.0,
+                        )
                         _append_label_link(
                             parts,
                             text=_sefk_truncate_label(epic_label, SEFK_EPIC_LABEL_MAX_CHARS),
-                            x=LABEL_PAD_X + EPIC_LABEL_INDENT,
+                            x=SEFK_EPIC_LABEL_X,
                             y_center=epic_cy,
                             url=f"{JIRA_SERVER}/browse/{html.escape(epic_key)}",
                             tooltip=_bar_tooltip(epic),
                             font_size=10,
                             clip_path="sef-plan-label-col-x" if (sub_phase_key and work_stream_key) else "sef-plan-label-col",
+                            row_key=epic_key,
                         )
+
+                    if level_zero and epic_key:
+                        chev_epic_x = SEFK_EPIC_LABEL_X - 24
+                        parts.append(
+                            f'<text id="sefk-chev-epic-{html.escape(epic_key)}" '
+                            f'data-sef-key="{html.escape(epic_key)}" data-sef-row="1" '
+                            f'x="{chev_epic_x:.1f}" y="{epic_cy + 4:.1f}" '
+                            f'font-family="{SVG_FONT}" font-size="8" fill="{ATL["ink"]}" '
+                            f'style="cursor:pointer;user-select:none" text-anchor="end" '
+                            f'onclick="sefkToggleEpic(event,&apos;{html.escape(epic_key)}&apos;)">'
+                            f"&#x25B6;</text>"
+                        )
+                        parts.append(
+                            f'<g id="sefk-sub-epic-{html.escape(epic_key)}" visibility="hidden" style="display:none">'
+                        )
+
+                    for level_zero_index, level_zero in enumerate(level_zero):
+                        level_zero_key = str(level_zero.get("key") or "")
+                        level_zero_label = str(level_zero.get("summary") or level_zero_key)
+                        level_zero_rel_y = epic_rel_y + EPIC_ROW_HEIGHT + level_zero_index * LEVEL_ZERO_ROW_HEIGHT
+                        level_zero_bar_y_rel = level_zero_rel_y + (LEVEL_ZERO_ROW_HEIGHT - LEVEL_ZERO_BAR_HEIGHT) / 2
+                        level_zero_cy_rel = level_zero_rel_y + LEVEL_ZERO_ROW_HEIGHT / 2
+                        level_zero_cy = level_zero_cy_rel if (sub_phase_key and work_stream_key) else (block_y + ws_rel_y + level_zero_cy_rel)
+                        level_zero_start = date.fromisoformat(str(level_zero.get("startDate"))[:10])
+                        level_zero_end = date.fromisoformat(str(level_zero.get("endDate"))[:10])
+                        level_zero_x1 = x_for(level_zero_start)
+                        level_zero_x2 = x_for(level_zero_end)
+                        level_zero_bar_w = max(level_zero_x2 - level_zero_x1, 2.0)
+                        level_zero_bar_y = level_zero_bar_y_rel if (sub_phase_key and work_stream_key) else (block_y + ws_rel_y + level_zero_bar_y_rel)
+                        _append_sefk_bar(
+                            parts,
+                            row=level_zero,
+                            x1=level_zero_x1,
+                            bar_y=level_zero_bar_y,
+                            bar_w=level_zero_bar_w,
+                            bar_h=LEVEL_ZERO_BAR_HEIGHT,
+                            role="level-zero-bar",
+                        )
+                        if level_zero_key:
+                            parent_by_key[level_zero_key] = epic_key
+                            row_positions[level_zero_key] = (
+                                level_zero_x1,
+                                block_y + ws_rel_y + level_zero_cy_rel,
+                                level_zero_x1 + level_zero_bar_w,
+                            )
+                            _append_sefk_issue_type_icon(
+                                parts,
+                                row=level_zero,
+                                x=SEFK_LEVEL_ZERO_LABEL_X - 9,
+                                y_center=level_zero_cy,
+                                size=10.0,
+                            )
+                            _append_label_link(
+                                parts,
+                                text=_sefk_truncate_label(level_zero_label, SEFK_EPIC_LABEL_MAX_CHARS),
+                                x=SEFK_LEVEL_ZERO_LABEL_X,
+                                y_center=level_zero_cy,
+                                url=f"{JIRA_SERVER}/browse/{html.escape(level_zero_key)}",
+                                tooltip=_bar_tooltip(level_zero),
+                                font_size=9,
+                                clip_path="sef-plan-label-col-x" if (sub_phase_key and work_stream_key) else "sef-plan-label-col",
+                                row_key=level_zero_key,
+                            )
+
+                    if level_zero and epic_key:
+                        parts.append("</g>")
+                    if epic_key:
+                        parts.append("</g>")
+                    epic_cursor += EPIC_ROW_HEIGHT
 
                 if epics and sub_phase_key and work_stream_key:
                     parts.append("</g>")
@@ -1390,12 +2228,19 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                     {
                         "key": sub_phase_key,
                         "subH": sub_content_h,
+                        "baseSubH": sub_content_h,
                         "collapsedH": collapsed_h,
                     }
                 )
                 parts.append("</g>")
 
             y_cursor += block_h
+
+    _append_sefk_dependency_connectors(
+        parts,
+        edges=dependency_edges,
+        row_positions=row_positions,
+    )
 
     today = _chart_today_in_quarter(x_min, x_max)
     if today is not None:
@@ -1407,6 +2252,7 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
             plot_bottom=plot_bottom,
         )
 
+    parts.append('<g id="sefk-x-axis" data-offset-y="0">')
     _svg_x_axis_labels(
         parts,
         x_min=x_min,
@@ -1416,6 +2262,7 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
         plot_right=plot_right,
         x_for=x_for,
     )
+    parts.append("</g>")
 
     _svg_week_month_grid_config_element(
         parts,
@@ -1433,11 +2280,13 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
             f'visibility="hidden" fill="none">.</text>'
         )
 
+    parent_map_str = json.dumps(parent_by_key).replace('"', "&quot;")
     parts.append(
         f'<text id="sefk-cfg" data-block-pad-y="{BLOCK_PAD_Y}" '
         f'data-sub-phase-row-h="{SUB_PHASE_ROW_HEIGHT}" '
         f'data-work-stream-row-h="{WORK_STREAM_ROW_HEIGHT}" '
         f'data-epic-row-h="{EPIC_ROW_HEIGHT}" '
+        f'data-parent-map="{parent_map_str}" '
         f'visibility="hidden" fill="none">.</text>'
     )
 
@@ -1468,8 +2317,15 @@ def build_sefk_project_plan_report_html(
         for sub_phase in phase.get("subPhases") or []
         for work_stream in sub_phase.get("workStreams") or []
     )
+    level_zero_count = sum(
+        len(epic.get("levelZero") or [])
+        for phase in payload.get("phases") or []
+        for sub_phase in phase.get("subPhases") or []
+        for work_stream in sub_phase.get("workStreams") or []
+        for epic in work_stream.get("epics") or []
+    )
     footnote = (
-        f"{sub_phase_count} sub-phases, {work_stream_count} work streams, and {epic_count} epics "
+        f"{sub_phase_count} sub-phases, {work_stream_count} work streams, {epic_count} epics, and {level_zero_count} Level 0 items "
         f"from SEFK schedule items ({window_start} to {window_end}). "
         "Each bar runs from start date through due date. "
         "Bar colours show D-Train scope composition (Drive left, Dream right). "
@@ -1492,6 +2348,18 @@ def build_sefk_project_plan_report_html(
       <p class="footnote">{html.escape(footnote)}</p>
     </header>
     <section class="report-card chart-section">
+            <div class="sefk-view-controls" aria-label="Hierarchy controls">
+                <button type="button" onclick="sefkCollapseAll()">Collapse All</button>
+                <button type="button" data-hierarchy-level="phase" onclick="sefkShowPhaseLevel(this)">Phase</button>
+                <button type="button" data-hierarchy-level="workstream" onclick="sefkShowWorkStreamLevel(this)">Workstream</button>
+                <button type="button" data-hierarchy-level="epic" onclick="sefkShowEpicLevel(this)">Epic</button>
+                <button type="button" onclick="sefkExpandAll()">Expand All</button>
+            </div>
+            <div class="sefk-filter-controls" aria-label="Report filters">
+                <button type="button" onclick="sefkToggleFilter('milestone', this)">Milestones</button>
+                <button type="button" onclick="sefkToggleFilter('gate', this)">Gates</button>
+                <button type="button" onclick="sefkToggleFilter('dependency', this)">Dependencies</button>
+            </div>
       <div class="chart-wrap chart-wrap-timeline chart-wrap-milestone chart-wrap-sefk">{chart}</div>
       {sefk_dtrain_key_html()}
     </section>

@@ -15,13 +15,24 @@
     "phaseHub": "Phase",
     "subPhase": "Sub-Phase",
     "workStream": "Work Stream",
-    "epic": "Epic"
+    "epic": "Epic",
+    "milestones": ["Milestone Level One", "Milestone Level Zero"],
+    "gates": ["Gate", "Gate Level One"],
+    "additionalEpicTypes": ["Test Cycle Level One", "Milestone Level One", "Gate", "Gate Level One"]
   },
+  "subPhaseOrder": [
+    "Mobilisation",
+    "Architecture",
+    "Test",
+    "Cross Phases",
+    "Deploy"
+  ],
   "scopeIssueTypes": [
     "Task",
     "Action",
     "Sub-task",
-    "Deliverable"
+    "Deliverable",
+    "Milestone Level Zero"
   ],
   "statusDtrain": {
     "Not Started": "Dream",
@@ -35,7 +46,8 @@
     "In Progress": "Develop",
     "Final Review": "Demonstrate",
     "Approved": "Demonstrate",
-    "Completed": "Drive"
+    "Completed": "Drive",
+    "Closed": "Drive"
   },
   "artifacts": {
     "timelineJson": "sefk-project-plan-timeline.json",
