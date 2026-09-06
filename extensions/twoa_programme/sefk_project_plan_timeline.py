@@ -65,6 +65,7 @@ from extensions.twoa_programme.sef_project_plan_timeline import (
     RIGHT_PAD,
     SCOPE_OVERLAY_OPACITY,
     START_DATE_FIELD,
+    WORKSTREAM_FIELD_ID,
     STREAM_BAR_HEIGHT,
     STREAM_ROW_HEIGHT,
     SUB_LABEL_INDENT,
@@ -83,6 +84,7 @@ from extensions.twoa_programme.sef_project_plan_timeline import (
     _parse_day,
     _truncate_label,
     get_kpmg_reference_field_id,
+    set_kpmg_assignee_field_id,
     set_kpmg_reference_field_id,
 )
 from extensions.twoa_programme.sefk_project_plan_reporting import (
@@ -113,6 +115,7 @@ SEFK_EPIC_LABEL_X = LABEL_PAD_X + 102
 SEFK_LEVEL_ZERO_LABEL_X = LABEL_PAD_X + 126
 RUN_ORDER_FIELD = "customfield_10541"
 KPMG_REFERENCE_FIELD_NAME = "KPMG Reference"
+KPMG_ASSIGNEE_FIELD_NAME = "KPMG Assignee"
 KPMG_ATLASSIAN_SITE = "https://gate-pd232.atlassian.net"
 _KPMG_ISSUE_KEY_RE = re.compile(r"/browse/([A-Za-z][A-Za-z0-9]*-\d+)")
 
@@ -139,6 +142,17 @@ def _resolve_kpmg_reference_field_id(adapter: "AtlassianAdapter") -> str | None:
     except Exception:
         return None
     return aliases.get(KPMG_REFERENCE_FIELD_NAME) or None
+
+
+def _resolve_kpmg_assignee_field_id(adapter: "AtlassianAdapter") -> str | None:
+    try:
+        fields = adapter.jira_list_custom_fields(KPMG_ASSIGNEE_FIELD_NAME).get("fields") or []
+    except Exception:
+        return None
+    for field in fields:
+        if str(field.get("name") or "").strip().casefold() == KPMG_ASSIGNEE_FIELD_NAME.casefold():
+            return str(field.get("id") or "").strip() or None
+    return None
 
 
 def _sefk_issue_type_icon_url(row: dict[str, Any]) -> str:
@@ -276,6 +290,64 @@ SEFK_EXTRA_CSS = """
   background: #f4f7fb;
   padding: 12px;
 }
+.chart-wrap-sefk.chart-wrap-timeline.sefk-search-scroll {
+    max-height: 560px;
+    overflow-y: auto;
+}
+.sefk-flat-results {
+    display: none;
+    max-height: 560px;
+    overflow: auto;
+    background: #ffffff;
+}
+.sefk-flat-results.is-visible {
+    display: block;
+}
+.sefk-flat-results-summary {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+}
+.sefk-flat-result {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.35fr) minmax(170px, 0.75fr) minmax(220px, 1.6fr);
+    gap: 12px;
+    align-items: center;
+    min-height: 38px;
+    padding: 6px 10px;
+    border-bottom: 1px solid #ebecf0;
+}
+.sefk-flat-result:last-child { border-bottom: 0; }
+.sefk-flat-result-label {
+    min-width: 0;
+    color: #172b4d;
+    font-size: 12px;
+    line-height: 1.3;
+    text-decoration: none;
+}
+.sefk-flat-result-label:hover { text-decoration: underline; }
+.sefk-flat-result-dates {
+    color: var(--muted);
+    font-size: 11px;
+    white-space: nowrap;
+}
+.sefk-flat-result-track {
+    position: relative;
+    height: 12px;
+    border-radius: 2px;
+    background: repeating-linear-gradient(90deg, #f4f5f7 0, #f4f5f7 20px, #ebecf0 20px, #ebecf0 21px);
+}
+.sefk-flat-result-bar {
+    position: absolute;
+    top: 1px;
+    height: 10px;
+    min-width: 4px;
+    border-radius: 5px;
+}
+@media (max-width: 700px) {
+    .sefk-flat-result { grid-template-columns: 1fr; gap: 4px; }
+}
 .chart-wrap-sefk svg {
   display: block;
   width: 100%;
@@ -284,6 +356,8 @@ SEFK_EXTRA_CSS = """
 }
 .chart-wrap-sefk svg a text { text-decoration: none; }
 .chart-wrap-sefk svg a:hover text { text-decoration: underline; }
+.chart-wrap-sefk svg .sefk-search-match { opacity: 1; filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
+.chart-wrap-sefk svg .sefk-search-no-match { display: none; }
 .chart-grid-tooltip {
   position: absolute;
   z-index: 4;
@@ -326,51 +400,76 @@ SEFK_EXTRA_CSS = """
   cursor: pointer;
   user-select: none;
 }
+.sefk-control-bar {
+    display: grid;
+    grid-template-columns: 240px 290px minmax(0, 1fr);
+    margin: 0 0 12px;
+    border: 1px solid #dfe5ee;
+    border-radius: 6px;
+    background: #fbfcfe;
+}
+.sefk-control-group {
+    min-width: 0;
+    padding: 11px 12px 12px;
+}
+.sefk-control-group + .sefk-control-group { border-left: 1px solid #e1e6ee; }
+.sefk-control-group--search { background: #f4f7fb; }
+.sefk-control-group-title {
+    display: block;
+    margin: 0 0 6px;
+    color: #42526e;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
 .sefk-view-controls {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     margin: 0 0 10px;
 }
+.sefk-hierarchy-actions,
+.sefk-hierarchy-levels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+}
+.sefk-hierarchy-levels { margin-top: 6px; }
 .sefk-view-controls button,
-.sefk-filter-controls button {
-    border: 1px solid #c3ccda;
-    border-bottom-color: #a9b6cc;
-    border-radius: 999px;
-    background: linear-gradient(180deg, #ffffff 0%, #f4f7fc 100%);
+.sefk-filter-controls button,
+.sefk-search-controls button {
+    border: 1px solid #c7d0df;
+    border-radius: 5px;
+    background: #ffffff;
     color: var(--text);
     cursor: pointer;
     font: inherit;
     font-size: 12px;
-    box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.7) inset,
-        0 1px 2px rgba(9, 30, 66, 0.16),
-        0 1px 0 rgba(9, 30, 66, 0.05);
-    transition: box-shadow 120ms ease, transform 60ms ease, background 120ms ease;
+    box-shadow: none;
+    transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
 }
 .sefk-view-controls button {
     padding: 5px 12px;
 }
 .sefk-view-controls button:hover,
-.sefk-filter-controls button:hover {
-    background: linear-gradient(180deg, #ffffff 0%, #eaf0fb 100%);
-    box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.8) inset,
-        0 3px 6px rgba(9, 30, 66, 0.22);
+.sefk-filter-controls button:hover,
+.sefk-search-controls button:hover {
+    border-color: #7a8daa;
+    background: #eef4ff;
 }
 .sefk-view-controls button:active,
-.sefk-filter-controls button:active {
-    box-shadow: 0 1px 3px rgba(9, 30, 66, 0.22) inset;
-    transform: translateY(1px);
+.sefk-filter-controls button:active,
+.sefk-search-controls button:active {
+    background: #deebff;
 }
 .sefk-view-controls button.is-active,
 .sefk-filter-controls button.is-active {
-    background: linear-gradient(180deg, #588aff 0%, #2f4fe0 100%);
-    border-color: #2444c9;
+    background: #0052cc;
+    border-color: #0052cc;
     color: #ffffff;
-    box-shadow:
-        0 1px 3px rgba(9, 30, 66, 0.35) inset,
-        0 1px 0 rgba(255, 255, 255, 0.2) inset;
+    box-shadow: none;
 }
 .sefk-filter-controls {
     display: flex;
@@ -380,6 +479,59 @@ SEFK_EXTRA_CSS = """
 }
 .sefk-filter-controls button {
     padding: 4px 9px;
+}
+.sefk-control-group .sefk-view-controls,
+.sefk-control-group .sefk-filter-controls,
+.sefk-control-group .sefk-search-controls { margin: 0; }
+.sefk-search-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 10px;
+}
+.sefk-search-controls label {
+    font-size: 12px;
+    color: var(--muted);
+}
+.sefk-search-controls input,
+.sefk-search-controls select {
+    min-height: 28px;
+    border: 1px solid #aeb8c8;
+    border-radius: 4px;
+    background: #ffffff;
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+    padding: 3px 7px;
+}
+.sefk-search-controls #sefk-search-input { width: 180px; }
+.sefk-search-controls #sefk-assignee-filter { width: 150px; }
+.sefk-search-controls #sefk-label-filter { width: 130px; }
+.sefk-search-controls {
+    display: grid;
+    grid-template-columns: auto minmax(110px, 1fr) auto minmax(110px, 1fr);
+    gap: 7px 6px;
+}
+.sefk-search-controls input,
+.sefk-search-controls select { width: 100% !important; min-width: 0; }
+.sefk-search-controls button { grid-column: 1 / -1; justify-self: start; }
+.sefk-overdue-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text) !important;
+    cursor: pointer;
+}
+@media (max-width: 1100px) {
+    .sefk-control-bar { grid-template-columns: 1fr 1fr; }
+    .sefk-control-group--search { grid-column: 1 / -1; border-top: 1px solid #d9e0eb; border-left: 0 !important; }
+}
+@media (max-width: 620px) {
+    .sefk-control-bar { grid-template-columns: 1fr; }
+    .sefk-control-group + .sefk-control-group { border-top: 1px solid #d9e0eb; border-left: 0; }
+    .sefk-control-group--search { grid-column: auto; }
+    .sefk-search-controls { grid-template-columns: auto minmax(0, 1fr); }
 }
 .sefk-dependency-connector {
     cursor: help;
@@ -1032,6 +1184,372 @@ SEFK_COLLAPSE_SCRIPT = """
         });
     }
 
+    function normalizeSearchQuery(value) {
+        return String(value || '').trim().toLowerCase()
+            .replace(/[._/\\-]+/g, ' ')
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .replace(/\s+/g, ' ');
+    }
+
+    function buildSearchTerms(query) {
+        var issueKeyMatch = String(query || '').trim().match(/^([a-z][a-z0-9]*)[-_\s]?(\d+)$/i);
+        if (issueKeyMatch) {
+            return ['issuekey:' + issueKeyMatch[1].toLowerCase() + issueKeyMatch[2]];
+        }
+        var normalized = normalizeSearchQuery(query);
+        return normalized ? normalized.split(/\s+/).filter(Boolean) : [];
+    }
+
+    function searchableMatchText(value) {
+        return String(value || '').trim().toLowerCase()
+            .replace(/[^a-z0-9]+/g, ' ')
+            .replace(/\s+/g, ' ');
+    }
+
+    function buildSearchVariants(value) {
+        var normalized = searchableMatchText(value);
+        if (!normalized) return [];
+        var words = normalized.split(/\s+/).filter(Boolean);
+        var variants = {};
+        function addVariant(candidate) {
+            if (!candidate || !candidate.length) return;
+            variants[candidate] = true;
+        }
+        addVariant(normalized);
+        addVariant(normalized.replace(/\s+/g, ''));
+        words.forEach(function (word) {
+            addVariant(word);
+            for (var i = 1; i <= word.length; i++) {
+                addVariant(word.slice(0, i));
+            }
+            if (word.length > 2) {
+                addVariant(word.slice(0, 3));
+            }
+        });
+        if (words.length > 1) {
+            addVariant(words.map(function (word) { return word.charAt(0); }).join(''));
+        }
+        return Object.keys(variants);
+    }
+
+    function matchesSearchTerms(value, terms) {
+        if (!terms.length) return true;
+        if (terms.length === 1 && terms[0].indexOf('issuekey:') === 0) {
+            var requestedKey = terms[0].slice('issuekey:'.length);
+            var keyPattern = /(?:^|[^a-z0-9])([a-z][a-z0-9]*)[-_\s](\d+)(?=$|[^a-z0-9])/gi;
+            var keyMatch;
+            while ((keyMatch = keyPattern.exec(String(value || ''))) !== null) {
+                if ((keyMatch[1].toLowerCase() + keyMatch[2]) === requestedKey) return true;
+            }
+            return false;
+        }
+        var normalized = searchableMatchText(value);
+        if (!normalized) return false;
+        var words = normalized.split(/\s+/).filter(Boolean);
+        return terms.every(function (term) {
+            var normalizedTerm = normalizeSearchQuery(term);
+            if (!normalizedTerm) return false;
+            var compactTerm = normalizedTerm.replace(/\s+/g, '');
+            if (
+                (' ' + normalized + ' ').indexOf(' ' + normalizedTerm + ' ') >= 0 ||
+                normalized.replace(/\s+/g, '') === compactTerm
+            ) {
+                return true;
+            }
+            return normalizedTerm.length >= 3 && words.some(function (word) {
+                return word.length >= 3 && word.indexOf(normalizedTerm) === 0;
+            });
+        });
+    }
+
+    function filterValuesForNode(svg, node, name) {
+        var value = node.getAttribute('data-sefk-' + name) || '';
+        if (!value) {
+            var key = (node.getAttribute('data-sef-key') || '').trim();
+            var source = key ? svg.querySelector('[data-sef-key="' + key + '"][data-sef-role$="-bar"]') : null;
+            value = source ? (source.getAttribute('data-sefk-' + name) || '') : '';
+        }
+        return value.split('|').map(function (item) { return item.trim(); }).filter(Boolean);
+    }
+
+    function nodeMatchesSearchFilters(svg, node, terms, assignee, workstream, labelTerms, statusCategory, overdue) {
+        var searchable = node.getAttribute('data-sefk-searchable') || '';
+        if (!searchable) {
+            var key = (node.getAttribute('data-sef-key') || '').trim();
+            var source = key ? svg.querySelector('[data-sef-key="' + key + '"][data-sef-role$="-bar"]') : null;
+            searchable = source ? (source.getAttribute('data-sefk-searchable') || '') : '';
+        }
+        if (!matchesSearchTerms(searchable, terms)) return false;
+        if (assignee && filterValuesForNode(svg, node, 'assignee').indexOf(assignee) < 0) return false;
+        if (workstream && filterValuesForNode(svg, node, 'workstreams').indexOf(workstream) < 0) return false;
+        if (!matchesSearchTerms(filterValuesForNode(svg, node, 'labels').join(' '), labelTerms)) return false;
+        if (statusCategory && filterValuesForNode(svg, node, 'status-category').indexOf(statusCategory) < 0) return false;
+        if (!overdue) return true;
+        var dueDate = filterValuesForNode(svg, node, 'due-date')[0] || '';
+        var today = new Date().toISOString().slice(0, 10);
+        return !!dueDate && dueDate < today && filterValuesForNode(svg, node, 'status-category').indexOf('Done') < 0;
+    }
+
+    function resetSearchViewport(svg) {
+        var baseHeight = parseFloat(svg.getAttribute('data-sefk-search-base-height') || '');
+        if (!isFinite(baseHeight)) return;
+        var viewBox = (svg.getAttribute('viewBox') || '0 0 0 0').split(' ').map(Number);
+        if (viewBox.length >= 4 && isFinite(viewBox[3])) {
+            resizeSvg(svg, baseHeight - viewBox[3]);
+        }
+        svg.removeAttribute('data-sefk-search-base-height');
+    }
+
+    function resetSearchLayout(svg) {
+        svg.querySelectorAll('[data-sefk-search-original-transform]').forEach(function (node) {
+            node.setAttribute('transform', node.getAttribute('data-sefk-search-original-transform'));
+            node.removeAttribute('data-sefk-search-original-transform');
+        });
+    }
+
+    function compactSearchLayout(svg) {
+        var svgRect = svg.getBoundingClientRect();
+        var viewBox = (svg.getAttribute('viewBox') || '0 0 0 0').split(' ').map(Number);
+        if (!svgRect.height || viewBox.length < 4 || !isFinite(viewBox[3])) return;
+        var rows = {};
+        svg.querySelectorAll('.sefk-search-match[data-sef-role$="-bar"]').forEach(function (bar) {
+            var key = (bar.getAttribute('data-sef-key') || '').trim();
+            var rect = bar.getBoundingClientRect();
+            if (!key || (!rect.height && !rect.width) || rows[key]) return;
+            rows[key] = { key: key, top: rect.top, bottom: rect.bottom };
+        });
+        var orderedRows = Object.keys(rows).map(function (key) { return rows[key]; });
+        orderedRows.sort(function (left, right) {
+            return left.top - right.top;
+        });
+        var nextTop = svgRect.top + 24;
+        var unitsPerPixel = viewBox[3] / svgRect.height;
+        orderedRows.forEach(function (row) {
+            var delta = (nextTop - row.top) * unitsPerPixel;
+            svg.querySelectorAll('[data-sef-key="' + row.key + '"].sefk-search-match').forEach(function (node) {
+                var transform = node.getAttribute('transform') || '';
+                if (!node.hasAttribute('data-sefk-search-original-transform')) {
+                    node.setAttribute('data-sefk-search-original-transform', transform);
+                }
+                node.setAttribute('transform', 'translate(0,' + delta.toFixed(1) + ')' + transform);
+            });
+            nextTop += Math.max(row.bottom - row.top, 12) + 8;
+        });
+    }
+
+    function compactSearchViewport(svg) {
+        var viewBox = (svg.getAttribute('viewBox') || '0 0 0 0').split(' ').map(Number);
+        var svgRect = svg.getBoundingClientRect();
+        if (viewBox.length < 4 || !svgRect.height || !isFinite(viewBox[3])) return;
+        if (!svg.hasAttribute('data-sefk-search-base-height')) {
+            svg.setAttribute('data-sefk-search-base-height', String(viewBox[3]));
+        }
+        var contentBottom = 0;
+        svg.querySelectorAll('.sefk-search-match').forEach(function (node) {
+            var rect = node.getBoundingClientRect();
+            if (rect.height || rect.width) contentBottom = Math.max(contentBottom, rect.bottom - svgRect.top);
+        });
+        if (!contentBottom) return;
+        var unitsPerPixel = viewBox[3] / svgRect.height;
+        var targetHeight = Math.max(160, Math.ceil((contentBottom + 50) * unitsPerPixel));
+        resizeSvg(svg, targetHeight - viewBox[3]);
+    }
+
+    function resetSearchScrollViewport(svg) {
+        var wrap = svg.closest('.chart-wrap-sefk');
+        var axis = svg.getElementById('sefk-x-axis');
+        if (wrap && wrap._sefkStickyAxisHandler) {
+            wrap.removeEventListener('scroll', wrap._sefkStickyAxisHandler);
+            delete wrap._sefkStickyAxisHandler;
+        }
+        if (wrap) {
+            wrap.classList.remove('sefk-search-scroll');
+            wrap.scrollTop = 0;
+        }
+        if (axis) {
+            var axisOffset = parseFloat(axis.getAttribute('data-offset-y') || '0') || 0;
+            axis.setAttribute('transform', 'translate(0,' + axisOffset + ')');
+        }
+    }
+
+    function enableSearchScrollViewport(svg) {
+        var wrap = svg.closest('.chart-wrap-sefk');
+        var axis = svg.getElementById('sefk-x-axis');
+        if (!wrap || !axis) return;
+        wrap.classList.add('sefk-search-scroll');
+        var baseOffset = parseFloat(axis.getAttribute('data-offset-y') || '0') || 0;
+        var axisBox = axis.getBBox();
+        var basePosition = axisBox.y + baseOffset;
+        function positionAxis() {
+            var viewBox = (svg.getAttribute('viewBox') || '0 0 0 0').split(' ').map(Number);
+            var svgRect = svg.getBoundingClientRect();
+            var wrapRect = wrap.getBoundingClientRect();
+            if (viewBox.length < 4 || !svgRect.height || !isFinite(viewBox[3])) return;
+            var unitsPerPixel = viewBox[3] / svgRect.height;
+            var desiredPosition = (wrapRect.bottom - 30 - svgRect.top) * unitsPerPixel;
+            axis.setAttribute('transform', 'translate(0,' + (baseOffset + desiredPosition - basePosition).toFixed(1) + ')');
+        }
+        wrap._sefkStickyAxisHandler = positionAxis;
+        wrap.addEventListener('scroll', positionAxis);
+        positionAxis();
+    }
+
+    function resetFlatSearchResults(svg) {
+        var wrap = svg.closest('.chart-wrap-sefk');
+        if (!wrap) return;
+        var results = wrap.querySelector('.sefk-flat-results');
+        if (results) {
+            results.replaceChildren();
+            results.classList.remove('is-visible');
+        }
+        svg.style.display = '';
+    }
+
+    function renderFlatSearchResults(svg) {
+        var wrap = svg.closest('.chart-wrap-sefk');
+        if (!wrap) return;
+        var results = wrap.querySelector('.sefk-flat-results');
+        if (!results) {
+            results = document.createElement('div');
+            results.className = 'sefk-flat-results';
+            results.setAttribute('aria-live', 'polite');
+            wrap.insertBefore(results, svg);
+        }
+        var rows = {};
+        svg.querySelectorAll('.sefk-search-match[data-sef-role$="-bar"]').forEach(function (bar) {
+            var key = (bar.getAttribute('data-sef-key') || '').trim();
+            if (!key || rows[key]) return;
+            var box = bar.getBBox();
+            rows[key] = { key: key, bar: bar, y: box.y, x: box.x, width: box.width };
+        });
+        var orderedRows = Object.keys(rows).map(function (key) { return rows[key]; });
+        orderedRows.sort(function (left, right) { return left.y - right.y; });
+        var minX = Math.min.apply(null, orderedRows.map(function (row) { return row.x; }));
+        var maxX = Math.max.apply(null, orderedRows.map(function (row) { return row.x + row.width; }));
+        var span = Math.max(maxX - minX, 1);
+        var fragment = document.createDocumentFragment();
+        var summary = document.createElement('div');
+        summary.className = 'sefk-flat-results-summary';
+        summary.textContent = orderedRows.length + (orderedRows.length === 1 ? ' matching item' : ' matching items');
+        fragment.appendChild(summary);
+        orderedRows.forEach(function (row) {
+            var result = document.createElement('article');
+            result.className = 'sefk-flat-result';
+            var labelGroup = Array.from(svg.querySelectorAll('[data-sef-key="' + row.key + '"].sefk-search-match')).find(function (node) {
+                return !!node.querySelector('a');
+            });
+            var anchor = labelGroup ? labelGroup.querySelector('a') : null;
+            var label = document.createElement(anchor ? 'a' : 'span');
+            label.className = 'sefk-flat-result-label';
+            var title = row.bar.querySelector('title');
+            var labelText = (anchor ? anchor.textContent : '').trim().replace(/\s+/g, ' ');
+            if (!labelText && title) {
+                labelText = (title.textContent.split('Timeline:')[0] || '').trim().replace(/\s+/g, ' ');
+            }
+            label.textContent = labelText || row.key;
+            if (anchor && anchor.getAttribute('href')) label.setAttribute('href', anchor.getAttribute('href'));
+            result.appendChild(label);
+            var dates = document.createElement('span');
+            dates.className = 'sefk-flat-result-dates';
+            var dateMatch = title && title.textContent.match(/Timeline:\s*(\d{4}-\d{2}-\d{2})\S*\s*to\s*(\d{4}-\d{2}-\d{2})/);
+            dates.textContent = dateMatch ? dateMatch[1] + ' to ' + dateMatch[2] : '';
+            result.appendChild(dates);
+            var track = document.createElement('div');
+            track.className = 'sefk-flat-result-track';
+            var bar = document.createElement('span');
+            bar.className = 'sefk-flat-result-bar';
+            var barRect = row.bar.querySelector('rect');
+            bar.style.left = (((row.x - minX) / span) * 100).toFixed(2) + '%';
+            bar.style.width = Math.max((row.width / span) * 100, 1).toFixed(2) + '%';
+            bar.style.background = barRect ? (barRect.getAttribute('fill') || '#0052cc') : '#0052cc';
+            track.appendChild(bar);
+            result.appendChild(track);
+            fragment.appendChild(result);
+        });
+        results.replaceChildren(fragment);
+        results.classList.add('is-visible');
+        svg.style.display = 'none';
+    }
+
+    function applySearchFilter(svg, query) {
+        var searchTerms = buildSearchTerms(query);
+        var terms = searchTerms;
+        var assignee = (document.getElementById('sefk-assignee-filter') || {}).value || '';
+        var workstream = (document.getElementById('sefk-workstream-filter') || {}).value || '';
+        var labelTerms = buildSearchTerms((document.getElementById('sefk-label-filter') || {}).value || '');
+        var statusCategory = (document.getElementById('sefk-status-category-filter') || {}).value || '';
+        var overdue = !!((document.getElementById('sefk-overdue-filter') || {}).checked);
+        var filtersActive = terms.length || assignee || workstream || labelTerms.length || statusCategory || overdue;
+        if (!svg) return;
+        resetFlatSearchResults(svg);
+        resetSearchScrollViewport(svg);
+        resetSearchViewport(svg);
+        resetSearchLayout(svg);
+        svg.querySelectorAll('[data-sef-key]').forEach(function (node) {
+            var key = (node.getAttribute('data-sef-key') || '').trim();
+            var isStructuralBorder = node.getAttribute('data-sef-role') === 'sub-phase-border';
+            var matches = !isStructuralBorder && nodeMatchesSearchFilters(svg, node, terms, assignee, workstream, labelTerms, statusCategory, overdue);
+            node.classList.toggle('sefk-search-match', !!(filtersActive && matches));
+            node.classList.toggle('sefk-search-no-match', !!(filtersActive && !matches));
+            if (!filtersActive) {
+                node.style.opacity = '';
+                node.style.display = '';
+                node.style.filter = '';
+                return;
+            }
+            node.style.opacity = matches ? '1' : '0.12';
+            node.style.display = matches ? '' : 'none';
+            if (matches) {
+                node.style.filter = 'drop-shadow(0 0 0 rgba(0,0,0,0))';
+            } else {
+                node.style.filter = 'saturate(0.75)';
+            }
+        });
+        svg.querySelectorAll('[data-sef-dep-from][data-sef-dep-to]').forEach(function (node) {
+            var from = (node.getAttribute('data-sef-dep-from') || '').trim();
+            var to = (node.getAttribute('data-sef-dep-to') || '').trim();
+            var fromNode = svg.querySelector('[data-sef-key="' + from + '"]');
+            var toNode = svg.querySelector('[data-sef-key="' + to + '"]');
+            if (!filtersActive) {
+                node.style.opacity = '';
+                node.style.display = '';
+                return;
+            }
+            var fromMatch = fromNode && nodeMatchesSearchFilters(svg, fromNode, terms, assignee, workstream, labelTerms, statusCategory, overdue);
+            var toMatch = toNode && nodeMatchesSearchFilters(svg, toNode, terms, assignee, workstream, labelTerms, statusCategory, overdue);
+            var visible = fromMatch || toMatch;
+            node.style.opacity = visible ? '1' : '0.12';
+            node.style.display = visible ? '' : 'none';
+        });
+        svg.querySelectorAll('.sefk-alert-badge').forEach(function (badge) {
+            badge.style.display = filtersActive ? 'none' : '';
+        });
+        if (filtersActive) {
+            renderFlatSearchResults(svg);
+        }
+    }
+
+    function clearSearchFilter(svg) {
+        if (!svg) return;
+        resetFlatSearchResults(svg);
+        resetSearchScrollViewport(svg);
+        resetSearchViewport(svg);
+        resetSearchLayout(svg);
+        svg.querySelectorAll('[data-sef-key]').forEach(function (node) {
+            node.classList.remove('sefk-search-match', 'sefk-search-no-match');
+            node.style.opacity = '';
+            node.style.display = '';
+            node.style.filter = '';
+        });
+        svg.querySelectorAll('[data-sef-dep-from][data-sef-dep-to]').forEach(function (node) {
+            node.style.opacity = '';
+            node.style.display = '';
+        });
+        svg.querySelectorAll('.sefk-alert-badge').forEach(function (badge) {
+            badge.style.display = '';
+        });
+    }
+
     function applySefkFilter(svg, kind) {
         resetAllLevelZeroRowFilters(svg);
         resetEpicVisibilityFilter(svg);
@@ -1108,6 +1626,82 @@ SEFK_COLLAPSE_SCRIPT = """
         sefkActiveFilter = { svg: svg, kind: kind };
         applySefkFilter(svg, kind);
     };
+
+    window.sefkSearch = function (input) {
+        var section = input.closest('.chart-section');
+        var svg = section ? section.querySelector('svg') : null;
+        if (!svg) return;
+        var searchTerms = buildSearchTerms(input ? input.value : '');
+        var assignee = (document.getElementById('sefk-assignee-filter') || {}).value || '';
+        var workstream = (document.getElementById('sefk-workstream-filter') || {}).value || '';
+        var labels = (document.getElementById('sefk-label-filter') || {}).value || '';
+        var statusCategory = (document.getElementById('sefk-status-category-filter') || {}).value || '';
+        var overdue = !!((document.getElementById('sefk-overdue-filter') || {}).checked);
+        if (!searchTerms.length && !assignee && !workstream && !labels && !statusCategory && !overdue) {
+            clearSearchFilter(svg);
+            return;
+        }
+        applySearchFilter(svg, input.value);
+    };
+
+    window.sefkApplySearchFilters = function () {
+        var input = document.getElementById('sefk-search-input');
+        if (input) window.sefkSearch(input);
+    };
+
+    window.sefkClearSearch = function () {
+        var input = document.getElementById('sefk-search-input');
+        if (input) input.value = '';
+        var assignee = document.getElementById('sefk-assignee-filter');
+        var workstream = document.getElementById('sefk-workstream-filter');
+        var labels = document.getElementById('sefk-label-filter');
+        var statusCategory = document.getElementById('sefk-status-category-filter');
+        var overdue = document.getElementById('sefk-overdue-filter');
+        if (assignee) assignee.value = '';
+        if (workstream) workstream.value = '';
+        if (labels) labels.value = '';
+        if (statusCategory) statusCategory.value = '';
+        if (overdue) overdue.checked = false;
+        var section = document.querySelector('.chart-section');
+        var svg = section ? section.querySelector('svg') : null;
+        clearSearchFilter(svg);
+    };
+
+    function populateSearchFilterOptions() {
+        var svg = document.querySelector('.chart-section svg');
+        if (!svg) return;
+        [
+            ['sefk-assignee-options', 'assignee'],
+            ['sefk-workstream-filter', 'workstreams'],
+            ['sefk-status-category-filter', 'status-category']
+        ].forEach(function (spec) {
+            var target = document.getElementById(spec[0]);
+            if (!target) return;
+            var values = {};
+            svg.querySelectorAll('[data-sef-role$="-bar"]').forEach(function (node) {
+                filterValuesForNode(svg, node, spec[1]).forEach(function (value) { values[value] = true; });
+            });
+            Object.keys(values).sort(function (left, right) { return left.localeCompare(right); }).forEach(function (value) {
+                var option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                target.appendChild(option);
+            });
+        });
+        var labels = {};
+        svg.querySelectorAll('[data-sef-role$="-bar"]').forEach(function (node) {
+            filterValuesForNode(svg, node, 'labels').forEach(function (value) { labels[value] = true; });
+        });
+        var list = document.getElementById('sefk-label-options');
+        if (!list) return;
+        Object.keys(labels).sort(function (left, right) { return left.localeCompare(right); }).forEach(function (value) {
+            var option = document.createElement('option');
+            option.value = value;
+            list.appendChild(option);
+        });
+    }
+
+    populateSearchFilterOptions();
 
     function setDependencyHighlight(svg, fromKey, toKey, active) {
         var relatedKeys = {};
@@ -1205,6 +1799,12 @@ SEFK_COLLAPSE_SCRIPT = """
         var ns = 'http://www.w3.org/2000/svg';
         var badge = document.createElementNS(ns, 'g');
         badge.setAttribute('class', 'sefk-alert-badge sefk-alert-' + severity);
+        var rowKey = (barEl.getAttribute('data-sef-key') || '').trim();
+        if (rowKey) {
+            badge.setAttribute('data-sef-key', rowKey);
+            badge.setAttribute('data-sef-role', 'alert-badge');
+            badge.setAttribute('data-sefk-searchable', barEl.getAttribute('data-sefk-searchable') || '');
+        }
         var circle = document.createElementNS(ns, 'circle');
         circle.setAttribute('cx', (bbox.x - 6).toFixed(1));
         circle.setAttribute('cy', (bbox.y + bbox.height / 2).toFixed(1));
@@ -1458,6 +2058,33 @@ def _sefk_truncate_label(text: str, max_chars: int = LABEL_MAX_CHARS) -> str:
     if len(cleaned) <= max_chars:
         return cleaned
     return f"{cleaned[: max_chars - 1]}…"
+
+
+def _sefk_searchable_text(row: dict[str, Any]) -> str:
+    parts: list[str] = []
+    for field in ("summary", "key", "kpmgIssueKey", "kpmgReferenceUrl"):
+        value = row.get(field)
+        if isinstance(value, (list, tuple, set)):
+            for item in value:
+                text = str(item or "").strip()
+                if text:
+                    parts.append(text)
+        elif isinstance(value, dict):
+            for nested in value.values():
+                text = str(nested or "").strip()
+                if text:
+                    parts.append(text)
+        else:
+            text = str(value or "").strip()
+            if text:
+                parts.append(text)
+    key = str(row.get("key") or "").strip()
+    if key:
+        parts.append(key)
+    kpmg_key = str(row.get("kpmgIssueKey") or "").strip()
+    if kpmg_key:
+        parts.append(kpmg_key)
+    return " ".join(part for part in parts if part)
 
 
 def _sefk_work_stream_display_label(
@@ -1721,7 +2348,10 @@ def _attach_level_zero_rows(
     ]
     if not epics:
         return
-    child_fields = ["summary", "status", "issuetype", "created", "duedate", START_DATE_FIELD, "issuelinks", "parent", "labels"]
+    child_fields = [
+        "summary", "status", "issuetype", "created", "duedate", START_DATE_FIELD, "issuelinks", "parent",
+        "assignee", "components", "labels", WORKSTREAM_FIELD_ID,
+    ]
     kpmg_reference_field_id = get_kpmg_reference_field_id()
     if kpmg_reference_field_id and kpmg_reference_field_id not in child_fields:
         child_fields.append(kpmg_reference_field_id)
@@ -2112,6 +2742,8 @@ def fetch_sefk_project_plan_timeline(
     fallback_end = date.fromisoformat(config.chart_window_end)
     kpmg_reference_field_id = _resolve_kpmg_reference_field_id(adapter)
     set_kpmg_reference_field_id(kpmg_reference_field_id)
+    kpmg_assignee_field_id = _resolve_kpmg_assignee_field_id(adapter)
+    set_kpmg_assignee_field_id(kpmg_assignee_field_id)
     fields = [
         "summary",
         "status",
@@ -2122,9 +2754,15 @@ def fetch_sefk_project_plan_timeline(
         RUN_ORDER_FIELD,
         "issuelinks",
         "parent",
+        "assignee",
+        "components",
+        "labels",
+        WORKSTREAM_FIELD_ID,
     ]
     if kpmg_reference_field_id:
         fields.append(kpmg_reference_field_id)
+    if kpmg_assignee_field_id:
+        fields.append(kpmg_assignee_field_id)
     scope_fields = [*fields]
 
     scope_filter_jql = resolve_scope_filter_jql(adapter, config)
@@ -2578,6 +3216,7 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                         font_size=11,
                         clip_path="sef-plan-label-col-x" if (sub_phase_key and work_stream_key) else "sef-plan-label-col",
                         row_key=work_stream_key,
+                        searchable_text=_sefk_searchable_text(work_stream),
                     )
                 else:
                     _append_label_text(
@@ -2652,6 +3291,7 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                             font_size=10,
                             clip_path="sef-plan-label-col-x" if (sub_phase_key and work_stream_key) else "sef-plan-label-col",
                             row_key=epic_key,
+                            searchable_text=_sefk_searchable_text(epic),
                         )
 
                     if level_zero and epic_key:
@@ -2719,6 +3359,7 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                                 font_size=9,
                                 clip_path="sef-plan-label-col-x" if (sub_phase_key and work_stream_key) else "sef-plan-label-col",
                                 row_key=level_zero_key,
+                                searchable_text=_sefk_searchable_text(level_zero),
                             )
                         parts.append("</g>")
 
@@ -2864,17 +3505,52 @@ def build_sefk_project_plan_report_html(
       <p class="footnote">{html.escape(footnote)}</p>
     </header>
     <section class="report-card chart-section">
-            <div class="sefk-view-controls" aria-label="Hierarchy controls">
-                <button type="button" onclick="sefkCollapseAll()">Collapse All</button>
-                <button type="button" data-hierarchy-level="phase" onclick="sefkShowPhaseLevel(this)">Phase</button>
-                <button type="button" data-hierarchy-level="workstream" onclick="sefkShowWorkStreamLevel(this)">Workstream</button>
-                <button type="button" data-hierarchy-level="epic" onclick="sefkShowEpicLevel(this)">Epic</button>
-                <button type="button" onclick="sefkExpandAll()">Expand All</button>
-            </div>
-            <div class="sefk-filter-controls" aria-label="Report filters">
-                <button type="button" onclick="sefkToggleFilter('milestone', this)">Milestones</button>
-                <button type="button" onclick="sefkToggleFilter('gate', this)">Gates</button>
-                <button type="button" onclick="sefkToggleFilter('dependency', this)">Dependencies</button>
+            <div class="sefk-control-bar" aria-label="Project plan controls">
+                <section class="sefk-control-group" aria-labelledby="sefk-hierarchy-controls">
+                    <span id="sefk-hierarchy-controls" class="sefk-control-group-title">Hierarchy</span>
+                    <div class="sefk-view-controls">
+                        <div class="sefk-hierarchy-actions">
+                            <button type="button" onclick="sefkCollapseAll()">Collapse All</button>
+                            <button type="button" onclick="sefkExpandAll()">Expand All</button>
+                        </div>
+                        <div class="sefk-hierarchy-levels">
+                            <button type="button" data-hierarchy-level="phase" onclick="sefkShowPhaseLevel(this)">Phase</button>
+                            <button type="button" data-hierarchy-level="workstream" onclick="sefkShowWorkStreamLevel(this)">Workstream</button>
+                            <button type="button" data-hierarchy-level="epic" onclick="sefkShowEpicLevel(this)">Epic</button>
+                        </div>
+                    </div>
+                </section>
+                <section class="sefk-control-group" aria-labelledby="sefk-chart-filters">
+                    <span id="sefk-chart-filters" class="sefk-control-group-title">Chart Filters</span>
+                    <div class="sefk-filter-controls" aria-label="Report filters">
+                        <button type="button" onclick="sefkToggleFilter('milestone', this)">Milestones</button>
+                        <button type="button" onclick="sefkToggleFilter('gate', this)">Gates</button>
+                        <button type="button" onclick="sefkToggleFilter('dependency', this)">Dependencies</button>
+                        <label for="sefk-status-category-filter">Status</label>
+                        <select id="sefk-status-category-filter" onchange="window.sefkApplySearchFilters()" aria-label="Filter by status category">
+                            <option value="">All statuses</option>
+                        </select>
+                        <label class="sefk-overdue-filter" for="sefk-overdue-filter"><input id="sefk-overdue-filter" type="checkbox" onchange="window.sefkApplySearchFilters()"/>Overdue</label>
+                    </div>
+                </section>
+                <section class="sefk-control-group sefk-control-group--search" aria-labelledby="sefk-search-controls-title">
+                    <span id="sefk-search-controls-title" class="sefk-control-group-title">Find Items</span>
+                    <div class="sefk-search-controls" aria-label="Report search">
+                        <label for="sefk-search-input" class="sefk-search-label">Search</label>
+                        <input id="sefk-search-input" type="search" value="" placeholder="Search by item or SEFK/KPMG key" oninput="window.sefkSearch(this)" aria-label="Search report items"/>
+                        <label for="sefk-assignee-filter">Assignee</label>
+                        <input id="sefk-assignee-filter" type="search" value="" list="sefk-assignee-options" placeholder="Search assignees" oninput="window.sefkApplySearchFilters()" aria-label="Filter by assignee"/>
+                        <datalist id="sefk-assignee-options"></datalist>
+                        <label for="sefk-workstream-filter">Workstream</label>
+                        <select id="sefk-workstream-filter" onchange="window.sefkApplySearchFilters()" aria-label="Filter by workstream">
+                            <option value="">All workstreams</option>
+                        </select>
+                        <label for="sefk-label-filter">Labels</label>
+                        <input id="sefk-label-filter" type="search" value="" list="sefk-label-options" placeholder="Search labels" oninput="window.sefkApplySearchFilters()" aria-label="Filter by label"/>
+                        <datalist id="sefk-label-options"></datalist>
+                        <button type="button" onclick="window.sefkClearSearch()">Clear</button>
+                    </div>
+                </section>
             </div>
       <div class="chart-wrap chart-wrap-timeline chart-wrap-milestone chart-wrap-sefk">{chart}</div>
       {sefk_dtrain_key_html()}

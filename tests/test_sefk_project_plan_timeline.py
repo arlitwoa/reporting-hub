@@ -308,6 +308,36 @@ class SefkProjectPlanTimelineTests(unittest.TestCase):
         self.assertIn("sefk-dependency-related", html_doc)
         self.assertIn("collapse or expand", html_doc)
 
+    def test_html_report_includes_search_controls_and_search_logic(self) -> None:
+        html_doc = build_sefk_project_plan_report_html(
+            self.payload,
+            generated_on="01 Jan 2026 12:00 NZDT",
+            page_title="SEFK | Integrated Project Plan",
+        )
+        self.assertIn('class="sefk-control-bar"', html_doc)
+        self.assertIn('id="sefk-hierarchy-controls"', html_doc)
+        self.assertIn('id="sefk-chart-filters"', html_doc)
+        self.assertIn('id="sefk-search-controls-title"', html_doc)
+        self.assertIn('id="sefk-search-input"', html_doc)
+        self.assertIn('id="sefk-assignee-filter"', html_doc)
+        self.assertIn('id="sefk-assignee-options"', html_doc)
+        self.assertIn('id="sefk-workstream-filter"', html_doc)
+        self.assertIn('id="sefk-label-filter"', html_doc)
+        self.assertIn('id="sefk-label-options"', html_doc)
+        self.assertIn('id="sefk-status-category-filter"', html_doc)
+        self.assertIn('id="sefk-overdue-filter"', html_doc)
+        self.assertIn('placeholder="Search by item or SEFK/KPMG key"', html_doc)
+        self.assertIn("window.sefkSearch = function", html_doc)
+        self.assertIn("window.sefkApplySearchFilters = function", html_doc)
+        self.assertIn("function populateSearchFilterOptions", html_doc)
+        self.assertIn("data-sefk-searchable=", html_doc)
+        self.assertIn("searchTerms", html_doc)
+        self.assertIn("replace(/[^a-z0-9]+/g, ' ')", html_doc)
+        self.assertIn("function buildSearchVariants", html_doc)
+        self.assertIn("function matchesSearchTerms", html_doc)
+        self.assertIn("node.style.display = matches ? '' : 'none';", html_doc)
+        self.assertIn(".sefk-search-no-match { display: none; }", html_doc)
+
     def test_dtrain_key_lists_phases(self) -> None:
         key_html = sefk_dtrain_key_html()
         self.assertIn("Drive", key_html)
