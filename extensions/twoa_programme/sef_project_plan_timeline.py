@@ -62,6 +62,7 @@ TEST_TYPES_FIELD_ID = "customfield_10145"
 # Resolved lazily per-fetch (e.g. via Jira field alias lookup) since the customfield id
 # varies by site; set via set_kpmg_reference_field_id() before building timeline rows.
 _kpmg_reference_field_id: str | None = None
+_kpmg_assignee_field_id: str | None = None
 
 
 def set_kpmg_reference_field_id(field_id: str | None) -> None:
@@ -71,6 +72,11 @@ def set_kpmg_reference_field_id(field_id: str | None) -> None:
 
 def get_kpmg_reference_field_id() -> str | None:
     return _kpmg_reference_field_id
+
+
+def set_kpmg_assignee_field_id(field_id: str | None) -> None:
+    global _kpmg_assignee_field_id
+    _kpmg_assignee_field_id = field_id or None
 
 
 # Source-field names used in report filterDimensions and the Jira fields that feed them.
@@ -136,6 +142,34 @@ def _issue_dimension_values(issue: dict[str, Any], *, source_field: str) -> list
         seen.add(value)
         deduped.append(value)
     return deduped
+
+
+def _sefk_searchable_text(row: dict[str, Any]) -> str:
+    parts: list[str] = []
+    for field in ("summary", "key", "kpmgIssueKey", "kpmgReferenceUrl"):
+        value = row.get(field)
+        if isinstance(value, (list, tuple, set)):
+            for item in value:
+                text = str(item or "").strip()
+                if text:
+                    parts.append(text)
+        elif isinstance(value, dict):
+            for nested in value.values():
+                text = str(nested or "").strip()
+                if text:
+                    parts.append(text)
+        else:
+            text = str(value or "").strip()
+            if text:
+                parts.append(text)
+    key = str(row.get("key") or "").strip()
+    if key:
+        parts.append(key)
+    kpmg_key = str(row.get("kpmgIssueKey") or "").strip()
+    if kpmg_key:
+        parts.append(kpmg_key)
+    return " ".join(part for part in parts if part)
+
 
 CHAPTER_ROW_HEIGHT = 36
 PHASE_ROW_HEIGHT = 44
@@ -560,7 +594,9 @@ def _issue_timeline_row(
         fallback_start=fallback_start,
         fallback_end=fallback_end,
     )
-    status = str((fields.get("status") or {}).get("name") or "")
+    status_field = fields.get("status") or {}
+    status = str(status_field.get("name") or "")
+    status_category = str(((status_field.get("statusCategory") or {}).get("name")) or "").strip()
     summary = str(fields.get("summary") or "").strip()
     key = str(issue.get("key") or "")
     issue_type = str((fields.get("issuetype") or {}).get("name") or "")
@@ -572,6 +608,8 @@ def _issue_timeline_row(
         "startDate": start.isoformat(),
         "endDate": end.isoformat(),
     }
+    if status_category:
+        row["statusCategory"] = status_category
     if issue_type:
         row["issueType"] = issue_type
     if issue_type_icon_url:
@@ -580,12 +618,30 @@ def _issue_timeline_row(
         kpmg_reference_url = str(fields.get(_kpmg_reference_field_id) or "").strip()
         if kpmg_reference_url.startswith("http"):
             row["kpmgReferenceUrl"] = kpmg_reference_url
+    if _kpmg_assignee_field_id:
+        kpmg_assignees = _coerce_issue_field_values(fields.get(_kpmg_assignee_field_id))
+        if kpmg_assignees:
+            row["assigneeDisplayName"] = kpmg_assignees[0]
     if _is_milestone_issue_type(issue_type, milestone_issue_types):
         if "meeting gate" in issue_type.strip().lower():
             row["isMeetingGate"] = True
     workstreams = _issue_dimension_values(issue, source_field="workstreams")
     if workstreams:
         row["workstreams"] = workstreams
+    assignee = fields.get("assignee") or {}
+    assignee_name = str(assignee.get("displayName") or assignee.get("accountId") or "").strip()
+    if assignee_name:
+        row["assigneeDisplayName"] = assignee_name
+    components = [
+        str(component.get("name") or "").strip()
+        for component in (fields.get("components") or [])
+        if isinstance(component, dict) and str(component.get("name") or "").strip()
+    ]
+    if components:
+        row["components"] = components
+    labels = [str(label).strip() for label in (fields.get("labels") or []) if str(label).strip()]
+    if labels:
+        row["labels"] = labels
     for source_field in ("tenant", "environment", "platforms", "testTypes", "smeCommitment"):
         values = _issue_dimension_values(issue, source_field=source_field)
         if values:
@@ -1315,6 +1371,7 @@ def _append_label_link(
     blocks_keys: list[str] | None = None,
     rows_by_key: dict[str, dict[str, Any]] | None = None,
     clip_path: str | None = "sef-plan-label-col",
+    searchable_text: str = "",
 ) -> None:
     del indent
     text_fill = fill or ATL["ink"]
@@ -1322,8 +1379,9 @@ def _append_label_link(
         f' data-sef-key="{html.escape(row_key)}" data-sef-row="1"' if row_key else ""
     )
     clip_attr = f' clip-path="url(#{clip_path})"' if clip_path else ""
+    search_attr = f' data-sefk-searchable="{html.escape(searchable_text)}"' if searchable_text else ""
     parts.append(
-        f"<g{clip_attr}{data_key_attr}>{_svg_embedded_title(tooltip)}"
+        f"<g{clip_attr}{data_key_attr}{search_attr}>{_svg_embedded_title(tooltip)}"
     )
     parts.append(f'<a href="{url}" target="_blank" rel="noopener">')
     visible_label = html.escape(_truncate_label(text))
@@ -1369,14 +1427,16 @@ def _append_label_text(
     fill: str | None = None,
     row_key: str = "",
     clip_path: str | None = "sef-plan-label-col",
+    searchable_text: str = "",
 ) -> None:
     text_fill = fill or ATL["ink"]
     data_key_attr = (
         f' data-sef-key="{html.escape(row_key)}" data-sef-row="1"' if row_key else ""
     )
     clip_attr = f' clip-path="url(#{clip_path})"' if clip_path else ""
+    search_attr = f' data-sefk-searchable="{html.escape(searchable_text)}"' if searchable_text else ""
     parts.append(
-        f"<g{clip_attr}{data_key_attr}>{_svg_embedded_title(tooltip)}"
+        f"<g{clip_attr}{data_key_attr}{search_attr}>{_svg_embedded_title(tooltip)}"
     )
     parts.append(
         f'<text x="{x:.1f}" y="{y_center:.1f}" text-anchor="start" dominant-baseline="middle" '
@@ -1552,8 +1612,25 @@ def _append_timeline_bar(
     data_key_attr = (
         f' data-sef-key="{html.escape(row_key)}" data-sef-row="1"{role_attr}' if row_key else role_attr
     )
+    def filter_values(field: str) -> str:
+        value = row.get(field)
+        if isinstance(value, (list, tuple, set)):
+            return "|".join(str(item).strip() for item in value if str(item).strip())
+        return str(value or "").strip()
+
+    filter_attrs = "".join(
+        f' data-sefk-{attribute}="{html.escape(filter_values(field), quote=True)}"'
+        for attribute, field in (
+            ("assignee", "assigneeDisplayName"),
+            ("workstreams", "workstreams"),
+            ("labels", "labels"),
+            ("status-category", "statusCategory"),
+            ("due-date", "dueDate"),
+        )
+    )
+    searchable = html.escape(_sefk_searchable_text(row))
     parts.append(
-        f'<g{data_key_attr}{issue_type_attr}{special_attr}{dependency_attr}>'
+        f'<g{data_key_attr}{issue_type_attr}{special_attr}{dependency_attr}{filter_attrs} data-sefk-searchable="{searchable}">'
         f'{_svg_embedded_title(_bar_tooltip(row))}'
     )
     if _is_milestone_row(row):
