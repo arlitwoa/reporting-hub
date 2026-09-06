@@ -525,7 +525,7 @@ td.pending-metric a {
 }
 .sefk-control-bar {
     display: grid;
-    grid-template-columns: 240px 290px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
     margin: 0 0 12px;
     border: 1px solid #dfe5ee;
     border-radius: 6px;
@@ -549,17 +549,9 @@ td.pending-metric a {
 .sefk-view-controls {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
     margin: 0 0 10px;
 }
-.sefk-hierarchy-actions,
-.sefk-hierarchy-levels {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    width: 100%;
-}
-.sefk-hierarchy-levels { margin-top: 6px; }
 .sefk-view-controls button,
 .sefk-filter-controls button,
 .sefk-search-controls button {
@@ -574,7 +566,10 @@ td.pending-metric a {
     transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
 }
 .sefk-view-controls button {
+    box-sizing: border-box;
+    height: 30px;
     padding: 5px 12px;
+    min-height: 30px;
 }
 .sefk-view-controls button:hover,
 .sefk-filter-controls button:hover,
@@ -601,8 +596,61 @@ td.pending-metric a {
     margin: 0 0 10px;
 }
 .sefk-filter-controls button {
-    padding: 4px 9px;
+    box-sizing: border-box;
+    height: 30px;
+    min-height: 30px;
+    padding: 5px 12px;
 }
+.sefk-multi-filter {
+    position: relative;
+}
+.sefk-multi-filter summary {
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    height: 30px;
+    min-height: 30px;
+    padding: 5px 12px;
+    border: 1px solid #c7d0df;
+    border-radius: 5px;
+    background: #ffffff;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+    list-style: none;
+}
+.sefk-multi-filter summary::-webkit-details-marker { display: none; }
+.sefk-multi-filter summary::after {
+    content: "\25BE ";
+    margin-left: 8px;
+    color: #42526e;
+    font-size: 10px;
+}
+.sefk-multi-filter[open] summary { border-color: #0052cc; background: #eef4ff; }
+.sefk-multi-filter-options {
+    position: absolute;
+    z-index: 5;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 155px;
+    padding: 5px;
+    border: 1px solid #c7d0df;
+    border-radius: 5px;
+    background: #ffffff;
+    box-shadow: 0 6px 18px rgba(9, 30, 66, 0.18);
+}
+.sefk-multi-filter-options label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 27px;
+    padding: 2px 5px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+}
+.sefk-multi-filter-options label:hover { background: #eef4ff; }
 .sefk-control-group .sefk-view-controls,
 .sefk-control-group .sefk-filter-controls,
 .sefk-control-group .sefk-search-controls { margin: 0; }
@@ -639,21 +687,9 @@ td.pending-metric a {
 .sefk-search-controls input,
 .sefk-search-controls select { width: 100% !important; min-width: 0; }
 .sefk-search-controls button { grid-column: 1 / -1; justify-self: start; }
-.sefk-overdue-filter {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--text) !important;
-    cursor: pointer;
-}
-@media (max-width: 1100px) {
-    .sefk-control-bar { grid-template-columns: 1fr 1fr; }
-    .sefk-control-group--search { grid-column: 1 / -1; border-top: 1px solid #d9e0eb; border-left: 0 !important; }
-}
 @media (max-width: 620px) {
     .sefk-control-bar { grid-template-columns: 1fr; }
     .sefk-control-group + .sefk-control-group { border-top: 1px solid #d9e0eb; border-left: 0; }
-    .sefk-control-group--search { grid-column: auto; }
     .sefk-search-controls { grid-template-columns: auto minmax(0, 1fr); }
 }
 .sefk-dependency-connector {
@@ -691,7 +727,7 @@ td.pending-metric a {
       <nav class="report-nav" aria-label="Breadcrumb"><a href="../index.html">TWoA reporting hub</a> <span class="sep">›</span> <a href="index.html">SEFK</a> <span class="sep">›</span> <span class="current">SEFK | Integrated Project Plan</span></nav>
     <header class="report-header">
       <h1>SEFK | Integrated Project Plan</h1>
-      <p class="report-subtitle">Generated 06 Sep 2026 13:49 NZST</p>
+      <p class="report-subtitle">Generated 06 Sep 2026 16:02 NZST</p>
       <p class="footnote">5 sub-phases, 23 work streams, 110 epics, and 714 Level 0 items from SEFK schedule items (2026-03-06 to 2027-06-02). Each bar runs from start date through due date. Bar colours show D-Train scope composition (Drive left, Dream right). Use ▼ beside sub-phases and work streams to collapse or expand rows.</p>
     </header>
     <section class="report-card chart-section">
@@ -699,15 +735,11 @@ td.pending-metric a {
                 <section class="sefk-control-group" aria-labelledby="sefk-hierarchy-controls">
                     <span id="sefk-hierarchy-controls" class="sefk-control-group-title">Hierarchy</span>
                     <div class="sefk-view-controls">
-                        <div class="sefk-hierarchy-actions">
-                            <button type="button" onclick="sefkCollapseAll()">Collapse All</button>
-                            <button type="button" onclick="sefkExpandAll()">Expand All</button>
-                        </div>
-                        <div class="sefk-hierarchy-levels">
-                            <button type="button" data-hierarchy-level="phase" onclick="sefkShowPhaseLevel(this)">Phase</button>
-                            <button type="button" data-hierarchy-level="workstream" onclick="sefkShowWorkStreamLevel(this)">Workstream</button>
-                            <button type="button" data-hierarchy-level="epic" onclick="sefkShowEpicLevel(this)">Epic</button>
-                        </div>
+                        <button type="button" onclick="sefkCollapseAll()">Collapse All</button>
+                        <button type="button" data-hierarchy-level="phase" onclick="sefkShowPhaseLevel(this)">Phase</button>
+                        <button type="button" data-hierarchy-level="workstream" onclick="sefkShowWorkStreamLevel(this)">Workstream</button>
+                        <button type="button" data-hierarchy-level="epic" onclick="sefkShowEpicLevel(this)">Epic</button>
+                        <button type="button" onclick="sefkExpandAll()">Expand All</button>
                     </div>
                 </section>
                 <section class="sefk-control-group" aria-labelledby="sefk-chart-filters">
@@ -716,29 +748,26 @@ td.pending-metric a {
                         <button type="button" onclick="sefkToggleFilter('milestone', this)">Milestones</button>
                         <button type="button" onclick="sefkToggleFilter('gate', this)">Gates</button>
                         <button type="button" onclick="sefkToggleFilter('dependency', this)">Dependencies</button>
-                        <label for="sefk-status-category-filter">Status</label>
-                        <select id="sefk-status-category-filter" onchange="window.sefkApplySearchFilters()" aria-label="Filter by status category">
-                            <option value="">All statuses</option>
-                        </select>
-                        <label class="sefk-overdue-filter" for="sefk-overdue-filter"><input id="sefk-overdue-filter" type="checkbox" onchange="window.sefkApplySearchFilters()"/>Overdue</label>
-                    </div>
-                </section>
-                <section class="sefk-control-group sefk-control-group--search" aria-labelledby="sefk-search-controls-title">
-                    <span id="sefk-search-controls-title" class="sefk-control-group-title">Find Items</span>
-                    <div class="sefk-search-controls" aria-label="Report search">
-                        <label for="sefk-search-input" class="sefk-search-label">Search</label>
-                        <input id="sefk-search-input" type="search" value="" placeholder="Search by item or SEFK/KPMG key" oninput="window.sefkSearch(this)" aria-label="Search report items"/>
-                        <label for="sefk-assignee-filter">Assignee</label>
-                        <input id="sefk-assignee-filter" type="search" value="" list="sefk-assignee-options" placeholder="Search assignees" oninput="window.sefkApplySearchFilters()" aria-label="Filter by assignee"/>
-                        <datalist id="sefk-assignee-options"></datalist>
-                        <label for="sefk-workstream-filter">Workstream</label>
-                        <select id="sefk-workstream-filter" onchange="window.sefkApplySearchFilters()" aria-label="Filter by workstream">
-                            <option value="">All workstreams</option>
-                        </select>
-                        <label for="sefk-label-filter">Labels</label>
-                        <input id="sefk-label-filter" type="search" value="" list="sefk-label-options" placeholder="Search labels" oninput="window.sefkApplySearchFilters()" aria-label="Filter by label"/>
-                        <datalist id="sefk-label-options"></datalist>
-                        <button type="button" onclick="window.sefkClearSearch()">Clear</button>
+                        <details class="sefk-multi-filter">
+                            <summary>Status</summary>
+                            <div class="sefk-multi-filter-options">
+                                <label><input type="checkbox" data-status-category="To Do" onchange="sefkApplyStructuredChartFilters(this)"/>To Do</label>
+                                <label><input type="checkbox" data-status-category="In Progress" onchange="sefkApplyStructuredChartFilters(this)"/>In Progress</label>
+                                <label><input type="checkbox" data-status-category="Done" onchange="sefkApplyStructuredChartFilters(this)"/>Done</label>
+                            </div>
+                        </details>
+                        <details class="sefk-multi-filter">
+                            <summary>RAG</summary>
+                            <div class="sefk-multi-filter-options">
+                                <label><input type="checkbox" data-rag-severity="green" onchange="sefkApplyStructuredChartFilters(this)"/>Green</label>
+                                <label><input type="checkbox" data-rag-severity="amber" onchange="sefkApplyStructuredChartFilters(this)"/>Amber</label>
+                                <label><input type="checkbox" data-rag-severity="red" onchange="sefkApplyStructuredChartFilters(this)"/>Red</label>
+                            </div>
+                        </details>
+                        <details class="sefk-multi-filter">
+                            <summary>Workstream</summary>
+                            <div id="sefk-workstream-options" class="sefk-multi-filter-options"></div>
+                        </details>
                     </div>
                 </section>
             </div>
@@ -6544,6 +6573,7 @@ Workstream: all</title><a href="https://gate-pd232.atlassian.net/browse/TWOA-427
   };
 
     var sefkActiveFilter = null;
+    var sefkHierarchyLevel = null;
 
     function collapseAllRaw() {
         document.querySelectorAll('[id^="sefk-sub-epic-"]').forEach(function (sub) {
@@ -6579,8 +6609,13 @@ Workstream: all</title><a href="https://gate-pd232.atlassian.net/browse/TWOA-427
     // and don't know about an active Milestones/Gates/Dependencies filter, so re-apply it
     // afterward or the filter's hidden branches silently reappear (or vice versa).
     function reapplyActiveSefkFilter() {
-        if (!sefkActiveFilter) return;
-        applySefkFilter(sefkActiveFilter.svg, sefkActiveFilter.kind);
+        var section = document.querySelector('.chart-section');
+        if (section && section.classList.contains('sefk-structured-filter-active')) {
+            var svg = section.querySelector('svg');
+            if (svg) applyStructuredChartFilter(svg, section);
+            return;
+        }
+        if (sefkActiveFilter) applySefkFilter(sefkActiveFilter.svg, sefkActiveFilter.kind);
     }
 
     window.sefkCollapseAll = function () {
@@ -6594,6 +6629,16 @@ Workstream: all</title><a href="https://gate-pd232.atlassian.net/browse/TWOA-427
     };
 
     function setHierarchyView(level, button) {
+        if (sefkHierarchyLevel === level) {
+            sefkHierarchyLevel = null;
+            expandAllRaw();
+            document.querySelectorAll('.sefk-view-controls [data-hierarchy-level]').forEach(function (control) {
+                control.classList.remove('is-active');
+            });
+            reapplyActiveSefkFilter();
+            return;
+        }
+        sefkHierarchyLevel = level;
         collapseAllRaw();
         if (level === 'workstream' || level === 'epic') {
             document.querySelectorAll('[id^="sefk-sub-sp-"]').forEach(function (sub) {
@@ -7116,6 +7161,115 @@ Workstream: all</title><a href="https://gate-pd232.atlassian.net/browse/TWOA-427
         applySefkFilter(svg, kind);
     };
 
+    function projectKeysToHierarchyLevel(svg, keys) {
+        if (!sefkHierarchyLevel) return keys;
+        var roleByLevel = {
+            phase: 'phase-bar',
+            workstream: 'work-stream-bar',
+            epic: 'epic-bar'
+        };
+        var targetRole = roleByLevel[sefkHierarchyLevel];
+        if (!targetRole) return keys;
+        var parents = dependencyParentMap();
+        var projected = {};
+        keys.forEach(function (key) {
+            var candidate = key;
+            while (candidate) {
+                var node = svg.querySelector('[data-sef-key="' + candidate + '"][data-sef-role="' + targetRole + '"]');
+                if (node) {
+                    projected[candidate] = true;
+                    return;
+                }
+                candidate = String(parents[candidate] || '').trim();
+            }
+        });
+        return Object.keys(projected);
+    }
+
+    function applyStructuredChartFilter(svg, section) {
+        var statusCategories = Array.from(section.querySelectorAll('[data-status-category]:checked')).map(function (input) {
+            return input.getAttribute('data-status-category');
+        });
+        var severities = Array.from(section.querySelectorAll('[data-rag-severity]:checked')).map(function (input) {
+            return input.getAttribute('data-rag-severity');
+        });
+        var workstreams = Array.from(section.querySelectorAll('[data-workstream-filter]:checked')).map(function (input) {
+            return input.getAttribute('data-workstream-filter');
+        });
+        if (!statusCategories.length && !severities.length && !workstreams.length) {
+            resetAllLevelZeroRowFilters(svg);
+            resetEpicVisibilityFilter(svg);
+            resetWorkStreamVisibilityFilter(svg);
+            svg.querySelectorAll('[data-sef-key]').forEach(function (node) {
+                node.setAttribute('visibility', 'visible');
+                node.style.opacity = '';
+            });
+            svg.querySelectorAll('[data-sef-dep-from][data-sef-dep-to]').forEach(function (node) {
+                node.setAttribute('visibility', 'visible');
+                node.style.opacity = '';
+            });
+            restoreHierarchyExpansionState(svg);
+            refreshDependencyVisibility(svg);
+            refreshDependencyGeometry(svg);
+            return;
+        }
+        var matchedKeys = [];
+        svg.querySelectorAll('[data-sef-key][data-sef-role$="-bar"]').forEach(function (bar) {
+            var key = (bar.getAttribute('data-sef-key') || '').trim();
+            if (!key) return;
+            var category = bar.getAttribute('data-sefk-status-category') || '';
+            var statusMatch = !statusCategories.length || statusCategories.indexOf(category) >= 0;
+            var rowWorkstreams = (bar.getAttribute('data-sefk-workstreams') || '').split('|').filter(Boolean);
+            var workstreamMatch = !workstreams.length || workstreams.some(function (workstream) {
+                return rowWorkstreams.indexOf(workstream) >= 0;
+            });
+            var severityMatch = !severities.length || severities.some(function (severity) {
+                return !!svg.querySelector('.sefk-alert-badge.sefk-alert-' + severity + '[data-sef-key="' + key + '"]');
+            });
+            if (statusMatch && workstreamMatch && severityMatch) matchedKeys.push(key);
+        });
+        var visibleKeys = withAntecedents(projectKeysToHierarchyLevel(svg, matchedKeys), blockedByMap(svg));
+        collapseAllRaw();
+        var parents = dependencyParentMap();
+        Object.keys(visibleKeys).forEach(function (key) {
+            expandHierarchyPath(svg, key, parents);
+        });
+        Object.keys(visibleKeys).forEach(function (key) {
+            var parent = String(parents[key] || '').trim();
+            while (parent && !visibleKeys[parent]) {
+                visibleKeys[parent] = true;
+                parent = String(parents[parent] || '').trim();
+            }
+        });
+        svg.querySelectorAll('[data-sef-key]').forEach(function (node) {
+            var key = (node.getAttribute('data-sef-key') || '').trim();
+            node.setAttribute('visibility', 'visible');
+            node.style.opacity = visibleKeys[key] ? '1' : '0.16';
+        });
+        svg.querySelectorAll('[data-sef-dep-from][data-sef-dep-to]').forEach(function (node) {
+            var from = (node.getAttribute('data-sef-dep-from') || '').trim();
+            var to = (node.getAttribute('data-sef-dep-to') || '').trim();
+            node.setAttribute('visibility', 'visible');
+            node.style.opacity = visibleKeys[from] && visibleKeys[to] ? '1' : '0.16';
+        });
+        applyLevelZeroRowFilter(svg, visibleKeys);
+        applyEpicVisibilityFilter(svg, visibleKeys);
+        applyWorkStreamVisibilityFilter(svg, visibleKeys);
+        refreshDependencyVisibility(svg);
+        refreshDependencyGeometry(svg);
+    }
+
+    window.sefkApplyStructuredChartFilters = function (input) {
+        var section = input.closest('.chart-section');
+        var svg = section ? section.querySelector('svg') : null;
+        if (!section || !svg) return;
+        if (!section.classList.contains('sefk-structured-filter-active')) {
+            svg.setAttribute('data-sefk-filter-expansion-state', JSON.stringify(hierarchyExpansionState(svg)));
+        }
+        section.classList.toggle('sefk-structured-filter-active', !!section.querySelector('[data-status-category]:checked, [data-rag-severity]:checked, [data-workstream-filter]:checked'));
+        applyStructuredChartFilter(svg, section);
+    };
+
     window.sefkSearch = function (input) {
         var section = input.closest('.chart-section');
         var svg = section ? section.querySelector('svg') : null;
@@ -7191,6 +7345,37 @@ Workstream: all</title><a href="https://gate-pd232.atlassian.net/browse/TWOA-427
     }
 
     populateSearchFilterOptions();
+
+    function populateStructuredWorkstreamOptions() {
+        var svg = document.querySelector('.chart-section svg');
+        var options = document.getElementById('sefk-workstream-options');
+        if (!svg || !options) return;
+        var values = {};
+        svg.querySelectorAll('[data-sef-role$="-bar"]').forEach(function (bar) {
+            (bar.getAttribute('data-sefk-workstreams') || '').split('|').forEach(function (value) {
+                value = value.trim();
+                if (value) values[value] = true;
+            });
+        });
+        Object.keys(values).sort(function (left, right) { return left.localeCompare(right); }).forEach(function (value) {
+            var label = document.createElement('label');
+            var input = document.createElement('input');
+            input.type = 'checkbox';
+            input.setAttribute('data-workstream-filter', value);
+            input.addEventListener('change', function () { window.sefkApplyStructuredChartFilters(input); });
+            label.appendChild(input);
+            label.appendChild(document.createTextNode(value));
+            options.appendChild(label);
+        });
+    }
+
+    populateStructuredWorkstreamOptions();
+
+    document.addEventListener('click', function (event) {
+        document.querySelectorAll('.sefk-multi-filter[open]').forEach(function (filter) {
+            if (!filter.contains(event.target)) filter.removeAttribute('open');
+        });
+    });
 
     function setDependencyHighlight(svg, fromKey, toKey, active) {
         var relatedKeys = {};
