@@ -153,6 +153,7 @@ def _empty_scope_rollup_bucket() -> dict[str, Any]:
         "unpointedIssueKeys": [],
         "storyPoints": 0.0,
         "totalWeight": 0.0,
+        "kpmgReferenceByKey": {},
     }
 
 
@@ -299,6 +300,7 @@ def aggregate_milestone_scope(lanes: dict[str, dict[str, Any]]) -> dict[str, Any
     phase_issue_keys: dict[str, list[str]] = {phase: [] for phase in phase_keys}
     unpointed = 0
     unpointed_issue_keys: list[str] = []
+    kpmg_reference_by_key: dict[str, str] = {}
     for lane_data in lanes.values():
         for phase, value in (lane_data.get("phases") or {}).items():
             if phase in phases:
@@ -310,6 +312,7 @@ def aggregate_milestone_scope(lanes: dict[str, dict[str, Any]]) -> dict[str, Any
         unpointed_issue_keys.extend(
             str(key) for key in lane_data.get("unpointedIssueKeys") or [] if key
         )
+        kpmg_reference_by_key.update(lane_data.get("kpmgReferenceByKey") or {})
     sp_total = sum(phases.values())
     return {
         "phases": {phase: round(phases[phase], 2) for phase in phase_keys},
@@ -320,6 +323,7 @@ def aggregate_milestone_scope(lanes: dict[str, dict[str, Any]]) -> dict[str, Any
         "unpointedIssueKeys": _merge_sorted_issue_keys(unpointed_issue_keys),
         "storyPoints": round(sp_total, 2),
         "totalWeight": round(sp_total + unpointed, 2),
+        "kpmgReferenceByKey": kpmg_reference_by_key,
     }
 
 
@@ -515,13 +519,18 @@ def append_scope_composition_overlay(
     link_class: str = "milestone-scope-segment",
     kpmg_reference_by_key: dict[str, str] | None = None,
     kpmg_search_url_builder: Callable[[str], str] | None = None,
+    link_target_toggle: bool = False,
 ) -> None:
     """D-Train phase segments on a scope bar; each segment links to scoped Jira issues.
 
     When ``kpmg_reference_by_key`` (scoped issue key -> KPMG source issue key) and
-    ``kpmg_search_url_builder`` are both provided, each segment splits into a link to the
-    referenced KPMG source issues and a link to the remaining un-referenced issues, instead
-    of a single combined link.
+    ``kpmg_search_url_builder`` are both provided:
+    - by default, each segment splits into a link to the referenced KPMG source issues and
+      a link to the remaining un-referenced issues, instead of a single combined link.
+    - with ``link_target_toggle=True`` (used by the SEFK report, which has a page-level
+      TWOA/SEFK link-target toggle), each segment instead renders as a single link carrying
+      both ``data-href-twoa``/``data-href-sefk`` so the toggle can rewrite it in place;
+      falls back to the SEFK-side search when no KPMG reference is known for that segment.
     """
     cursor = x0
     for segment in segments:
@@ -531,6 +540,38 @@ def append_scope_composition_overlay(
         fill = DTRAIN_PHASE_FILL.get(segment["key"], ATL["neutral"])
         seg_tip = scope_segment_tooltip(segment)
         parts.append(f'<g>{_svg_embedded_title(seg_tip)}')
+
+        if link_target_toggle and kpmg_reference_by_key is not None and kpmg_search_url_builder:
+            segment_keys = _scope_segment_keys(rollup, segment["key"])
+            child_references = rollup.get("kpmgReferenceByKey") or {}
+            twoa_keys = sorted(
+                {
+                    kpmg_reference_by_key.get(key) or child_references.get(key)
+                    for key in segment_keys
+                    if kpmg_reference_by_key.get(key) or child_references.get(key)
+                }
+            )
+            sefk_jql = f"key in ({', '.join(sorted(set(segment_keys)))}) AND status != Rejected" if segment_keys else ""
+            href_sefk = _jira_search_url(sefk_jql) if sefk_jql else ""
+            href_twoa = kpmg_search_url_builder(f"key in ({', '.join(twoa_keys)})") if twoa_keys else href_sefk
+            rect = (
+                f'<rect x="{cursor:.1f}" y="{y0:.1f}" width="{width:.1f}" height="{bar_h:.1f}" '
+                f'fill="{fill}" opacity="{overlay_opacity}" stroke="#ffffff" stroke-width="0.5"/>'
+            )
+            if href_twoa or href_sefk:
+                parts.append(
+                    f'<a href="{html.escape(href_twoa or href_sefk, quote=True)}" '
+                    f'data-href-twoa="{html.escape(href_twoa or href_sefk, quote=True)}" '
+                    f'data-href-sefk="{html.escape(href_sefk or href_twoa, quote=True)}" '
+                    f'class="{html.escape(link_class)}" target="_blank" rel="noopener">'
+                )
+                parts.append(rect)
+                parts.append("</a>")
+            else:
+                parts.append(rect)
+            parts.append("</g>")
+            cursor += width
+            continue
 
         sub_links: list[tuple[float, str]] = []
         if kpmg_reference_by_key and kpmg_search_url_builder:

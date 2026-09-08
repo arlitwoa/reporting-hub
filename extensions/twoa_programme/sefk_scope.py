@@ -16,6 +16,13 @@ from extensions.twoa_programme.quarter_scope import issue_excluded_from_analysis
 
 KPMG_DELETED_LABEL = "kpmg-deleted"
 
+_KPMG_ISSUE_KEY_RE = re.compile(r"/browse/([A-Za-z][A-Za-z0-9]*-\d+)")
+
+
+def _extract_kpmg_issue_key(url: str) -> str | None:
+    match = _KPMG_ISSUE_KEY_RE.search(url)
+    return match.group(1) if match else None
+
 DEFAULT_SCOPE_ISSUE_TYPES: tuple[str, ...] = (
     "Task",
     "Action",
@@ -96,6 +103,7 @@ def rollup_sefk_epic_phases(
     scope_issue_types: tuple[str, ...] = DEFAULT_SCOPE_ISSUE_TYPES,
     status_map: dict[str, str] | None = None,
     skip_issue=issue_excluded_from_sefk_project_plan,
+    kpmg_reference_field_id: str | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Per-epic D-Train phase counts (weight 1 per in-scope child issue)."""
     allowed_types = set(scope_issue_types)
@@ -121,6 +129,10 @@ def rollup_sefk_epic_phases(
         buckets[epic_key]["phases"][phase] += 1.0
         if issue_key:
             buckets[epic_key]["phaseIssueKeys"][phase].append(issue_key)
+            if kpmg_reference_field_id:
+                kpmg_key = _extract_kpmg_issue_key(str(fields.get(kpmg_reference_field_id) or ""))
+                if kpmg_key:
+                    buckets[epic_key]["kpmgReferenceByKey"][issue_key] = kpmg_key
 
     for epic_data in buckets.values():
         phase_keys = _chart_phase_keys()
