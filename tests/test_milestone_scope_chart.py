@@ -115,6 +115,58 @@ class MilestoneScopeChartTests(unittest.TestCase):
         self.assertEqual(html_out.count("<a href"), 1)
         self.assertIn("key%20in%20%28EPCE-1%2C%20EPCE-2%29%20AND%20status%20%21%3D%20Rejected", html_out)
 
+    def test_append_scope_composition_overlay_link_target_toggle_single_link_dual_href(self):
+        from extensions.twoa_programme.milestone_scope_chart import append_scope_composition_overlay
+
+        rollup = {
+            "phaseIssueKeys": {"Design": ["EPCE-1", "EPCE-2"]},
+            "unpointedIssueKeys": [],
+            "kpmgReferenceByKey": {"EPCE-1": "TWOA-999"},
+        }
+        segments = [{"key": "Design", "fraction": 1.0, "weight": 5.0}]
+        parts: list[str] = []
+        append_scope_composition_overlay(
+            parts,
+            rollup=rollup,
+            segments=segments,
+            x0=0.0,
+            y0=0.0,
+            bar_w=100.0,
+            bar_h=10.0,
+            kpmg_reference_by_key={},
+            kpmg_search_url_builder=lambda jql: f"https://kpmg.example/issues/?jql={jql}",
+            link_target_toggle=True,
+        )
+        html_out = "".join(parts)
+        self.assertEqual(html_out.count("<a href"), 1)
+        self.assertIn('data-href-twoa="https://kpmg.example/issues/?jql=key in (TWOA-999)"', html_out)
+        self.assertIn(
+            "data-href-sefk=\"https://twoa.atlassian.net/issues/?jql=key%20in%20%28EPCE-1%2C%20EPCE-2%29%20AND%20status%20%21%3D%20Rejected\"",
+            html_out,
+        )
+
+    def test_append_scope_composition_overlay_link_target_toggle_falls_back_without_kpmg_data(self):
+        from extensions.twoa_programme.milestone_scope_chart import append_scope_composition_overlay
+
+        rollup = {"phaseIssueKeys": {"Design": ["EPCE-1", "EPCE-2"]}, "unpointedIssueKeys": []}
+        segments = [{"key": "Design", "fraction": 1.0, "weight": 5.0}]
+        parts: list[str] = []
+        append_scope_composition_overlay(
+            parts,
+            rollup=rollup,
+            segments=segments,
+            x0=0.0,
+            y0=0.0,
+            bar_w=100.0,
+            bar_h=10.0,
+            kpmg_reference_by_key={},
+            kpmg_search_url_builder=lambda jql: f"https://kpmg.example/issues/?jql={jql}",
+            link_target_toggle=True,
+        )
+        html_out = "".join(parts)
+        self.assertEqual(html_out.count("<a href"), 1)
+        self.assertNotIn("kpmg.example", html_out)
+
     def test_rollup_lane_phase_buckets(self):
         children = [
             {"key": "EPCE-1", "fields": _fields(squads=["Kākāriki Krew"], sp=5.0, status="In Design")},

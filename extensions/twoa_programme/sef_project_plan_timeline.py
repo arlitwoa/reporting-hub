@@ -1372,7 +1372,15 @@ def _append_label_link(
     rows_by_key: dict[str, dict[str, Any]] | None = None,
     clip_path: str | None = "sef-plan-label-col",
     searchable_text: str = "",
+    href_sefk: str = "",
 ) -> None:
+    """Render a row's clickable label.
+
+    ``url`` is the primary (TWOA) destination. When ``href_sefk`` is also given (and
+    differs from ``url``), the link carries both as ``data-href-twoa``/``data-href-sefk``
+    so the page-level TWOA/SEFK link-target toggle can rewrite ``href`` in place instead
+    of needing a second icon per row.
+    """
     del indent
     text_fill = fill or ATL["ink"]
     data_key_attr = (
@@ -1383,7 +1391,13 @@ def _append_label_link(
     parts.append(
         f"<g{clip_attr}{data_key_attr}{search_attr}>{_svg_embedded_title(tooltip)}"
     )
-    parts.append(f'<a href="{url}" target="_blank" rel="noopener">')
+    href_attrs = ""
+    if href_sefk and href_sefk != url:
+        href_attrs = (
+            f' data-href-twoa="{html.escape(url, quote=True)}" '
+            f'data-href-sefk="{html.escape(href_sefk, quote=True)}"'
+        )
+    parts.append(f'<a href="{url}"{href_attrs} target="_blank" rel="noopener">')
     visible_label = html.escape(_truncate_label(text))
     parts.append(
         f'<text x="{x:.1f}" y="{y_center:.1f}" text-anchor="start" dominant-baseline="middle" '
@@ -1591,6 +1605,7 @@ def _append_timeline_bar(
     render_dependency_icon: bool = True,
     kpmg_reference_by_key: dict[str, str] | None = None,
     kpmg_search_url_builder: Callable[[str], str] | None = None,
+    scope_link_target_toggle: bool = False,
 ) -> None:
     row_key = str(row.get("key") or "").strip()
     focus_payload = _blocked_focus_payload(
@@ -1689,6 +1704,7 @@ def _append_timeline_bar(
                 link_class="block-scope-segment",
                 kpmg_reference_by_key=kpmg_reference_by_key,
                 kpmg_search_url_builder=kpmg_search_url_builder,
+                link_target_toggle=scope_link_target_toggle,
             )
 
     if focus_payload and render_dependency_icon:

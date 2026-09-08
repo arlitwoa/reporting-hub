@@ -136,6 +136,13 @@ def _sefk_issue_url(row: dict[str, Any], key: str) -> str:
     return f"{JIRA_SERVER}/browse/{html.escape(key)}"
 
 
+def _sefk_secondary_link_url(row: dict[str, Any], key: str) -> str:
+    """SEFK's own browse URL, shown as a small second icon when the label links to TWOA."""
+    if not str(row.get("kpmgReferenceUrl") or "").strip():
+        return ""
+    return f"{JIRA_SERVER}/browse/{html.escape(key)}"
+
+
 def _resolve_kpmg_reference_field_id(adapter: "AtlassianAdapter") -> str | None:
     try:
         aliases = adapter._resolve_field_aliases()
@@ -2240,7 +2247,37 @@ SEFK_COLLAPSE_SCRIPT = """
     });
   }
 
+  var SEFK_LINK_TARGET_KEY = 'sefkLinkTarget';
+
+  function sefkStoredLinkTarget() {
+    try {
+      return localStorage.getItem(SEFK_LINK_TARGET_KEY) || 'twoa';
+    } catch (_err) {
+      return 'twoa';
+    }
+  }
+
+  function applySefkLinkTarget(target) {
+    document.querySelectorAll('[data-href-twoa]').forEach(function (link) {
+      var href = target === 'sefk' ? link.getAttribute('data-href-sefk') : link.getAttribute('data-href-twoa');
+      if (href) link.setAttribute('href', href);
+    });
+    document.querySelectorAll('[data-link-target]').forEach(function (button) {
+      button.classList.toggle('is-active', button.getAttribute('data-link-target') === target);
+    });
+  }
+
+  window.sefkSetLinkTarget = function (target, _button) {
+    try {
+      localStorage.setItem(SEFK_LINK_TARGET_KEY, target);
+    } catch (_err) {
+      /* localStorage unavailable (e.g. file:// in some browsers); toggle still works this session */
+    }
+    applySefkLinkTarget(target);
+  };
+
   initGridLineTooltips();
+  applySefkLinkTarget(sefkStoredLinkTarget());
 })();
 """
 
@@ -2512,6 +2549,9 @@ def _attach_epic_scope_rollups(
         scope_issue_types=config.scope_issue_types,
     )
     scope_fields = ["parent", "issuetype", "status"]
+    kpmg_reference_field_id = get_kpmg_reference_field_id()
+    if kpmg_reference_field_id and kpmg_reference_field_id not in scope_fields:
+        scope_fields.append(kpmg_reference_field_id)
     children = search_all(adapter, child_jql, scope_fields)
     return rollup_sefk_epic_phases(
         children,
@@ -2519,6 +2559,7 @@ def _attach_epic_scope_rollups(
         scope_issue_types=config.scope_issue_types,
         status_map=config.status_dtrain,
         skip_issue=issue_excluded_from_sefk_project_plan,
+        kpmg_reference_field_id=kpmg_reference_field_id,
     )
 
 
@@ -3146,6 +3187,7 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
             render_dependency_icon=False,
             kpmg_reference_by_key=kpmg_reference_by_key,
             kpmg_search_url_builder=_kpmg_search_url,
+            scope_link_target_toggle=True,
         )
         if render_overlay:
             parts_list.append("</g>")
@@ -3256,6 +3298,7 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                 font_size=13,
                 font_weight="700",
                 row_key=phase_key,
+                href_sefk=_sefk_secondary_link_url(phase, phase_key),
             )
         y_cursor += PHASE_ROW_HEIGHT
 
@@ -3319,6 +3362,7 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                     tooltip=_bar_tooltip(sub_phase),
                     font_weight="600",
                     row_key=sub_phase_key,
+                    href_sefk=_sefk_secondary_link_url(sub_phase, sub_phase_key),
                 )
                 if has_work_streams:
                     chev_x = SEFK_SUB_PHASE_LABEL_X - 24
@@ -3409,6 +3453,7 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                         clip_path="sef-plan-label-col-x" if (sub_phase_key and work_stream_key) else "sef-plan-label-col",
                         row_key=work_stream_key,
                         searchable_text=_sefk_searchable_text(work_stream),
+                        href_sefk=_sefk_secondary_link_url(work_stream, work_stream_key),
                     )
                 else:
                     _append_label_text(
@@ -3484,6 +3529,7 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                             clip_path="sef-plan-label-col-x" if (sub_phase_key and work_stream_key) else "sef-plan-label-col",
                             row_key=epic_key,
                             searchable_text=_sefk_searchable_text(epic),
+                            href_sefk=_sefk_secondary_link_url(epic, epic_key),
                         )
 
                     if level_zero and epic_key:
@@ -3552,6 +3598,7 @@ def sefk_project_plan_timeline_svg(payload: dict[str, Any]) -> str:
                                 clip_path="sef-plan-label-col-x" if (sub_phase_key and work_stream_key) else "sef-plan-label-col",
                                 row_key=level_zero_key,
                                 searchable_text=_sefk_searchable_text(level_zero),
+                                href_sefk=_sefk_secondary_link_url(level_zero, level_zero_key),
                             )
                         parts.append("</g>")
 
@@ -3734,6 +3781,13 @@ def build_sefk_project_plan_report_html(
                             <summary>Workstream</summary>
                             <div id="sefk-workstream-options" class="sefk-multi-filter-options"></div>
                         </details>
+                    </div>
+                </section>
+                <section class="sefk-control-group" aria-labelledby="sefk-link-target-controls">
+                    <span id="sefk-link-target-controls" class="sefk-control-group-title">Launch links in</span>
+                    <div class="sefk-view-controls" role="group" aria-label="Link target">
+                        <button type="button" data-link-target="twoa" onclick="sefkSetLinkTarget('twoa', this)">TWOA</button>
+                        <button type="button" data-link-target="sefk" onclick="sefkSetLinkTarget('sefk', this)">SEFK</button>
                     </div>
                 </section>
             </div>

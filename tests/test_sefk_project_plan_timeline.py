@@ -159,7 +159,22 @@ class SefkProjectPlanTimelineTests(unittest.TestCase):
         epic["kpmgReferenceUrl"] = "https://gate-pd232.atlassian.net/browse/TWOA-4242"
         svg = sefk_project_plan_timeline_svg(self.payload)
         self.assertIn('href="https://gate-pd232.atlassian.net/browse/TWOA-4242"', svg)
-        self.assertNotIn(f'href="https://twoa.atlassian.net/browse/{epic["key"]}"', svg)
+
+    def test_svg_adds_dual_href_target_for_toggle_alongside_kpmg_reference(self) -> None:
+        epic = self.payload["phases"][0]["subPhases"][0]["workStreams"][0]["epics"][0]
+        epic["kpmgReferenceUrl"] = "https://gate-pd232.atlassian.net/browse/TWOA-4242"
+        svg = sefk_project_plan_timeline_svg(self.payload)
+        self.assertIn('data-href-twoa="https://gate-pd232.atlassian.net/browse/TWOA-4242"', svg)
+        self.assertIn(f'data-href-sefk="https://twoa.atlassian.net/browse/{epic["key"]}"', svg)
+
+    def test_svg_omits_dual_href_target_without_kpmg_reference(self) -> None:
+        epic = self.payload["phases"][0]["subPhases"][0]["workStreams"][0]["epics"][0]
+        epic.pop("kpmgReferenceUrl", None)
+        svg = sefk_project_plan_timeline_svg(self.payload)
+        key = epic["key"]
+        # No data-href-* attrs on this row's own label link (scope-bucket segments elsewhere
+        # in the chart may still carry them independently of this epic's own reference).
+        self.assertIn(f'<a href="https://twoa.atlassian.net/browse/{key}" target="_blank" rel="noopener">', svg)
 
     def test_svg_renders_issue_type_icons(self) -> None:
         self.payload["phases"][0]["issueTypeIconUrl"] = "https://twoa.atlassian.net/icon/phase.png"
@@ -328,6 +343,18 @@ class SefkProjectPlanTimelineTests(unittest.TestCase):
         self.assertIn("window.sefkApplyStructuredChartFilters = function", html_doc)
         self.assertIn("function populateStructuredWorkstreamOptions", html_doc)
         self.assertNotIn('id="sefk-search-controls-title"', html_doc)
+
+    def test_html_report_includes_link_target_toggle(self) -> None:
+        html_doc = build_sefk_project_plan_report_html(
+            self.payload,
+            generated_on="01 Jan 2026 12:00 NZDT",
+            page_title="SEFK | Integrated Project Plan",
+        )
+        self.assertIn('id="sefk-link-target-controls"', html_doc)
+        self.assertIn('data-link-target="twoa"', html_doc)
+        self.assertIn('data-link-target="sefk"', html_doc)
+        self.assertIn("onclick=\"sefkSetLinkTarget('twoa', this)\"", html_doc)
+        self.assertIn("window.sefkSetLinkTarget = function", html_doc)
         self.assertNotIn('id="sefk-search-input"', html_doc)
 
     def test_dtrain_key_lists_phases(self) -> None:
