@@ -1554,6 +1554,9 @@ def _bar_tooltip(row: dict[str, Any]) -> str:
     workstreams = row.get("workstreams") or row.get("components") or []
     if workstreams:
         lines.append(f"Workstream: {', '.join(str(name) for name in workstreams)}")
+    test_types = row.get("testTypes") or []
+    if test_types:
+        lines.append(f"Test Type: {', '.join(str(name) for name in test_types)}")
     scope = row.get("scopeRollup")
     if scope:
         issue_count = int(scope.get("issueCount") or float(scope.get("totalWeight") or 0))
@@ -1638,6 +1641,7 @@ def _append_timeline_bar(
         for attribute, field in (
             ("assignee", "assigneeDisplayName"),
             ("workstreams", "workstreams"),
+            ("test-types", "testTypes"),
             ("labels", "labels"),
             ("status-category", "statusCategory"),
             ("due-date", "dueDate"),
