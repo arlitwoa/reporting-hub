@@ -65,6 +65,7 @@ from extensions.twoa_programme.sef_project_plan_timeline import (
     RIGHT_PAD,
     SCOPE_OVERLAY_OPACITY,
     START_DATE_FIELD,
+    TEST_TYPES_FIELD_ID,
     WORKSTREAM_FIELD_ID,
     STREAM_BAR_HEIGHT,
     STREAM_ROW_HEIGHT,
@@ -1721,7 +1722,10 @@ SEFK_COLLAPSE_SCRIPT = """
         var workstreams = Array.from(section.querySelectorAll('[data-workstream-filter]:checked')).map(function (input) {
             return input.getAttribute('data-workstream-filter');
         });
-        if (!statusCategories.length && !severities.length && !workstreams.length) {
+        var testTypes = Array.from(section.querySelectorAll('[data-test-type-filter]:checked')).map(function (input) {
+            return input.getAttribute('data-test-type-filter');
+        });
+        if (!statusCategories.length && !severities.length && !workstreams.length && !testTypes.length) {
             resetAllLevelZeroRowFilters(svg);
             resetEpicVisibilityFilter(svg);
             resetWorkStreamVisibilityFilter(svg);
@@ -1748,10 +1752,14 @@ SEFK_COLLAPSE_SCRIPT = """
             var workstreamMatch = !workstreams.length || workstreams.some(function (workstream) {
                 return rowWorkstreams.indexOf(workstream) >= 0;
             });
+            var rowTestTypes = (bar.getAttribute('data-sefk-test-types') || '').split('|').filter(Boolean);
+            var testTypeMatch = !testTypes.length || testTypes.some(function (testType) {
+                return rowTestTypes.indexOf(testType) >= 0;
+            });
             var severityMatch = !severities.length || severities.some(function (severity) {
                 return !!svg.querySelector('.sefk-alert-badge.sefk-alert-' + severity + '[data-sef-key="' + key + '"]');
             });
-            if (statusMatch && workstreamMatch && severityMatch) matchedKeys.push(key);
+            if (statusMatch && workstreamMatch && testTypeMatch && severityMatch) matchedKeys.push(key);
         });
         var visibleKeys = withAntecedents(projectKeysToHierarchyLevel(svg, matchedKeys), blockedByMap(svg));
         collapseAllRaw();
@@ -1791,7 +1799,7 @@ SEFK_COLLAPSE_SCRIPT = """
         if (!section.classList.contains('sefk-structured-filter-active')) {
             svg.setAttribute('data-sefk-filter-expansion-state', JSON.stringify(hierarchyExpansionState(svg)));
         }
-        section.classList.toggle('sefk-structured-filter-active', !!section.querySelector('[data-status-category]:checked, [data-rag-severity]:checked, [data-workstream-filter]:checked'));
+        section.classList.toggle('sefk-structured-filter-active', !!section.querySelector('[data-status-category]:checked, [data-rag-severity]:checked, [data-workstream-filter]:checked, [data-test-type-filter]:checked'));
         applyStructuredChartFilter(svg, section);
     };
 
@@ -1895,6 +1903,31 @@ SEFK_COLLAPSE_SCRIPT = """
     }
 
     populateStructuredWorkstreamOptions();
+
+    function populateStructuredTestTypeOptions() {
+        var svg = document.querySelector('.chart-section svg');
+        var options = document.getElementById('sefk-test-type-options');
+        if (!svg || !options) return;
+        var values = {};
+        svg.querySelectorAll('[data-sef-role$="-bar"]').forEach(function (bar) {
+            (bar.getAttribute('data-sefk-test-types') || '').split('|').forEach(function (value) {
+                value = value.trim();
+                if (value) values[value] = true;
+            });
+        });
+        Object.keys(values).sort(function (left, right) { return left.localeCompare(right); }).forEach(function (value) {
+            var label = document.createElement('label');
+            var input = document.createElement('input');
+            input.type = 'checkbox';
+            input.setAttribute('data-test-type-filter', value);
+            input.addEventListener('change', function () { window.sefkApplyStructuredChartFilters(input); });
+            label.appendChild(input);
+            label.appendChild(document.createTextNode(value));
+            options.appendChild(label);
+        });
+    }
+
+    populateStructuredTestTypeOptions();
 
     document.addEventListener('click', function (event) {
         document.querySelectorAll('.sefk-multi-filter[open]').forEach(function (filter) {
@@ -2583,7 +2616,7 @@ def _attach_level_zero_rows(
         return
     child_fields = [
         "summary", "status", "issuetype", "created", "duedate", START_DATE_FIELD, "issuelinks", "parent",
-        "assignee", "components", "labels", WORKSTREAM_FIELD_ID,
+        "assignee", "components", "labels", WORKSTREAM_FIELD_ID, TEST_TYPES_FIELD_ID,
     ]
     kpmg_reference_field_id = get_kpmg_reference_field_id()
     if kpmg_reference_field_id and kpmg_reference_field_id not in child_fields:
@@ -2991,6 +3024,7 @@ def fetch_sefk_project_plan_timeline(
         "components",
         "labels",
         WORKSTREAM_FIELD_ID,
+        TEST_TYPES_FIELD_ID,
     ]
     if kpmg_reference_field_id:
         fields.append(kpmg_reference_field_id)
@@ -3780,6 +3814,10 @@ def build_sefk_project_plan_report_html(
                         <details class="sefk-multi-filter">
                             <summary>Workstream</summary>
                             <div id="sefk-workstream-options" class="sefk-multi-filter-options"></div>
+                        </details>
+                        <details class="sefk-multi-filter">
+                            <summary>Test Type</summary>
+                            <div id="sefk-test-type-options" class="sefk-multi-filter-options"></div>
                         </details>
                     </div>
                 </section>

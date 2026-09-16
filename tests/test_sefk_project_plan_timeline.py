@@ -340,8 +340,12 @@ class SefkProjectPlanTimelineTests(unittest.TestCase):
         self.assertIn('data-rag-severity="amber"', html_doc)
         self.assertIn('data-rag-severity="red"', html_doc)
         self.assertIn('id="sefk-workstream-options"', html_doc)
+        self.assertIn('id="sefk-test-type-options"', html_doc)
         self.assertIn("window.sefkApplyStructuredChartFilters = function", html_doc)
         self.assertIn("function populateStructuredWorkstreamOptions", html_doc)
+        self.assertIn("function populateStructuredTestTypeOptions", html_doc)
+        self.assertIn("data-sefk-test-types", html_doc)
+        self.assertIn("data-test-type-filter", html_doc)
         self.assertNotIn('id="sefk-search-controls-title"', html_doc)
 
     def test_html_report_includes_link_target_toggle(self) -> None:
