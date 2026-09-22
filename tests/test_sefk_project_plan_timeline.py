@@ -38,7 +38,7 @@ class SefkProjectPlanTimelineTests(unittest.TestCase):
         config = load_sefk_project_plan_reporting_config(_REPO / "config" / "sefk-project-plan-reporting.json")
         self.assertEqual(config.project_key, "SEFK")
         self.assertEqual(config.sub_phase_issue_type, "Sub-Phase")
-        self.assertEqual(config.work_stream_issue_type, "Work Stream")
+        self.assertEqual(config.work_stream_issue_type, "Workstream")
         self.assertEqual(config.epic_issue_type, "Epic")
         self.assertEqual(config.scope_filter_name, "smart-project-sefk")
         self.assertIn("Task", config.scope_issue_types)
@@ -430,7 +430,7 @@ class SefkProjectPlanTimelineTests(unittest.TestCase):
                 "key": "PDE-9003",
                 "fields": {
                     "summary": "Functional Stream",
-                    "issuetype": {"name": "Work Stream"},
+                    "issuetype": {"name": "Workstream"},
                     "status": {"name": "To Do"},
                     "parent": {"key": "PDE-9002"},
                     "customfield_10015": "2026-06-04",
