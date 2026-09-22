@@ -14,7 +14,7 @@
   "issueTypes": {
     "phaseHub": "Phase",
     "subPhase": "Sub-Phase",
-    "workStream": "Work Stream",
+    "workStream": "Workstream",
     "epic": "Epic",
     "milestones": ["Milestone Level One", "Milestone Level Zero"],
     "gates": ["Gate", "Gate Level One"],
@@ -58,5 +58,5 @@
     "sitePath": "sefk/project-plan.html",
     "pageTitle": "SEFK | Integrated Project Plan"
   },
-  "notes": "Hierarchy is built from smart-project-sefk filter issues via parent links (Phase → Sub-Phase → Work Stream → Epic). Issues labelled kpmg-deleted (KPMG source removed by sync-hub tombstone) are excluded from scope counts and hierarchy. chartWindow is a fallback only; fetch computes the x-axis from live dates."
+  "notes": "Hierarchy is built from smart-project-sefk filter issues via parent links (Phase → Sub-Phase → Workstream → Epic). Issues labelled kpmg-deleted (KPMG source removed by sync-hub tombstone) are excluded from scope counts and hierarchy. chartWindow is a fallback only; fetch computes the x-axis from live dates."
 }
