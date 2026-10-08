@@ -95,6 +95,8 @@ class GitHubPagesPublishTests(unittest.TestCase):
         self.assertIn('href="enterprise/"', html_doc)
         self.assertIn("EPC delivery", html_doc)
         self.assertIn("Enterprise reporting", html_doc)
+        self.assertIn('href="sefk/testlet-burndown.html"', html_doc)
+        self.assertIn('href="sefk/system-integration-testlet-burndown.html"', html_doc)
 
     def test_programme_hub_uses_relative_links(self):
         root = Path(__file__).resolve().parents[1]

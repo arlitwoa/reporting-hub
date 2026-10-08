@@ -65,6 +65,16 @@
           "href": "sefk/project-plan.html",
           "title": "Integrated project plan",
           "description": "Phase → Sub-Phase → Work Stream → Epic Gantt with D-Train scope colours"
+        },
+        {
+          "href": "sefk/testlet-burndown.html",
+          "title": "Unit Testlet burndown",
+          "description": "SEFK Unit Testlet delivery trend"
+        },
+        {
+          "href": "sefk/system-integration-testlet-burndown.html",
+          "title": "System Integration Testlet burndown",
+          "description": "azure-integration-services Testlets against the SEFK-1216 delivery window"
         }
       ]
     },
