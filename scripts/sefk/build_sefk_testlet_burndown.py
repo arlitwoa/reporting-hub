@@ -25,6 +25,7 @@ from extensions.twoa_programme.milestone_timeline import (  # noqa: E402
 from extensions.twoa_programme.sefk_testlet_burndown import (  # noqa: E402
     build_sefk_testlet_burndown_html,
     build_sefk_testlet_burndown_payload,
+    testlet_scope_jql,
 )
 
 START_DATE_FIELD = "customfield_10015"
@@ -32,21 +33,6 @@ END_DATE_FIELD = "duedate"
 UNIT_REPORT_PATH = _REPO_ROOT / "docs" / "sefk" / "testlet-burndown.html"
 CACHE_PATH = _REPO_ROOT / "output" / "sefk-testlet-burndown-changelog-cache.json"
 NZ_TZ = ZoneInfo("Pacific/Auckland")
-
-
-def _load_status_categories(
-    adapter: AtlassianAdapter, status_ids: set[str]
-) -> dict[str, str]:
-    categories: dict[str, str] = {}
-    for status_id in sorted(status_ids):
-        status = adapter.http.get_json(f"/rest/api/3/status/{status_id}")
-        category = status.get("statusCategory") or {}
-        category_key = str(category.get("key") or "").lower()
-        if category_key:
-            categories[status_id] = category_key
-    if not categories:
-        raise RuntimeError("Jira returned no status-category mappings; cannot replay Testlet history.")
-    return categories
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -61,22 +47,12 @@ def main(argv: list[str] | None = None) -> int:
     test_type = args.test_type.strip()
     if not test_type:
         parser.error("--test-type must not be empty")
-    escaped_test_type = test_type.replace("\\", "\\\\").replace('"', '\\"')
-    jql = (
-        'project = SEFK AND issuetype = Testlet AND cf[10145] = '
-        f'"{escaped_test_type}" ORDER BY created ASC, key ASC'
-    )
-    if args.platform:
-        escaped_platform = args.platform.strip().replace("\\", "\\\\").replace('"', '\\"')
-        jql = jql.replace(
-            ' ORDER BY created ASC, key ASC',
-            f' AND cf[10079] = "{escaped_platform}" ORDER BY created ASC, key ASC',
-        )
+    jql = testlet_scope_jql(test_type, args.platform)
     report_path = UNIT_REPORT_PATH if test_type == "Unit" else (
         _REPO_ROOT / "docs" / "sefk" / f"{test_type.lower().replace(' ', '-')}-testlet-burndown.html"
     )
     adapter = AtlassianAdapter.from_profile("atlassian", os.environ["ARTIFACT_PROFILES_DIR"])
-    fields = ["created", "status", "issuetype", "customfield_10145"]
+    fields = ["created", "resolution", "resolutiondate", "issuetype", "customfield_10145"]
     if args.platform:
         fields.append("customfield_10079")
     issues = search_all(adapter, jql, fields)
@@ -93,15 +69,10 @@ def main(argv: list[str] | None = None) -> int:
             "to draw the ideal pace line."
         )
     changelogs = load_scope_changelog_cache(CACHE_PATH)
-    status_ids: set[str] = set()
     for index, issue in enumerate(issues, start=1):
         key = str(issue.get("key") or "")
         if not key:
             continue
-        fields = issue.get("fields") or {}
-        status_id = str(((fields.get("status") or {}).get("id")) or "")
-        if status_id:
-            status_ids.add(status_id)
         if key in changelogs:
             histories = changelogs[key]
         else:
@@ -110,20 +81,10 @@ def main(argv: list[str] | None = None) -> int:
             changelogs[key] = histories
             save_scope_changelog_cache(CACHE_PATH, changelogs)
         changelogs[key] = histories
-        for history in histories:
-            for item in history.get("items") or []:
-                if str(item.get("field") or "").lower() != "status":
-                    continue
-                for field in ("from", "to"):
-                    value = str(item.get(field) or "")
-                    if value:
-                        status_ids.add(value)
 
-    status_categories = _load_status_categories(adapter, status_ids)
     payload = build_sefk_testlet_burndown_payload(
         issues,
         changelogs,
-        status_categories,
         ideal_start=str(ideal_start),
         ideal_end=str(ideal_end),
     )

@@ -18,21 +18,47 @@ def _day(value: Any) -> date | None:
         return None
 
 
-def _status_events(
-    histories: list[dict[str, Any]], status_categories: dict[str, str]
-) -> list[tuple[date, str | None, str | None]]:
-    events: list[tuple[date, str | None, str | None]] = []
+def _resolution_events(
+    histories: list[dict[str, Any]],
+) -> list[tuple[date, bool, bool]]:
+    events: list[tuple[date, bool, bool]] = []
     for history in histories:
         changed = _day(history.get("created"))
         if changed is None:
             continue
         for item in history.get("items") or []:
-            if str(item.get("field") or "").lower() != "status":
+            if str(item.get("field") or "").lower() != "resolution":
                 continue
-            from_category = status_categories.get(str(item.get("from") or ""))
-            to_category = status_categories.get(str(item.get("to") or ""))
-            events.append((changed, from_category, to_category))
+            from_resolved = bool(item.get("from") or item.get("fromString"))
+            to_resolved = bool(item.get("to") or item.get("toString"))
+            events.append((changed, from_resolved, to_resolved))
     return sorted(events, key=lambda event: event[0])
+
+
+def testlet_scope_jql(test_type: str, platform: str | None = None) -> str:
+    escaped_test_type = test_type.replace("\\", "\\\\").replace('"', '\\"')
+    if test_type in {"Unit", "System Integration"}:
+        clauses = [
+            "filter = smart-project-sefk",
+            "filter = smart-sefk-current-engine",
+            "filter = smart-types-tests",
+            f'"Test Types" = "{escaped_test_type}"',
+        ]
+        if test_type == "System Integration":
+            clauses.append(
+                'status in ("To Do", "Awaiting Test Development", '
+                '"In Test Development", "In Testing", "Passed", "Failed", "Rejected")'
+            )
+    else:
+        clauses = [
+            "project = SEFK",
+            "issuetype = Testlet",
+            f'cf[10145] = "{escaped_test_type}"',
+        ]
+    if platform:
+        escaped_platform = platform.replace("\\", "\\\\").replace('"', '\\"')
+        clauses.append(f'cf[10079] = "{escaped_platform}"')
+    return " AND ".join(clauses) + " ORDER BY created ASC, key ASC"
 
 
 def _best_fit_trend(
@@ -71,25 +97,32 @@ def _y_axis_ticks(total_count: int) -> tuple[int, ...]:
     y_max = max(1, total_count)
     return tuple(sorted({0, y_max // 2, y_max}))
 
+
 def _actual_point_label(
-    row: dict[str, Any], value: int, total_count: int, test_type: str
+    row: dict[str, Any],
+    value: int,
+    total_count: int,
+    test_type: str,
 ) -> str:
     point_day = _day(row.get("date"))
     date_label = point_day.strftime("%d %b %Y").lstrip("0") if point_day else "Unknown date"
     noun = "Testlet" if value == 1 else "Testlets"
-    return f"{date_label}: {value} of {total_count} {test_type} {noun} remaining"
+    return (
+        f"{date_label}: {value} of {total_count} {test_type} {noun} remaining\n"
+        f"Resolved: {int(row.get('resolutiondateMatches') or 0)}\n"
+        f"Created: {int(row.get('created') or 0)}"
+    )
 
 
 def build_sefk_testlet_burndown_payload(
     issues: list[dict[str, Any]],
     changelogs_by_key: dict[str, list[dict[str, Any]]],
-    status_categories: dict[str, str],
     *,
     ideal_start: date | str,
     ideal_end: date | str,
     as_of: date | str | None = None,
 ) -> dict[str, Any]:
-    """Replay Testlet status transitions and attach the planned ideal-pace window."""
+    """Replay Jira resolution changes and attach the planned ideal-pace window."""
     end = _day(as_of) if as_of is not None else date.today()
     if end is None:
         raise ValueError("as_of must be a valid ISO date")
@@ -99,6 +132,8 @@ def build_sefk_testlet_burndown_payload(
         raise ValueError("ideal_start and ideal_end must be valid dates with ideal_end after ideal_start")
 
     events: dict[date, int] = {}
+    created_by_day: dict[date, int] = {}
+    resolutiondate_by_day: dict[date, int] = {}
     issue_count = 0
     earliest: date | None = None
     completed_now = 0
@@ -108,33 +143,29 @@ def build_sefk_testlet_burndown_payload(
         if created is None or created > end:
             continue
         issue_count += 1
+        created_by_day[created] = created_by_day.get(created, 0) + 1
         histories = changelogs_by_key.get(str(issue.get("key") or ""), [])
-        status_events = _status_events(histories, status_categories)
-        current_status = fields.get("status") or {}
-        current_category = str((current_status.get("statusCategory") or {}).get("key") or "")
-        if current_category == "done":
+        resolution_events = _resolution_events(histories)
+        currently_resolved = bool(fields.get("resolution"))
+        if currently_resolved:
             completed_now += 1
+        resolution_day = _day(fields.get("resolutiondate"))
+        if resolution_day is not None and resolution_day <= end:
+            resolutiondate_by_day[resolution_day] = resolutiondate_by_day.get(resolution_day, 0) + 1
 
-        # The first transition's from-status gives the issue's initial category.
-        # With no history, use its current category; otherwise assume it was open.
-        initially_done = (
-            status_events[0][1] == "done"
-            if status_events and status_events[0][1] is not None
-            else current_category == "done" if not status_events else False
-        )
-        if not initially_done:
+        initially_resolved = resolution_events[0][1] if resolution_events else currently_resolved
+        if not initially_resolved:
             events[created] = events.get(created, 0) + 1
         earliest = min(earliest, created) if earliest else created
 
-        remaining = not initially_done
-        for changed, _from_category, to_category in status_events:
-            if changed < created or changed > end or to_category is None:
+        remaining = not initially_resolved
+        for changed, _from_resolved, to_resolved in resolution_events:
+            if changed < created or changed > end:
                 continue
-            is_done = to_category == "done"
-            if remaining and is_done:
+            if remaining and to_resolved:
                 events[changed] = events.get(changed, 0) - 1
                 remaining = False
-            elif not remaining and not is_done:
+            elif not remaining and not to_resolved:
                 events[changed] = events.get(changed, 0) + 1
                 remaining = True
 
@@ -157,7 +188,14 @@ def build_sefk_testlet_burndown_payload(
     current_day = earliest
     while current_day <= end:
         remaining_count += events.get(current_day, 0)
-        daily.append({"date": current_day.isoformat(), "remaining": remaining_count})
+        daily.append(
+            {
+                "date": current_day.isoformat(),
+                "remaining": remaining_count,
+                "created": created_by_day.get(current_day, 0),
+                "resolutiondateMatches": resolutiondate_by_day.get(current_day, 0),
+            }
+        )
         current_day = date.fromordinal(current_day.toordinal() + 1)
 
     trend = _best_fit_trend(daily, from_date=ideal_start_day)
@@ -181,7 +219,7 @@ def _render_svg(payload: dict[str, Any], *, test_type: str = "Unit") -> str:
         return f'<p class="empty">No {html.escape(test_type)} Testlets found in SEFK.</p>'
 
     width, height = 1000, 380
-    left, right, top, bottom = 64, 24, 24, 48
+    left, right, top, bottom = 64, 24, 42, 48
     plot_width, plot_height = width - left - right, height - top - bottom
     ideal_start_day = _day(payload.get("idealStartDate")) or _day(daily[0]["date"])
     ideal_end_day = _day(payload.get("idealEndDate")) or _day(daily[-1]["date"])
@@ -229,11 +267,21 @@ def _render_svg(payload: dict[str, Any], *, test_type: str = "Unit") -> str:
         f"{point(_day(row['date']) or chart_start, value)[1]:.1f}"
         for row, value in zip(visible_daily, values)
     )
+
+    def _actual_point_markup(row: dict[str, Any], value: int) -> str:
+        point_day = _day(row.get("date"))
+        point_x, point_y = point(point_day or chart_start, value)
+        tooltip = html.escape(
+            _actual_point_label(row, value, total_count, test_type)
+        )
+        return (
+            f'<circle cx="{point_x:.1f}" cy="{point_y:.1f}" r="4" '
+            f'class="actual-point" tabindex="0" aria-label="{tooltip}">'
+            f'<title>{tooltip}</title></circle>'
+        )
+
     actual_markers = "".join(
-        f'<circle cx="{point(_day(row["date"]) or chart_start, value)[0]:.1f}" '
-        f'cy="{point(_day(row["date"]) or chart_start, value)[1]:.1f}" r="4" '
-        f'class="actual-point" tabindex="0" aria-label="{html.escape(_actual_point_label(row, value, total_count, test_type))}">'
-        f'<title>{html.escape(_actual_point_label(row, value, total_count, test_type))}</title></circle>'
+        _actual_point_markup(row, value)
         for row, value in zip(visible_daily, values)
     )
     ideal_points = (
@@ -303,7 +351,7 @@ def _render_svg(payload: dict[str, Any], *, test_type: str = "Unit") -> str:
     target_marker = (
         f'<line x1="{target_x:.1f}" y1="{top}" x2="{target_x:.1f}" '
         f'y2="{height-bottom}" class="target-marker" />'
-        f'<text x="{target_x:.1f}" y="{top+16}" text-anchor="middle" '
+        f'<text x="{target_x:.1f}" y="{top-20}" text-anchor="middle" '
         f'class="target-label">{target_label}</text>'
     )
     return (
@@ -338,13 +386,12 @@ def build_sefk_testlet_burndown_html(
     forecast_date = html.escape(str(payload.get("forecastDate") or "No forecast"))
     safe_test_type = html.escape(test_type)
     safe_bounds_issue_key = html.escape(bounds_issue_key)
-    scope_jql = f'project = SEFK AND issuetype = Testlet AND cf[10145] = "{test_type}"'
+    scope_jql = testlet_scope_jql(test_type, platform)
     scope_description = f"SEFK Testlets where Test Types = {safe_test_type}"
     if platform:
         safe_platform = html.escape(platform)
-        scope_jql += f' AND cf[10079] = "{platform}"'
         scope_description += f" and Platform = {safe_platform}"
-    jql = quote(f"{scope_jql} ORDER BY created ASC, key ASC", safe="")
+    jql = quote(scope_jql, safe="")
     return f'''<!doctype html>
 <html lang="en">
 <head>
@@ -389,10 +436,10 @@ def build_sefk_testlet_burndown_html(
   <main>
         <nav aria-label="Breadcrumb"><a href="../index.html">TWoA reporting hub</a> / <a href="index.html">SEFK</a> / {safe_test_type} Testlet burndown</nav>
         <h1>SEFK {safe_test_type} Testlet burndown</h1>
-        <p class="subhead">Remaining {safe_test_type} Testlets over time, reconstructed from creation dates and Jira status history.</p>
+        <p class="subhead">Remaining {safe_test_type} Testlets over time, reconstructed from creation dates and Jira resolution history.</p>
         <section class="metrics" aria-label="Current {safe_test_type} Testlet counts">
             <div class="metric"><strong>{int(payload.get("remainingTestlets") or 0)}</strong><span>Remaining as of {as_of}</span></div>
-            <div class="metric"><strong>{int(payload.get("completedTestlets") or 0)}</strong><span>Currently in the Done status category</span></div>
+            <div class="metric"><strong>{int(payload.get("completedTestlets") or 0)}</strong><span>Currently resolved in Jira</span></div>
             <div class="metric"><strong>{int(payload.get("totalTestlets") or 0)}</strong><span>{safe_test_type} Testlets in scope</span></div>
             <div class="metric"><strong>{forecast_date}</strong><span>Best-fit completion estimate</span></div>
     </section>
@@ -400,7 +447,7 @@ def build_sefk_testlet_burndown_html(
     {_render_svg(payload, test_type=test_type)}
             <figcaption class="legend"><span><i class="swatch"></i>Actual remaining</span><span><i class="swatch ideal"></i>Ideal pace ({ideal_start} to {ideal_end})</span><span><i class="swatch trend"></i>Best-fit trend</span><span>Target completion: {ideal_end}</span></figcaption>
     </figure>
-        <p class="foot">Scope: <a href="https://twoa.atlassian.net/issues/?jql={jql}" target="_blank" rel="noopener">{scope_description}</a>. Created {safe_test_type} Testlets add to remaining work; entering the Done category burns one down, and reopening adds one back. Ideal pace starts at the initial scope on {safe_bounds_issue_key}'s Start date and reaches zero on its Due date. Generated {generated}.</p>
+        <p class="foot">Scope: <a href="https://twoa.atlassian.net/issues/?jql={jql}" target="_blank" rel="noopener">{scope_description}</a>. Created {safe_test_type} Testlets add to remaining work; setting a Jira resolution burns one down, and clearing it on reopen adds one back. Ideal pace starts at the initial scope on {safe_bounds_issue_key}'s Start date and reaches zero on its Due date. Generated {generated}.</p>
   </main>
 </body>
 </html>
