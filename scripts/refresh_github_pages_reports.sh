@@ -107,6 +107,10 @@ for stage in "${SELECTED_STAGES[@]}"; do
 				echo "Missing file: scripts/sefk/fetch_sefk_project_plan_timeline.py" >&2
 				exit 1
 			}
+			[[ -f scripts/sefk/build_sefk_testlet_burndown.py ]] || {
+				echo "Missing file: scripts/sefk/build_sefk_testlet_burndown.py" >&2
+				exit 1
+			}
 			;;
 		delivery-health)
 			[[ -f scripts/refresh_delivery_health_pages.sh ]] || {
@@ -144,6 +148,8 @@ for stage in "${SELECTED_STAGES[@]}"; do
 		sefk)
 			"$PY" scripts/sefk/fetch_sefk_project_plan_timeline.py --write
 			"$PY" scripts/sefk/sefk_project_plan_report.py --write
+			"$PY" scripts/sefk/build_sefk_testlet_burndown.py --write
+			"$PY" scripts/sefk/build_sefk_testlet_burndown.py --write --test-type "System Integration" --bounds-issue SEFK-1216 --platform azure-integration-services
 			;;
 		delivery-health)
 			bash scripts/refresh_delivery_health_pages.sh "${EXTRA_ARGS[@]}"
