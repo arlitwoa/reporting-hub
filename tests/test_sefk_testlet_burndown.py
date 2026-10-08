@@ -73,6 +73,10 @@ class SefkTestletBurndownTests(unittest.TestCase):
         document = build_sefk_testlet_burndown_html(payload, generated_on="05 Oct 2026")
         self.assertIn('class="actual-point"', document)
         self.assertIn("1 Oct 2026: 1 of 2 Unit Testlet remaining\nResolved: 0\nCreated: 1", document)
+        self.assertIn('class="actual-point-link"', document)
+        self.assertIn('target="_blank" rel="noopener" tabindex="0"', document)
+        self.assertIn("resolutiondate%20%3E%3D%20%222026-10-01%22", document)
+        self.assertIn("resolutiondate%20%3C%20%222026-10-02%22", document)
         self.assertIn("2 Oct 2026: 1 of 2 Unit Testlet remaining\nResolved: 1\nCreated: 1", document)
         self.assertIn("3 Oct 2026: 0 of 2 Unit Testlets remaining\nResolved: 0\nCreated: 0", document)
         self.assertIn("5 Oct 2026: 1 of 2 Unit Testlet remaining\nResolved: 0\nCreated: 0", document)
@@ -80,6 +84,15 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertIn('class="ideal"', document)
         self.assertIn('points="64.0,42.0 625.2,332.0" class="ideal"', document)
         self.assertIn('class="trend"', document)
+        self.assertIn('class="chart-layout"', document)
+        self.assertNotIn('class="chart-title"', document)
+        self.assertNotIn("Best-fit completion estimate", document)
+        self.assertIn('grid-template-columns: repeat(3, minmax(0, 1fr))', document)
+        self.assertIn("--series-actual: #3bbf91", document)
+        self.assertIn("--series-ideal: #6041a8", document)
+        self.assertIn("--series-trend: #f5ae0b", document)
+        self.assertIn("Best-fit trend", document)
+        self.assertNotIn('class="actual-label"', document)
         self.assertNotIn('class="as-of-marker"', document)
         self.assertIn('class="target-marker"', document)
         self.assertIn("Target 9 Oct", document)
@@ -92,7 +105,7 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertIn(">8 Oct</text>", document)
         self.assertIn(">14 Oct</text>", document)
         self.assertIn("Forecast 2026-10-09", document)
-        self.assertIn("Ideal pace (2026-10-01 to 2026-10-09)", document)
+        self.assertIn("Ideal pace", document)
         self.assertIn("Unit Testlets remaining from 2026-10-01 to 2026-10-14", document)
 
     def test_html_contains_summary_and_burndown_series(self) -> None:
@@ -114,11 +127,11 @@ class SefkTestletBurndownTests(unittest.TestCase):
 
         document = build_sefk_testlet_burndown_html(payload, generated_on="02 Oct 2026")
 
-        self.assertIn("SEFK Unit Testlet burndown", document)
+        self.assertIn("SEFK Unit Testlet Burndown", document)
         self.assertIn("Actual remaining", document)
         self.assertIn("Jira resolution history", document)
         self.assertIn("Currently resolved in Jira", document)
-        self.assertIn("Ideal pace (2026-10-01 to 2026-10-09)", document)
+        self.assertIn("Ideal pace", document)
         self.assertIn("filter%20%3D%20smart-project-sefk", document)
         self.assertIn("filter%20%3D%20smart-types-tests", document)
         self.assertIn("2026-10-02", document)
@@ -217,7 +230,9 @@ class SefkTestletBurndownTests(unittest.TestCase):
             platform="azure-integration-services",
         )
 
-        self.assertIn("SEFK System Integration Testlet burndown", document)
+        self.assertIn("SEFK System Integration Testlet Burndown", document)
+        self.assertNotIn('class="chart-title"', document)
+        self.assertNotIn("Best-fit completion estimate", document)
         self.assertIn(
             "5 Oct 2026: 1 of 1 System Integration Testlet remaining\nResolved: 0\nCreated: 0",
             document,
@@ -232,6 +247,8 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertIn("filter%20%3D%20smart-project-sefk", document)
         self.assertIn("status%20in%20%28%22To%20Do%22", document)
         self.assertIn("cf%5B10079%5D%20%3D%20%22azure-integration-services%22", document)
+        self.assertIn("resolutiondate%20%3E%3D%20%222026-10-05%22", document)
+        self.assertIn("resolutiondate%20%3C%20%222026-10-06%22", document)
         self.assertNotIn("project%20%3D%20SEFK", document)
 
 

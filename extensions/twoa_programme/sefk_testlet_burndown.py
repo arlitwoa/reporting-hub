@@ -61,6 +61,20 @@ def testlet_scope_jql(test_type: str, platform: str | None = None) -> str:
     return " AND ".join(clauses) + " ORDER BY created ASC, key ASC"
 
 
+def resolved_testlets_for_day_jql(
+    test_type: str,
+    day: date,
+    platform: str | None = None,
+) -> str:
+    scope = testlet_scope_jql(test_type, platform).rsplit(" ORDER BY ", 1)[0]
+    next_day = day + timedelta(days=1)
+    return (
+        f'{scope} AND resolutiondate >= "{day.isoformat()}" '
+        f'AND resolutiondate < "{next_day.isoformat()}" '
+        "ORDER BY resolutiondate ASC, key ASC"
+    )
+
+
 def _best_fit_trend(
     daily: list[dict[str, Any]],
     *,
@@ -213,7 +227,12 @@ def build_sefk_testlet_burndown_payload(
     }
 
 
-def _render_svg(payload: dict[str, Any], *, test_type: str = "Unit") -> str:
+def _render_svg(
+    payload: dict[str, Any],
+    *,
+    test_type: str = "Unit",
+    platform: str | None = None,
+) -> str:
     daily = payload.get("daily") or []
     if not daily:
         return f'<p class="empty">No {html.escape(test_type)} Testlets found in SEFK.</p>'
@@ -274,10 +293,22 @@ def _render_svg(payload: dict[str, Any], *, test_type: str = "Unit") -> str:
         tooltip = html.escape(
             _actual_point_label(row, value, total_count, test_type)
         )
+        point_day = point_day or chart_start
+        resolved_jql = quote(
+            resolved_testlets_for_day_jql(test_type, point_day, platform),
+            safe="",
+        )
+        href = html.escape(
+            f"https://twoa.atlassian.net/issues/?jql={resolved_jql}",
+            quote=True,
+        )
+        link_label = html.escape(f"Open resolved {test_type} Testlets for {point_day.isoformat()} in Jira")
         return (
+            f'<a href="{href}" target="_blank" rel="noopener" tabindex="0" '
+            f'class="actual-point-link" aria-label="{link_label}">'
             f'<circle cx="{point_x:.1f}" cy="{point_y:.1f}" r="4" '
-            f'class="actual-point" tabindex="0" aria-label="{tooltip}">'
-            f'<title>{tooltip}</title></circle>'
+            f'class="actual-point" aria-hidden="true">'
+            f'<title>{tooltip}\nClick to view resolved Testlets in Jira</title></circle></a>'
         )
 
     actual_markers = "".join(
@@ -383,7 +414,6 @@ def build_sefk_testlet_burndown_html(
     as_of = html.escape(str(payload.get("asOf") or ""))
     ideal_start = html.escape(str(payload.get("idealStartDate") or ""))
     ideal_end = html.escape(str(payload.get("idealEndDate") or ""))
-    forecast_date = html.escape(str(payload.get("forecastDate") or "No forecast"))
     safe_test_type = html.escape(test_type)
     safe_bounds_issue_key = html.escape(bounds_issue_key)
     scope_jql = testlet_scope_jql(test_type, platform)
@@ -397,9 +427,9 @@ def build_sefk_testlet_burndown_html(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SEFK | {safe_test_type} Testlet burndown</title>
+    <title>SEFK | {safe_test_type} Testlet Burndown</title>
   <style>
-    :root {{ color-scheme: light; --ink: #172b4d; --muted: #5e6c84; --grid: #dfe1e6; --blue: #0052cc; --green: #00875a; }}
+    :root {{ color-scheme: light; --ink: #172b4d; --muted: #5e6c84; --grid: #dfe1e6; --series-actual: #3bbf91; --series-ideal: #6041a8; --series-trend: #f5ae0b; }}
     * {{ box-sizing: border-box; }}
     body {{ margin: 0; color: var(--ink); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f4f5f7; }}
     main {{ max-width: 1120px; margin: 0 auto; padding: 28px 24px 48px; }}
@@ -408,44 +438,62 @@ def build_sefk_testlet_burndown_html(
     nav a:hover, a:hover {{ text-decoration: underline; }}
     h1 {{ margin: 20px 0 4px; font-size: 26px; }}
     .subhead {{ margin: 0 0 24px; color: var(--muted); }}
-    .metrics {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-block: 1px solid var(--grid); background: white; }}
+    .metrics {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--grid); background: white; }}
     .metric {{ padding: 18px 20px; border-right: 1px solid var(--grid); }}
     .metric:last-child {{ border: 0; }}
     .metric strong {{ display: block; font-size: 28px; line-height: 1.15; font-variant-numeric: tabular-nums; }}
     .weekend-band {{ fill: #e8ebef; }}
     .week-tick {{ stroke: var(--muted); stroke-width: 1; }}
-    .actual {{ fill: none; stroke: var(--blue); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }}
-    .actual-point {{ fill: var(--blue); stroke: #fff; stroke-width: 1.5; cursor: help; }}
+    .actual {{ fill: none; stroke: var(--series-actual); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }}
+    .actual-point {{ fill: var(--series-actual); stroke: #fff; stroke-width: 1.5; cursor: help; }}
     .actual-point:hover, .actual-point:focus {{ stroke: var(--ink); stroke-width: 2; }}
-    .ideal {{ fill: none; stroke: var(--green); stroke-width: 2; stroke-dasharray: 7 6; }}
-    .trend {{ fill: none; stroke: #de350b; stroke-width: 2.5; stroke-dasharray: 3 5; stroke-linejoin: round; }}
-    .forecast-marker {{ stroke: #de350b; stroke-width: 1.5; stroke-dasharray: 2 4; }}
-    .forecast-label {{ fill: #de350b; font-weight: 600; }}
-    .target-marker {{ stroke: var(--green); stroke-width: 1.5; stroke-dasharray: 4 4; }}
-    .target-label {{ fill: var(--green); font-weight: 600; }}
-    .legend {{ display: flex; flex-wrap: wrap; gap: 22px; padding-top: 12px; color: var(--muted); font-size: 13px; }}
-    .swatch {{ display: inline-block; width: 18px; margin-right: 6px; border-top: 3px solid var(--blue); vertical-align: middle; }}
-    .swatch.ideal {{ border-color: var(--green); border-top-style: dashed; }}
-    .swatch.trend {{ border-color: #de350b; border-top-style: dashed; }}
+    .actual-point-link {{ cursor: pointer; }}
+    .ideal {{ fill: none; stroke: var(--series-ideal); stroke-width: 2; stroke-dasharray: 7 6; }}
+    .trend {{ fill: none; stroke: var(--series-trend); stroke-width: 2.5; stroke-dasharray: 3 5; stroke-linejoin: round; }}
+    .forecast-marker {{ stroke: var(--series-trend); stroke-width: 1.5; stroke-dasharray: 2 4; }}
+    .forecast-label {{ fill: #9b6900; font-weight: 600; }}
+    .target-marker {{ stroke: var(--series-ideal); stroke-width: 1.5; stroke-dasharray: 4 4; }}
+    .target-label {{ fill: var(--series-ideal); font-weight: 600; }}
+    .chart-layout {{ display: grid; grid-template-columns: minmax(0, 1fr) 176px; gap: 16px; align-items: center; }}
+    .chart-layout svg {{ display: block; width: 100%; height: auto; min-width: 0; overflow: visible; }}
+    .legend {{ margin: 0; padding: 8px 0; color: var(--muted); font-size: 13px; }}
+    .legend-list {{ display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }}
+    .legend-item {{ display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: center; }}
+    .swatch {{ display: block; width: 18px; border-top: 3px solid var(--series-actual); }}
+    .swatch.actual {{ position: relative; }}
+    .swatch.actual::after {{ position: absolute; top: -5px; left: 6px; width: 7px; height: 7px; border: 1px solid #fff; border-radius: 50%; background: var(--series-actual); content: ""; }}
+    .swatch.ideal {{ border-top: 2px dashed var(--series-ideal); }}
+    .swatch.trend {{ border-top: 2px dashed var(--series-trend); }}
+    .swatch.forecast {{ width: 0; height: 16px; margin-left: 8px; border-top: 0; border-left: 2px dashed var(--series-trend); }}
+    .swatch.target {{ width: 0; height: 16px; margin-left: 8px; border-top: 0; border-left: 2px dashed var(--series-ideal); }}
     .foot {{ margin-top: 18px; color: var(--muted); font-size: 13px; }}
     .empty {{ padding: 30px; text-align: center; color: var(--muted); }}
-    @media (max-width: 600px) {{ main {{ padding: 20px 14px 32px; }} .metrics {{ grid-template-columns: 1fr; }} .metric {{ padding: 12px 16px; border-right: 0; border-bottom: 1px solid var(--grid); }} .metric strong {{ font-size: 23px; }} figure {{ padding: 12px 8px 8px; }} }}
+    @media (max-width: 700px) {{ main {{ padding: 20px 14px 32px; }} .metrics {{ grid-template-columns: 1fr; }} .metric {{ padding: 12px 16px; border-right: 0; border-bottom: 1px solid var(--grid); }} .metric strong {{ font-size: 23px; }} figure {{ padding: 12px 8px 8px; }} .chart-layout {{ grid-template-columns: minmax(0, 1fr); gap: 8px; }} .legend-list {{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }} }}
   </style>
 </head>
 <body>
   <main>
-        <nav aria-label="Breadcrumb"><a href="../index.html">TWoA reporting hub</a> / <a href="index.html">SEFK</a> / {safe_test_type} Testlet burndown</nav>
-        <h1>SEFK {safe_test_type} Testlet burndown</h1>
+        <nav aria-label="Breadcrumb"><a href="../index.html">TWoA reporting hub</a> / <a href="index.html">SEFK</a> / {safe_test_type} Testlet Burndown</nav>
+        <h1>SEFK {safe_test_type} Testlet Burndown</h1>
         <p class="subhead">Remaining {safe_test_type} Testlets over time, reconstructed from creation dates and Jira resolution history.</p>
         <section class="metrics" aria-label="Current {safe_test_type} Testlet counts">
             <div class="metric"><strong>{int(payload.get("remainingTestlets") or 0)}</strong><span>Remaining as of {as_of}</span></div>
             <div class="metric"><strong>{int(payload.get("completedTestlets") or 0)}</strong><span>Currently resolved in Jira</span></div>
             <div class="metric"><strong>{int(payload.get("totalTestlets") or 0)}</strong><span>{safe_test_type} Testlets in scope</span></div>
-            <div class="metric"><strong>{forecast_date}</strong><span>Best-fit completion estimate</span></div>
     </section>
     <figure>
-    {_render_svg(payload, test_type=test_type)}
-            <figcaption class="legend"><span><i class="swatch"></i>Actual remaining</span><span><i class="swatch ideal"></i>Ideal pace ({ideal_start} to {ideal_end})</span><span><i class="swatch trend"></i>Best-fit trend</span><span>Target completion: {ideal_end}</span></figcaption>
+            <div class="chart-layout">
+                {_render_svg(payload, test_type=test_type, platform=platform)}
+                <figcaption class="legend" aria-label="Chart legend">
+                    <ul class="legend-list">
+                        <li class="legend-item"><i class="swatch actual"></i><span>Actual remaining</span></li>
+                        <li class="legend-item"><i class="swatch ideal"></i><span>Ideal pace</span></li>
+                        <li class="legend-item"><i class="swatch trend"></i><span>Best-fit trend</span></li>
+                        <li class="legend-item"><i class="swatch forecast"></i><span>Forecast</span></li>
+                        <li class="legend-item"><i class="swatch target"></i><span>Target completion</span></li>
+                    </ul>
+                </figcaption>
+            </div>
     </figure>
         <p class="foot">Scope: <a href="https://twoa.atlassian.net/issues/?jql={jql}" target="_blank" rel="noopener">{scope_description}</a>. Created {safe_test_type} Testlets add to remaining work; setting a Jira resolution burns one down, and clearing it on reopen adds one back. Ideal pace starts at the initial scope on {safe_bounds_issue_key}'s Start date and reaches zero on its Due date. Generated {generated}.</p>
   </main>
