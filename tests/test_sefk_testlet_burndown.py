@@ -65,6 +65,8 @@ class SefkTestletBurndownTests(unittest.TestCase):
             [1, 1, 0, 0, 1],
         )
         document = build_sefk_testlet_burndown_html(payload, generated_on="05 Oct 2026")
+        self.assertIn('class="actual-point"', document)
+        self.assertIn("1 Oct 2026: 1 of 2 Unit Testlet remaining", document)
         self.assertIn('class="ideal"', document)
         self.assertIn('points="64.0,24.0 625.2,332.0" class="ideal"', document)
         self.assertIn('class="trend"', document)
@@ -72,6 +74,7 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertIn('class="target-marker"', document)
         self.assertIn("Target 9 Oct", document)
         self.assertIn('class="weekend-band"', document)
+        self.assertIn(".weekend-band { fill: #e8ebef; }", document)
         self.assertIn("class=\"week-grid\"", document)
         self.assertIn(">1 Oct</text>", document)
         self.assertIn(">8 Oct</text>", document)
@@ -133,6 +136,7 @@ class SefkTestletBurndownTests(unittest.TestCase):
         )
 
         self.assertIn("SEFK System Integration Testlet burndown", document)
+        self.assertIn("5 Oct 2026: 1 of 1 System Integration Testlet remaining", document)
         self.assertIn("System Integration Testlets in scope", document)
         self.assertIn("System%20Integration", document)
         self.assertIn("azure-integration-services", document)

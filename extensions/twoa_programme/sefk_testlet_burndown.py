@@ -71,6 +71,14 @@ def _y_axis_ticks(total_count: int) -> tuple[int, ...]:
     y_max = max(1, total_count)
     return tuple(sorted({0, y_max // 2, y_max}))
 
+def _actual_point_label(
+    row: dict[str, Any], value: int, total_count: int, test_type: str
+) -> str:
+    point_day = _day(row.get("date"))
+    date_label = point_day.strftime("%d %b %Y").lstrip("0") if point_day else "Unknown date"
+    noun = "Testlet" if value == 1 else "Testlets"
+    return f"{date_label}: {value} of {total_count} {test_type} {noun} remaining"
+
 
 def build_sefk_testlet_burndown_payload(
     issues: list[dict[str, Any]],
@@ -221,6 +229,13 @@ def _render_svg(payload: dict[str, Any], *, test_type: str = "Unit") -> str:
         f"{point(_day(row['date']) or chart_start, value)[1]:.1f}"
         for row, value in zip(visible_daily, values)
     )
+    actual_markers = "".join(
+        f'<circle cx="{point(_day(row["date"]) or chart_start, value)[0]:.1f}" '
+        f'cy="{point(_day(row["date"]) or chart_start, value)[1]:.1f}" r="4" '
+        f'class="actual-point" tabindex="0" aria-label="{html.escape(_actual_point_label(row, value, total_count, test_type))}">'
+        f'<title>{html.escape(_actual_point_label(row, value, total_count, test_type))}</title></circle>'
+        for row, value in zip(visible_daily, values)
+    )
     ideal_points = (
         f"{point(ideal_start_day, ideal_start_remaining)[0]:.1f},"
         f"{point(ideal_start_day, ideal_start_remaining)[1]:.1f} "
@@ -300,6 +315,7 @@ def _render_svg(payload: dict[str, Any], *, test_type: str = "Unit") -> str:
         f'<polyline points="{ideal_points}" class="ideal" />'
         f'<polyline points="{trend_points}" class="trend" />'
         f'<polyline points="{actual_points}" class="actual" />'
+        f'{actual_markers}'
         f'{forecast_marker}'
         f'{target_marker}'
         f'<text x="18" y="{top+plot_height/2}" transform="rotate(-90 18 {top+plot_height/2})" '
@@ -349,15 +365,11 @@ def build_sefk_testlet_burndown_html(
     .metric {{ padding: 18px 20px; border-right: 1px solid var(--grid); }}
     .metric:last-child {{ border: 0; }}
     .metric strong {{ display: block; font-size: 28px; line-height: 1.15; font-variant-numeric: tabular-nums; }}
-    .metric span {{ color: var(--muted); font-size: 12px; }}
-    figure {{ margin: 22px 0 0; padding: 18px 20px 12px; background: white; border: 1px solid var(--grid); }}
-    figure svg {{ display: block; width: 100%; height: auto; overflow: visible; }}
-    svg text {{ fill: var(--muted); font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
-    .grid {{ stroke: var(--grid); stroke-width: 1; }}
-    .weekend-band {{ fill: #f4f5f7; }}
-    .week-grid {{ stroke: #ebecf0; stroke-width: 1; }}
+    .weekend-band {{ fill: #e8ebef; }}
     .week-tick {{ stroke: var(--muted); stroke-width: 1; }}
     .actual {{ fill: none; stroke: var(--blue); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }}
+    .actual-point {{ fill: var(--blue); stroke: #fff; stroke-width: 1.5; cursor: help; }}
+    .actual-point:hover, .actual-point:focus {{ stroke: var(--ink); stroke-width: 2; }}
     .ideal {{ fill: none; stroke: var(--green); stroke-width: 2; stroke-dasharray: 7 6; }}
     .trend {{ fill: none; stroke: #de350b; stroke-width: 2.5; stroke-dasharray: 3 5; stroke-linejoin: round; }}
     .forecast-marker {{ stroke: #de350b; stroke-width: 1.5; stroke-dasharray: 2 4; }}
