@@ -75,6 +75,11 @@
           "href": "sefk/system-integration-testlet-burndown.html",
           "title": "System Integration Testlet burndown",
           "description": "azure-integration-services Testlets against the SEFK-1216 delivery window"
+        },
+        {
+          "href": "sefk/system-integration-workday-testlet-burndown.html",
+          "title": "Workday System Integration Testlet burndown",
+          "description": "workday Testlets against the SEFK-1216 delivery window"
         }
       ]
     },

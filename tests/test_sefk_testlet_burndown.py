@@ -4,15 +4,113 @@ import unittest
 
 from extensions.twoa_programme.sefk_testlet_burndown import (
     _y_axis_ticks,
+    _run_rate_metrics,
     build_sefk_testlet_burndown_html,
     build_sefk_testlet_burndown_payload,
+    testlet_scope_jql,
 )
 
 
 class SefkTestletBurndownTests(unittest.TestCase):
+    def test_workday_scope_uses_workday_platform_filter(self) -> None:
+        jql = testlet_scope_jql(
+            "System Integration",
+            "workday",
+            include_all_engine_versions=True,
+        )
+
+        self.assertIn('"Test Types" = "System Integration"', jql)
+        self.assertIn('cf[10079] = "workday"', jql)
+        self.assertNotIn("azure-integration-services", jql)
+        self.assertNotIn("smart-sefk-current-engine", jql)
+        self.assertIn("smart-sefk-current-engine", testlet_scope_jql("System Integration", "azure-integration-services"))
+
+    def test_workday_wide_scope_applies_to_report_and_chart_links(self) -> None:
+        payload = build_sefk_testlet_burndown_payload(
+            [{"fields": {"created": "2026-10-05", "resolution": None}}],
+            {},
+            ideal_start="2026-10-05",
+            ideal_end="2026-10-23",
+            as_of="2026-10-06",
+        )
+
+        document = build_sefk_testlet_burndown_html(
+            payload,
+            generated_on="06 Oct 2026",
+            test_type="System Integration",
+            bounds_issue_key="SEFK-1216",
+            platform="workday",
+            include_all_engine_versions=True,
+        )
+
+        self.assertIn("(all SEFK engine versions)", document)
+        self.assertNotIn("smart-sefk-current-engine", document)
+        self.assertIn("cf%5B10079%5D%20%3D%20%22workday%22", document)
+
     def test_y_axis_top_tick_equals_scoped_total(self) -> None:
         self.assertEqual(_y_axis_ticks(82), (0, 41, 82))
         self.assertEqual(_y_axis_ticks(401), (0, 200, 401))
+
+    def test_run_rate_cards_use_resolution_transitions_and_days_to_target(self) -> None:
+        issues = [
+            {
+                "key": "SEFK-CYCLE-1",
+                "fields": {
+                    "created": "2026-10-05",
+                    "resolution": {"id": "10000", "name": "Done"},
+                    "resolutiondate": "2026-10-09",
+                },
+            },
+            {
+                "key": "SEFK-CYCLE-2",
+                "fields": {
+                    "created": "2026-10-05",
+                    "resolution": {"id": "10000", "name": "Done"},
+                    "resolutiondate": "2026-10-08",
+                },
+            },
+            {
+                "key": "SEFK-CYCLE-3",
+                "fields": {"created": "2026-10-05", "resolution": None},
+            },
+        ]
+        histories = {
+            "SEFK-CYCLE-1": [
+                {
+                    "created": "2026-10-06",
+                    "items": [{"field": "resolution", "from": None, "to": "10000"}],
+                },
+                {
+                    "created": "2026-10-07",
+                    "items": [{"field": "resolution", "from": "10000", "to": None}],
+                },
+                {
+                    "created": "2026-10-09",
+                    "items": [{"field": "resolution", "from": None, "to": "10000"}],
+                },
+            ]
+        }
+        payload = build_sefk_testlet_burndown_payload(
+            issues,
+            histories,
+            ideal_start="2026-10-05",
+            ideal_end="2026-10-23",
+            as_of="2026-10-09",
+        )
+
+        run_rate, required_run_rate = _run_rate_metrics(payload)
+        document = build_sefk_testlet_burndown_html(
+            payload,
+            generated_on="09 Oct 2026",
+            test_type="System Integration",
+            bounds_issue_key="SEFK-1216",
+        )
+
+        self.assertEqual(sum(row["completed"] for row in payload["daily"]), 3)
+        self.assertAlmostEqual(run_rate, 0.6)
+        self.assertAlmostEqual(required_run_rate or 0.0, 1 / 14)
+        self.assertIn(">0.6</strong><span>Run Rate (tests/day)</span>", document)
+        self.assertIn(">0.1</strong><span>Required Run Rate (tests/day)</span>", document)
 
     def test_replays_created_resolution_reopen_and_resolved_without_history(self) -> None:
         issues = [
@@ -87,7 +185,7 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertIn('class="chart-layout"', document)
         self.assertNotIn('class="chart-title"', document)
         self.assertNotIn("Best-fit completion estimate", document)
-        self.assertIn('grid-template-columns: repeat(3, minmax(0, 1fr))', document)
+        self.assertIn('grid-template-columns: repeat(5, minmax(0, 1fr))', document)
         self.assertIn("--series-actual: #3bbf91", document)
         self.assertIn("--series-ideal: #6041a8", document)
         self.assertIn("--series-trend: #f5ae0b", document)

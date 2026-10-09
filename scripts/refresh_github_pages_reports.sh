@@ -150,6 +150,7 @@ for stage in "${SELECTED_STAGES[@]}"; do
 			"$PY" scripts/sefk/sefk_project_plan_report.py --write
 			"$PY" scripts/sefk/build_sefk_testlet_burndown.py --write
 			"$PY" scripts/sefk/build_sefk_testlet_burndown.py --write --test-type "System Integration" --bounds-issue SEFK-1216 --platform azure-integration-services
+			"$PY" scripts/sefk/build_sefk_testlet_burndown.py --write --test-type "System Integration" --bounds-issue SEFK-1216 --platform workday --include-all-engine-versions --output docs/sefk/system-integration-workday-testlet-burndown.html
 			;;
 		delivery-health)
 			bash scripts/refresh_delivery_health_pages.sh "${EXTRA_ARGS[@]}"
