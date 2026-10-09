@@ -41,17 +41,27 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--test-type", default="Unit", help="Exact Jira Test Types option to report.")
     parser.add_argument("--bounds-issue", default="SEFK-1274", help="Issue providing Start/Due dates.")
     parser.add_argument("--platform", default=None, help="Optional exact Jira Platform value to report.")
+    parser.add_argument("--profile", default="atlassian", help="Artifact Atlassian profile to use.")
+    parser.add_argument(
+        "--include-all-engine-versions",
+        action="store_true",
+        help="Include System Integration Testlets outside the current-engine filter.",
+    )
     parser.add_argument("--output", type=Path, default=None, help="Override the HTML output path.")
     args = parser.parse_args(argv)
 
     test_type = args.test_type.strip()
     if not test_type:
         parser.error("--test-type must not be empty")
-    jql = testlet_scope_jql(test_type, args.platform)
+    jql = testlet_scope_jql(
+        test_type,
+        args.platform,
+        include_all_engine_versions=args.include_all_engine_versions,
+    )
     report_path = UNIT_REPORT_PATH if test_type == "Unit" else (
         _REPO_ROOT / "docs" / "sefk" / f"{test_type.lower().replace(' ', '-')}-testlet-burndown.html"
     )
-    adapter = AtlassianAdapter.from_profile("atlassian", os.environ["ARTIFACT_PROFILES_DIR"])
+    adapter = AtlassianAdapter.from_profile(args.profile, os.environ["ARTIFACT_PROFILES_DIR"])
     fields = ["created", "resolution", "resolutiondate", "issuetype", "customfield_10145"]
     if args.platform:
         fields.append("customfield_10079")
@@ -95,6 +105,7 @@ def main(argv: list[str] | None = None) -> int:
         test_type=test_type,
         bounds_issue_key=args.bounds_issue,
         platform=args.platform,
+        include_all_engine_versions=args.include_all_engine_versions,
     )
     output_path = args.output or report_path
     if args.write or args.output:

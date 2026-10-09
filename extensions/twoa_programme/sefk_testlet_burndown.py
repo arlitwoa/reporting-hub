@@ -35,15 +35,21 @@ def _resolution_events(
     return sorted(events, key=lambda event: event[0])
 
 
-def testlet_scope_jql(test_type: str, platform: str | None = None) -> str:
+def testlet_scope_jql(
+    test_type: str,
+    platform: str | None = None,
+    *,
+    include_all_engine_versions: bool = False,
+) -> str:
     escaped_test_type = test_type.replace("\\", "\\\\").replace('"', '\\"')
     if test_type in {"Unit", "System Integration"}:
         clauses = [
             "filter = smart-project-sefk",
-            "filter = smart-sefk-current-engine",
             "filter = smart-types-tests",
             f'"Test Types" = "{escaped_test_type}"',
         ]
+        if test_type != "System Integration" or not include_all_engine_versions:
+            clauses.insert(1, "filter = smart-sefk-current-engine")
         if test_type == "System Integration":
             clauses.append(
                 'status in ("To Do", "Awaiting Test Development", '
@@ -65,8 +71,14 @@ def resolved_testlets_for_day_jql(
     test_type: str,
     day: date,
     platform: str | None = None,
+    *,
+    include_all_engine_versions: bool = False,
 ) -> str:
-    scope = testlet_scope_jql(test_type, platform).rsplit(" ORDER BY ", 1)[0]
+    scope = testlet_scope_jql(
+        test_type,
+        platform,
+        include_all_engine_versions=include_all_engine_versions,
+    ).rsplit(" ORDER BY ", 1)[0]
     next_day = day + timedelta(days=1)
     return (
         f'{scope} AND resolutiondate >= "{day.isoformat()}" '
@@ -112,6 +124,32 @@ def _y_axis_ticks(total_count: int) -> tuple[int, ...]:
     return tuple(sorted({0, y_max // 2, y_max}))
 
 
+def _run_rate_metrics(payload: dict[str, Any]) -> tuple[float, float | None]:
+    as_of = _day(payload.get("asOf"))
+    start = _day(payload.get("idealStartDate"))
+    due = _day(payload.get("idealEndDate"))
+    if as_of is None or start is None:
+        return 0.0, None
+
+    completed = sum(
+        int(row.get("completed") or 0)
+        for row in payload.get("daily") or []
+        if (day := _day(row.get("date"))) is not None and start <= day <= as_of
+    )
+    elapsed_days = (as_of - start).days + 1
+    run_rate = completed / elapsed_days if elapsed_days > 0 else 0.0
+
+    remaining = max(0, int(payload.get("remainingTestlets") or 0))
+    if remaining == 0:
+        required_rate = 0.0
+    elif due is None or as_of > due:
+        required_rate = None
+    else:
+        days_remaining = max(1, (due - as_of).days)
+        required_rate = remaining / days_remaining
+    return run_rate, required_rate
+
+
 def _actual_point_label(
     row: dict[str, Any],
     value: int,
@@ -148,6 +186,7 @@ def build_sefk_testlet_burndown_payload(
     events: dict[date, int] = {}
     created_by_day: dict[date, int] = {}
     resolutiondate_by_day: dict[date, int] = {}
+    completed_by_day: dict[date, int] = {}
     issue_count = 0
     earliest: date | None = None
     completed_now = 0
@@ -166,6 +205,8 @@ def build_sefk_testlet_burndown_payload(
         resolution_day = _day(fields.get("resolutiondate"))
         if resolution_day is not None and resolution_day <= end:
             resolutiondate_by_day[resolution_day] = resolutiondate_by_day.get(resolution_day, 0) + 1
+            if currently_resolved and not resolution_events:
+                completed_by_day[resolution_day] = completed_by_day.get(resolution_day, 0) + 1
 
         initially_resolved = resolution_events[0][1] if resolution_events else currently_resolved
         if not initially_resolved:
@@ -178,6 +219,7 @@ def build_sefk_testlet_burndown_payload(
                 continue
             if remaining and to_resolved:
                 events[changed] = events.get(changed, 0) - 1
+                completed_by_day[changed] = completed_by_day.get(changed, 0) + 1
                 remaining = False
             elif not remaining and not to_resolved:
                 events[changed] = events.get(changed, 0) + 1
@@ -208,6 +250,7 @@ def build_sefk_testlet_burndown_payload(
                 "remaining": remaining_count,
                 "created": created_by_day.get(current_day, 0),
                 "resolutiondateMatches": resolutiondate_by_day.get(current_day, 0),
+                "completed": completed_by_day.get(current_day, 0),
             }
         )
         current_day = date.fromordinal(current_day.toordinal() + 1)
@@ -232,6 +275,7 @@ def _render_svg(
     *,
     test_type: str = "Unit",
     platform: str | None = None,
+    include_all_engine_versions: bool = False,
 ) -> str:
     daily = payload.get("daily") or []
     if not daily:
@@ -295,7 +339,12 @@ def _render_svg(
         )
         point_day = point_day or chart_start
         resolved_jql = quote(
-            resolved_testlets_for_day_jql(test_type, point_day, platform),
+            resolved_testlets_for_day_jql(
+                test_type,
+                point_day,
+                platform,
+                include_all_engine_versions=include_all_engine_versions,
+            ),
             safe="",
         )
         href = html.escape(
@@ -409,6 +458,7 @@ def build_sefk_testlet_burndown_html(
     test_type: str = "Unit",
     bounds_issue_key: str = "SEFK-1274",
     platform: str | None = None,
+    include_all_engine_versions: bool = False,
 ) -> str:
     generated = html.escape(generated_on or datetime.now().strftime("%d %b %Y"))
     as_of = html.escape(str(payload.get("asOf") or ""))
@@ -416,11 +466,22 @@ def build_sefk_testlet_burndown_html(
     ideal_end = html.escape(str(payload.get("idealEndDate") or ""))
     safe_test_type = html.escape(test_type)
     safe_bounds_issue_key = html.escape(bounds_issue_key)
-    scope_jql = testlet_scope_jql(test_type, platform)
+    run_rate, required_run_rate = _run_rate_metrics(payload)
+    run_rate_text = f"{run_rate:.1f}"
+    required_run_rate_text = (
+        "Past due" if required_run_rate is None else f"{required_run_rate:.1f}"
+    )
+    scope_jql = testlet_scope_jql(
+        test_type,
+        platform,
+        include_all_engine_versions=include_all_engine_versions,
+    )
     scope_description = f"SEFK Testlets where Test Types = {safe_test_type}"
     if platform:
         safe_platform = html.escape(platform)
         scope_description += f" and Platform = {safe_platform}"
+    if test_type == "System Integration" and include_all_engine_versions:
+        scope_description += " (all SEFK engine versions)"
     jql = quote(scope_jql, safe="")
     return f'''<!doctype html>
 <html lang="en">
@@ -438,7 +499,7 @@ def build_sefk_testlet_burndown_html(
     nav a:hover, a:hover {{ text-decoration: underline; }}
     h1 {{ margin: 20px 0 4px; font-size: 26px; }}
     .subhead {{ margin: 0 0 24px; color: var(--muted); }}
-    .metrics {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--grid); background: white; }}
+    .metrics {{ display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-block: 1px solid var(--grid); background: white; }}
     .metric {{ padding: 18px 20px; border-right: 1px solid var(--grid); }}
     .metric:last-child {{ border: 0; }}
     .metric strong {{ display: block; font-size: 28px; line-height: 1.15; font-variant-numeric: tabular-nums; }}
@@ -480,10 +541,17 @@ def build_sefk_testlet_burndown_html(
             <div class="metric"><strong>{int(payload.get("remainingTestlets") or 0)}</strong><span>Remaining as of {as_of}</span></div>
             <div class="metric"><strong>{int(payload.get("completedTestlets") or 0)}</strong><span>Currently resolved in Jira</span></div>
             <div class="metric"><strong>{int(payload.get("totalTestlets") or 0)}</strong><span>{safe_test_type} Testlets in scope</span></div>
+            <div class="metric"><strong>{run_rate_text}</strong><span>Run Rate (tests/day)</span></div>
+            <div class="metric"><strong>{required_run_rate_text}</strong><span>Required Run Rate (tests/day)</span></div>
     </section>
     <figure>
             <div class="chart-layout">
-                {_render_svg(payload, test_type=test_type, platform=platform)}
+                {_render_svg(
+                    payload,
+                    test_type=test_type,
+                    platform=platform,
+                    include_all_engine_versions=include_all_engine_versions,
+                )}
                 <figcaption class="legend" aria-label="Chart legend">
                     <ul class="legend-list">
                         <li class="legend-item"><i class="swatch actual"></i><span>Actual remaining</span></li>
