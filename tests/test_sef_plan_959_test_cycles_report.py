@@ -59,5 +59,24 @@ class Plan959CategoryClassificationTests(unittest.TestCase):
         self.assertEqual(category, "non integrated parallel")
 
 
+class Plan959JiraUrlTests(unittest.TestCase):
+    def test_jira_api_url_accepts_https_on_configured_host(self) -> None:
+        self.assertEqual(
+            _mod._jira_api_url("https://example.atlassian.net/", "/rest/api/3/search"),
+            "https://example.atlassian.net/rest/api/3/search",
+        )
+
+    def test_jira_api_url_rejects_non_https_schemes(self) -> None:
+        for base in ("http://example.atlassian.net", "file:///tmp/jira"):
+            with self.subTest(base=base), self.assertRaisesRegex(ValueError, "HTTPS"):
+                _mod._jira_api_url(base, "/rest/api/3/search")
+
+    def test_jira_api_url_rejects_embedded_credentials_and_external_paths(self) -> None:
+        with self.assertRaisesRegex(ValueError, "embedded credentials"):
+            _mod._jira_api_url("https://user@example.atlassian.net", "/rest/api/3/search")
+        with self.assertRaisesRegex(ValueError, "configured host"):
+            _mod._jira_api_url("https://example.atlassian.net", "//other.example/path")
+
+
 if __name__ == "__main__":
     unittest.main()

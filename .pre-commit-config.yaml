@@ -1,0 +1,17 @@
+# Security pre-commit hooks — runs bandit and detect-secrets.
+# Install: python -m pre_commit install
+# Run: python -m pre_commit run --all-files
+
+repos:
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: ["-c", "pyproject.toml", "-ll"]
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline", "--exclude-lines", "bodyHash"]
+        exclude: (\.secrets\.baseline|credentials\.local\.json|config/profiles/(?!.*template))
