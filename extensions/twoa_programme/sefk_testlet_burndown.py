@@ -18,21 +18,93 @@ def _day(value: Any) -> date | None:
         return None
 
 
-def _resolution_events(
+def _is_rejected_status(value: Any) -> bool:
+    return str(value or "").strip().casefold() == "rejected"
+
+
+def _is_terminal_status(value: Any) -> bool:
+    return str(value or "").strip().casefold() in {"passed", "rejected", "deferred"}
+
+
+def _is_execution_status(value: Any) -> bool:
+    return str(value or "").strip().casefold() in {"passed", "failed"}
+
+
+def _resolved_state_events(
     histories: list[dict[str, Any]],
-) -> list[tuple[date, bool, bool]]:
-    events: list[tuple[date, bool, bool]] = []
-    for history in histories:
+    *,
+    current_resolution: bool,
+    current_status: str,
+) -> tuple[bool, list[tuple[date, bool, bool, int, int, int, int, int, int, int]], bool]:
+    ordered_histories = sorted(histories, key=lambda history: str(history.get("created") or ""))
+    first_resolution_change = None
+    first_status_change = None
+    for history in ordered_histories:
+        for item in history.get("items") or []:
+            field = str(item.get("field") or item.get("fieldId") or "").casefold()
+            if field == "resolution" and first_resolution_change is None:
+                first_resolution_change = item
+            elif field == "status" and first_status_change is None:
+                first_status_change = item
+
+    resolution_is_set = (
+        bool(first_resolution_change.get("from") or first_resolution_change.get("fromString"))
+        if first_resolution_change is not None
+        else current_resolution
+    )
+    status_is_terminal = (
+        _is_terminal_status(first_status_change.get("fromString") or first_status_change.get("from"))
+        if first_status_change is not None
+        else _is_terminal_status(current_status)
+    )
+    status_name = (
+        str(first_status_change.get("fromString") or first_status_change.get("from") or "")
+        if first_status_change is not None
+        else current_status
+    )
+    has_status_state = first_status_change is not None or bool(current_status)
+    initially_resolved = status_is_terminal if has_status_state else resolution_is_set
+    events: list[tuple[date, bool, bool, int, int, int, int, int, int, int]] = []
+    for history in ordered_histories:
         changed = _day(history.get("created"))
         if changed is None:
             continue
+        was_resolved = status_is_terminal if has_status_state else resolution_is_set
+        resolved_count = 0
+        terminal_count = 0
+        rejected_count = 0
+        deferred_count = 0
+        executed_count = 0
+        passed_count = 0
+        failed_count = 0
         for item in history.get("items") or []:
-            if str(item.get("field") or "").lower() != "resolution":
-                continue
-            from_resolved = bool(item.get("from") or item.get("fromString"))
-            to_resolved = bool(item.get("to") or item.get("toString"))
-            events.append((changed, from_resolved, to_resolved))
-    return sorted(events, key=lambda event: event[0])
+            field = str(item.get("field") or item.get("fieldId") or "").casefold()
+            if field == "resolution":
+                to_resolution = bool(item.get("to") or item.get("toString"))
+                if not resolution_is_set and to_resolution:
+                    resolved_count += 1
+                resolution_is_set = to_resolution
+            elif field == "status":
+                to_status = str(item.get("toString") or item.get("to") or "")
+                is_terminal_status = _is_terminal_status(to_status)
+                if not status_is_terminal and is_terminal_status:
+                    terminal_count += 1
+                if _is_rejected_status(to_status) and not _is_rejected_status(status_name):
+                    rejected_count += 1
+                if to_status.strip().casefold() == "deferred" and status_name.strip().casefold() != "deferred":
+                    deferred_count += 1
+                if _is_execution_status(to_status) and to_status.casefold() != status_name.casefold():
+                    executed_count += 1
+                    if to_status.casefold() == "passed":
+                        passed_count += 1
+                    elif to_status.casefold() == "failed":
+                        failed_count += 1
+                status_is_terminal = is_terminal_status
+                status_name = to_status
+        is_resolved = status_is_terminal if has_status_state else resolution_is_set
+        if was_resolved != is_resolved or resolved_count or terminal_count or rejected_count or deferred_count or executed_count:
+            events.append((changed, was_resolved, is_resolved, resolved_count, terminal_count, rejected_count, deferred_count, executed_count, passed_count, failed_count))
+    return initially_resolved, events, first_resolution_change is not None
 
 
 def testlet_scope_jql(
@@ -53,7 +125,7 @@ def testlet_scope_jql(
         if test_type == "System Integration":
             clauses.append(
                 'status in ("To Do", "Awaiting Test Development", '
-                '"In Test Development", "In Testing", "Passed", "Failed", "Rejected")'
+                '"In Test Development", "In Testing", "Passed", "Failed", "Rejected", "Deferred")'
             )
     else:
         clauses = [
@@ -79,44 +151,13 @@ def resolved_testlets_for_day_jql(
         platform,
         include_all_engine_versions=include_all_engine_versions,
     ).rsplit(" ORDER BY ", 1)[0]
-    next_day = day + timedelta(days=1)
+    day_window = f'("{day.isoformat()}", "{day.isoformat()}")'
     return (
-        f'{scope} AND resolutiondate >= "{day.isoformat()}" '
-        f'AND resolutiondate < "{next_day.isoformat()}" '
-        "ORDER BY resolutiondate ASC, key ASC"
+        f'{scope} AND (status CHANGED TO "Passed" DURING {day_window} '
+        f'OR status CHANGED TO "Rejected" DURING {day_window} '
+        f'OR status CHANGED TO "Deferred" DURING {day_window}) '
+        "ORDER BY key ASC"
     )
-
-
-def _best_fit_trend(
-    daily: list[dict[str, Any]],
-    *,
-    from_date: date | None = None,
-) -> tuple[date, float, float, date | None] | None:
-    dated_points = [
-        (parsed_day, float(row["remaining"]))
-        for row in daily
-        if (parsed_day := _day(row.get("date"))) is not None
-        and (from_date is None or parsed_day >= from_date)
-    ]
-    if len(dated_points) < 2:
-        return None
-    start = dated_points[0][0]
-    end = dated_points[-1][0]
-    points = [((day - start).days, remaining) for day, remaining in dated_points]
-    mean_x = sum(x for x, _ in points) / len(points)
-    mean_y = sum(y for _, y in points) / len(points)
-    variance = sum((x - mean_x) ** 2 for x, _ in points)
-    if variance == 0:
-        return None
-    slope = sum((x - mean_x) * (y - mean_y) for x, y in points) / variance
-    intercept = mean_y - slope * mean_x
-    forecast_date = None
-    if slope < 0:
-        zero_day = -intercept / slope
-        last_observed_day = (end - start).days
-        if zero_day > last_observed_day:
-            forecast_date = start + timedelta(days=ceil(zero_day))
-    return start, slope, intercept, forecast_date
 
 
 def _y_axis_ticks(total_count: int) -> tuple[int, ...]:
@@ -124,20 +165,26 @@ def _y_axis_ticks(total_count: int) -> tuple[int, ...]:
     return tuple(sorted({0, y_max // 2, y_max}))
 
 
-def _run_rate_metrics(payload: dict[str, Any]) -> tuple[float, float | None]:
+def _run_rate_metrics(payload: dict[str, Any]) -> tuple[float, float, float | None]:
     as_of = _day(payload.get("asOf"))
     start = _day(payload.get("idealStartDate"))
     due = _day(payload.get("idealEndDate"))
     if as_of is None or start is None:
-        return 0.0, None
+        return 0.0, 0.0, None
 
-    completed = sum(
-        int(row.get("completed") or 0)
+    executed = sum(
+        int(row.get("executed") or 0)
         for row in payload.get("daily") or []
         if (day := _day(row.get("date"))) is not None and start <= day <= as_of
     )
     elapsed_days = (as_of - start).days + 1
-    run_rate = completed / elapsed_days if elapsed_days > 0 else 0.0
+    run_rate = executed / elapsed_days if elapsed_days > 0 else 0.0
+    passed = sum(
+        int(row.get("passed") or 0)
+        for row in payload.get("daily") or []
+        if (day := _day(row.get("date"))) is not None and start <= day <= as_of
+    )
+    successful_rate = passed / elapsed_days if elapsed_days > 0 else 0.0
 
     remaining = max(0, int(payload.get("remainingTestlets") or 0))
     if remaining == 0:
@@ -147,7 +194,7 @@ def _run_rate_metrics(payload: dict[str, Any]) -> tuple[float, float | None]:
     else:
         days_remaining = max(1, (due - as_of).days)
         required_rate = remaining / days_remaining
-    return run_rate, required_rate
+    return run_rate, successful_rate, required_rate
 
 
 def _actual_point_label(
@@ -161,7 +208,12 @@ def _actual_point_label(
     noun = "Testlet" if value == 1 else "Testlets"
     return (
         f"{date_label}: {value} of {total_count} {test_type} {noun} remaining\n"
-        f"Resolved: {int(row.get('resolutiondateMatches') or 0)}\n"
+        f"Terminal outcomes: {int(row.get('terminal') or 0)}\n"
+        f"Passed: {int(row.get('passed') or 0)}\n"
+        f"Rejected: {int(row.get('rejected') or 0)}\n"
+        f"Deferred: {int(row.get('deferred') or 0)}\n"
+        f"Execution attempts: {int(row.get('executed') or 0)}\n"
+        f"Failed: {int(row.get('failed') or 0)}\n"
         f"Created: {int(row.get('created') or 0)}"
     )
 
@@ -174,7 +226,7 @@ def build_sefk_testlet_burndown_payload(
     ideal_end: date | str,
     as_of: date | str | None = None,
 ) -> dict[str, Any]:
-    """Replay Jira resolution changes and attach the planned ideal-pace window."""
+    """Replay Jira resolution and Rejected-status changes with the ideal-pace window."""
     end = _day(as_of) if as_of is not None else date.today()
     if end is None:
         raise ValueError("as_of must be a valid ISO date")
@@ -187,9 +239,19 @@ def build_sefk_testlet_burndown_payload(
     created_by_day: dict[date, int] = {}
     resolutiondate_by_day: dict[date, int] = {}
     completed_by_day: dict[date, int] = {}
+    terminal_by_day: dict[date, int] = {}
+    rejected_by_day: dict[date, int] = {}
+    deferred_by_day: dict[date, int] = {}
+    executed_by_day: dict[date, int] = {}
+    passed_by_day: dict[date, int] = {}
+    failed_by_day: dict[date, int] = {}
     issue_count = 0
     earliest: date | None = None
     completed_now = 0
+    rejected_now = 0
+    deferred_now = 0
+    passed_now = 0
+    failed_now = 0
     for issue in issues:
         fields = issue.get("fields") or {}
         created = _day(fields.get("created"))
@@ -198,28 +260,58 @@ def build_sefk_testlet_burndown_payload(
         issue_count += 1
         created_by_day[created] = created_by_day.get(created, 0) + 1
         histories = changelogs_by_key.get(str(issue.get("key") or ""), [])
-        resolution_events = _resolution_events(histories)
-        currently_resolved = bool(fields.get("resolution"))
-        if currently_resolved:
+        current_resolution = bool(fields.get("resolution"))
+        current_status = str((fields.get("status") or {}).get("name") or "")
+        status_key = current_status.strip().casefold()
+        if status_key == "passed":
+            passed_now += 1
             completed_now += 1
+        elif status_key == "rejected":
+            rejected_now += 1
+            completed_now += 1
+        elif status_key == "deferred":
+            deferred_now += 1
+            completed_now += 1
+        elif not current_status and current_resolution:
+            completed_now += 1
+        elif status_key == "failed":
+            failed_now += 1
         resolution_day = _day(fields.get("resolutiondate"))
         if resolution_day is not None and resolution_day <= end:
             resolutiondate_by_day[resolution_day] = resolutiondate_by_day.get(resolution_day, 0) + 1
-            if currently_resolved and not resolution_events:
+        initially_resolved, resolved_events, has_resolution_history = _resolved_state_events(
+            histories,
+            current_resolution=current_resolution,
+            current_status=current_status,
+        )
+        if resolution_day is not None and resolution_day <= end:
+            if current_resolution and not has_resolution_history:
                 completed_by_day[resolution_day] = completed_by_day.get(resolution_day, 0) + 1
 
-        initially_resolved = resolution_events[0][1] if resolution_events else currently_resolved
         if not initially_resolved:
             events[created] = events.get(created, 0) + 1
         earliest = min(earliest, created) if earliest else created
 
         remaining = not initially_resolved
-        for changed, _from_resolved, to_resolved in resolution_events:
+        for changed, _from_resolved, to_resolved, resolved_count, terminal_count, rejected_count, deferred_count, executed_count, passed_count, failed_count in resolved_events:
             if changed < created or changed > end:
                 continue
+            if resolved_count:
+                completed_by_day[changed] = completed_by_day.get(changed, 0) + resolved_count
+            if terminal_count:
+                terminal_by_day[changed] = terminal_by_day.get(changed, 0) + terminal_count
+            if rejected_count:
+                rejected_by_day[changed] = rejected_by_day.get(changed, 0) + rejected_count
+            if deferred_count:
+                deferred_by_day[changed] = deferred_by_day.get(changed, 0) + deferred_count
+            if executed_count:
+                executed_by_day[changed] = executed_by_day.get(changed, 0) + executed_count
+            if passed_count:
+                passed_by_day[changed] = passed_by_day.get(changed, 0) + passed_count
+            if failed_count:
+                failed_by_day[changed] = failed_by_day.get(changed, 0) + failed_count
             if remaining and to_resolved:
                 events[changed] = events.get(changed, 0) - 1
-                completed_by_day[changed] = completed_by_day.get(changed, 0) + 1
                 remaining = False
             elif not remaining and not to_resolved:
                 events[changed] = events.get(changed, 0) + 1
@@ -231,6 +323,10 @@ def build_sefk_testlet_burndown_payload(
             "startDate": end.isoformat(),
             "totalTestlets": 0,
             "completedTestlets": 0,
+            "rejectedTestlets": 0,
+            "deferredTestlets": 0,
+            "passedTestlets": 0,
+            "failedTestlets": 0,
             "remainingTestlets": 0,
             "idealStartDate": ideal_start_day.isoformat(),
             "idealEndDate": ideal_end_day.isoformat(),
@@ -251,21 +347,42 @@ def build_sefk_testlet_burndown_payload(
                 "created": created_by_day.get(current_day, 0),
                 "resolutiondateMatches": resolutiondate_by_day.get(current_day, 0),
                 "completed": completed_by_day.get(current_day, 0),
+                "terminal": terminal_by_day.get(current_day, 0),
+                "rejected": rejected_by_day.get(current_day, 0),
+                "deferred": deferred_by_day.get(current_day, 0),
+                "executed": executed_by_day.get(current_day, 0),
+                "passed": passed_by_day.get(current_day, 0),
+                "failed": failed_by_day.get(current_day, 0),
             }
         )
         current_day = date.fromordinal(current_day.toordinal() + 1)
 
-    trend = _best_fit_trend(daily, from_date=ideal_start_day)
+    elapsed_days = max(1, (end - ideal_start_day).days + 1)
+    successful_completions = sum(
+        row["passed"]
+        for row in daily
+        if ideal_start_day <= (_day(row["date"]) or end) <= end
+    )
+    successful_rate = successful_completions / elapsed_days
+    forecast_day = (
+        end + timedelta(days=ceil(remaining_count / successful_rate))
+        if remaining_count and successful_rate > 0
+        else end if remaining_count == 0 else None
+    )
     return {
         "asOf": end.isoformat(),
         "startDate": earliest.isoformat(),
         "totalTestlets": issue_count,
         "completedTestlets": completed_now,
+        "rejectedTestlets": rejected_now,
+        "deferredTestlets": deferred_now,
+        "passedTestlets": passed_now,
+        "failedTestlets": failed_now,
         "remainingTestlets": remaining_count,
         "idealStartDate": ideal_start_day.isoformat(),
         "idealEndDate": ideal_end_day.isoformat(),
         "idealStartRemaining": issue_count,
-        "forecastDate": trend[3].isoformat() if trend and trend[3] else None,
+        "forecastDate": forecast_day.isoformat() if forecast_day else None,
         "daily": daily,
     }
 
@@ -295,8 +412,7 @@ def _render_svg(
     actual_start_day = _day(visible_daily[0]["date"]) if visible_daily else ideal_start_day
     actual_end_day = _day(visible_daily[-1]["date"]) if visible_daily else ideal_start_day
     assert actual_start_day is not None and actual_end_day is not None
-    trend = _best_fit_trend(visible_daily, from_date=ideal_start_day)
-    forecast_day = trend[3] if trend else None
+    forecast_day = _day(payload.get("forecastDate"))
     chart_start = ideal_start_day
     chart_end = max(ideal_end_day, actual_end_day, forecast_day or actual_end_day)
     if forecast_day is not None:
@@ -330,6 +446,16 @@ def _render_svg(
         f"{point(_day(row['date']) or chart_start, value)[1]:.1f}"
         for row, value in zip(visible_daily, values)
     )
+    forecast_points = ""
+    forecast_start_day = _day(visible_daily[-1].get("date")) if visible_daily else None
+    if forecast_day is not None and forecast_start_day is not None and forecast_day > forecast_start_day:
+        forecast_start_value = int(visible_daily[-1]["remaining"])
+        forecast_points = (
+            f'{point(forecast_start_day, forecast_start_value)[0]:.1f},'
+            f'{point(forecast_start_day, forecast_start_value)[1]:.1f} '
+            f'{point(forecast_day, 0)[0]:.1f},{point(forecast_day, 0)[1]:.1f}'
+        )
+    forecast_line = f'<polyline points="{forecast_points}" class="forecast-trend" />' if forecast_points else ""
 
     def _actual_point_markup(row: dict[str, Any], value: int) -> str:
         point_day = _day(row.get("date"))
@@ -351,13 +477,13 @@ def _render_svg(
             f"https://twoa.atlassian.net/issues/?jql={resolved_jql}",
             quote=True,
         )
-        link_label = html.escape(f"Open resolved {test_type} Testlets for {point_day.isoformat()} in Jira")
+        link_label = html.escape(f"Open terminal {test_type} Testlets for {point_day.isoformat()} in Jira")
         return (
             f'<a href="{href}" target="_blank" rel="noopener" tabindex="0" '
             f'class="actual-point-link" aria-label="{link_label}">'
             f'<circle cx="{point_x:.1f}" cy="{point_y:.1f}" r="4" '
             f'class="actual-point" aria-hidden="true">'
-            f'<title>{tooltip}\nClick to view resolved Testlets in Jira</title></circle></a>'
+            f'<title>{tooltip}\nClick to view terminal Testlets in Jira</title></circle></a>'
         )
 
     actual_markers = "".join(
@@ -369,25 +495,6 @@ def _render_svg(
         f"{point(ideal_start_day, ideal_start_remaining)[1]:.1f} "
         f"{point(ideal_end_day, 0)[0]:.1f},{point(ideal_end_day, 0)[1]:.1f}"
     )
-    trend_points = ""
-    if trend is not None:
-        trend_start, slope, intercept, _ = trend
-        fitted_end = intercept + slope * (actual_end_day - trend_start).days
-        trend_end_day = forecast_day or actual_end_day
-        trend_end_value = 0 if forecast_day else fitted_end
-        fitted_start = min(float(y_max), max(0.0, intercept))
-        fitted_end = min(float(y_max), max(0.0, fitted_end))
-        trend_points = (
-            f'{point(trend_start, fitted_start)[0]:.1f},'
-            f'{point(trend_start, fitted_start)[1]:.1f} '
-            f'{point(actual_end_day, fitted_end)[0]:.1f},'
-            f'{point(actual_end_day, fitted_end)[1]:.1f}'
-        )
-        if forecast_day is not None:
-            trend_points += (
-                f' {point(trend_end_day, trend_end_value)[0]:.1f},'
-                f'{point(trend_end_day, trend_end_value)[1]:.1f}'
-            )
     ticks = _y_axis_ticks(total_count)
     y_grid = "".join(
         f'<line x1="{left}" y1="{point(chart_start, tick)[1]:.1f}" x2="{width-right}" '
@@ -441,8 +548,8 @@ def _render_svg(
         f'<g class="weekends">{weekend_bands}</g>'
         f'<g class="axis-labels">{y_grid}{x_axis}</g>'
         f'<polyline points="{ideal_points}" class="ideal" />'
-        f'<polyline points="{trend_points}" class="trend" />'
         f'<polyline points="{actual_points}" class="actual" />'
+        f'{forecast_line}'
         f'{actual_markers}'
         f'{forecast_marker}'
         f'{target_marker}'
@@ -466,8 +573,9 @@ def build_sefk_testlet_burndown_html(
     ideal_end = html.escape(str(payload.get("idealEndDate") or ""))
     safe_test_type = html.escape(test_type)
     safe_bounds_issue_key = html.escape(bounds_issue_key)
-    run_rate, required_run_rate = _run_rate_metrics(payload)
+    run_rate, successful_rate, required_run_rate = _run_rate_metrics(payload)
     run_rate_text = f"{run_rate:.1f}"
+    successful_rate_text = f"{successful_rate:.1f}"
     required_run_rate_text = (
         "Past due" if required_run_rate is None else f"{required_run_rate:.1f}"
     )
@@ -490,7 +598,7 @@ def build_sefk_testlet_burndown_html(
   <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SEFK | {safe_test_type} Testlet Burndown</title>
   <style>
-    :root {{ color-scheme: light; --ink: #172b4d; --muted: #5e6c84; --grid: #dfe1e6; --series-actual: #3bbf91; --series-ideal: #6041a8; --series-trend: #f5ae0b; }}
+    :root {{ color-scheme: light; --ink: #172b4d; --muted: #5e6c84; --grid: #dfe1e6; --series-actual: #3bbf91; --series-ideal: #6041a8; --series-forecast: #f5ae0b; }}
     * {{ box-sizing: border-box; }}
     body {{ margin: 0; color: var(--ink); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f4f5f7; }}
     main {{ max-width: 1120px; margin: 0 auto; padding: 28px 24px 48px; }}
@@ -499,19 +607,26 @@ def build_sefk_testlet_burndown_html(
     nav a:hover, a:hover {{ text-decoration: underline; }}
     h1 {{ margin: 20px 0 4px; font-size: 26px; }}
     .subhead {{ margin: 0 0 24px; color: var(--muted); }}
-    .metrics {{ display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-block: 1px solid var(--grid); background: white; }}
-    .metric {{ padding: 18px 20px; border-right: 1px solid var(--grid); }}
-    .metric:last-child {{ border: 0; }}
-    .metric strong {{ display: block; font-size: 28px; line-height: 1.15; font-variant-numeric: tabular-nums; }}
+    .metrics {{ display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }}
+    .metric {{ --metric-accent: var(--series-ideal); min-width: 0; min-height: 104px; padding: 15px 16px; border: 1px solid var(--grid); border-top: 3px solid var(--metric-accent); border-radius: 4px; background: #fff; box-shadow: 0 1px 2px rgba(23, 43, 77, .06); }}
+    .metric:nth-child(1) {{ --metric-accent: var(--series-forecast); }}
+    .metric:nth-child(2), .metric:nth-child(3), .metric:nth-child(9) {{ --metric-accent: var(--series-actual); }}
+    .metric:nth-child(4), .metric:nth-child(5) {{ --metric-accent: #718096; }}
+    .metric:nth-child(6) {{ --metric-accent: #bd5148; }}
+    .metric:nth-child(7) {{ --metric-accent: #53729a; }}
+    .metric:nth-child(8) {{ --metric-accent: #37828a; }}
+    .metric:nth-child(10) {{ --metric-accent: var(--series-ideal); }}
+    .metric strong {{ display: block; font-size: 27px; line-height: 1.05; font-variant-numeric: tabular-nums; }}
+    .metric span {{ display: block; margin-top: 7px; color: var(--muted); font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }}
     .weekend-band {{ fill: #e8ebef; }}
     .week-tick {{ stroke: var(--muted); stroke-width: 1; }}
     .actual {{ fill: none; stroke: var(--series-actual); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }}
+    .forecast-trend {{ fill: none; stroke: var(--series-forecast); stroke-width: 2.5; stroke-dasharray: 3 5; stroke-linejoin: round; }}
     .actual-point {{ fill: var(--series-actual); stroke: #fff; stroke-width: 1.5; cursor: help; }}
     .actual-point:hover, .actual-point:focus {{ stroke: var(--ink); stroke-width: 2; }}
     .actual-point-link {{ cursor: pointer; }}
     .ideal {{ fill: none; stroke: var(--series-ideal); stroke-width: 2; stroke-dasharray: 7 6; }}
-    .trend {{ fill: none; stroke: var(--series-trend); stroke-width: 2.5; stroke-dasharray: 3 5; stroke-linejoin: round; }}
-    .forecast-marker {{ stroke: var(--series-trend); stroke-width: 1.5; stroke-dasharray: 2 4; }}
+    .forecast-marker {{ stroke: var(--series-forecast); stroke-width: 1.5; stroke-dasharray: 2 4; }}
     .forecast-label {{ fill: #9b6900; font-weight: 600; }}
     .target-marker {{ stroke: var(--series-ideal); stroke-width: 1.5; stroke-dasharray: 4 4; }}
     .target-label {{ fill: var(--series-ideal); font-weight: 600; }}
@@ -524,25 +639,30 @@ def build_sefk_testlet_burndown_html(
     .swatch.actual {{ position: relative; }}
     .swatch.actual::after {{ position: absolute; top: -5px; left: 6px; width: 7px; height: 7px; border: 1px solid #fff; border-radius: 50%; background: var(--series-actual); content: ""; }}
     .swatch.ideal {{ border-top: 2px dashed var(--series-ideal); }}
-    .swatch.trend {{ border-top: 2px dashed var(--series-trend); }}
-    .swatch.forecast {{ width: 0; height: 16px; margin-left: 8px; border-top: 0; border-left: 2px dashed var(--series-trend); }}
+    .swatch.forecast {{ width: 0; height: 16px; margin-left: 8px; border-top: 0; border-left: 2px dashed var(--series-forecast); }}
     .swatch.target {{ width: 0; height: 16px; margin-left: 8px; border-top: 0; border-left: 2px dashed var(--series-ideal); }}
     .foot {{ margin-top: 18px; color: var(--muted); font-size: 13px; }}
     .empty {{ padding: 30px; text-align: center; color: var(--muted); }}
-    @media (max-width: 700px) {{ main {{ padding: 20px 14px 32px; }} .metrics {{ grid-template-columns: 1fr; }} .metric {{ padding: 12px 16px; border-right: 0; border-bottom: 1px solid var(--grid); }} .metric strong {{ font-size: 23px; }} figure {{ padding: 12px 8px 8px; }} .chart-layout {{ grid-template-columns: minmax(0, 1fr); gap: 8px; }} .legend-list {{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }} }}
+    @media (max-width: 1000px) {{ .metrics {{ grid-template-columns: repeat(3, minmax(0, 1fr)); }} }}
+    @media (max-width: 700px) {{ main {{ padding: 20px 14px 32px; }} .metrics {{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }} .metric {{ min-height: 92px; padding: 12px; }} .metric strong {{ font-size: 23px; }} figure {{ padding: 12px 8px 8px; }} .chart-layout {{ grid-template-columns: minmax(0, 1fr); gap: 8px; }} .legend-list {{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }} }}
   </style>
 </head>
 <body>
   <main>
         <nav aria-label="Breadcrumb"><a href="../index.html">TWoA reporting hub</a> / <a href="index.html">SEFK</a> / {safe_test_type} Testlet Burndown</nav>
         <h1>SEFK {safe_test_type} Testlet Burndown</h1>
-        <p class="subhead">Remaining {safe_test_type} Testlets over time, reconstructed from creation dates and Jira resolution history.</p>
+        <p class="subhead">Remaining {safe_test_type} Testlets over time, reconstructed from creation dates and Jira resolution and status history.</p>
         <section class="metrics" aria-label="Current {safe_test_type} Testlet counts">
             <div class="metric"><strong>{int(payload.get("remainingTestlets") or 0)}</strong><span>Remaining as of {as_of}</span></div>
-            <div class="metric"><strong>{int(payload.get("completedTestlets") or 0)}</strong><span>Currently resolved in Jira</span></div>
+            <div class="metric"><strong>{int(payload.get("completedTestlets") or 0)}</strong><span>Terminal outcomes</span></div>
+            <div class="metric"><strong>{int(payload.get("passedTestlets") or 0)}</strong><span>Passed</span></div>
+            <div class="metric"><strong>{int(payload.get("rejectedTestlets") or 0)}</strong><span>Rejected / removed</span></div>
+            <div class="metric"><strong>{int(payload.get("deferredTestlets") or 0)}</strong><span>Deferred / removed</span></div>
+            <div class="metric"><strong>{int(payload.get("failedTestlets") or 0)}</strong><span>Failed (within Remaining)</span></div>
             <div class="metric"><strong>{int(payload.get("totalTestlets") or 0)}</strong><span>{safe_test_type} Testlets in scope</span></div>
-            <div class="metric"><strong>{run_rate_text}</strong><span>Run Rate (tests/day)</span></div>
-            <div class="metric"><strong>{required_run_rate_text}</strong><span>Required Run Rate (tests/day)</span></div>
+            <div class="metric"><strong>{run_rate_text}</strong><span>Execution attempts/day</span></div>
+            <div class="metric"><strong>{successful_rate_text}</strong><span>Successful completions/day</span></div>
+            <div class="metric"><strong>{required_run_rate_text}</strong><span>Required completion rate (tests/day)</span></div>
     </section>
     <figure>
             <div class="chart-layout">
@@ -556,14 +676,13 @@ def build_sefk_testlet_burndown_html(
                     <ul class="legend-list">
                         <li class="legend-item"><i class="swatch actual"></i><span>Actual remaining</span></li>
                         <li class="legend-item"><i class="swatch ideal"></i><span>Ideal pace</span></li>
-                        <li class="legend-item"><i class="swatch trend"></i><span>Best-fit trend</span></li>
                         <li class="legend-item"><i class="swatch forecast"></i><span>Forecast</span></li>
                         <li class="legend-item"><i class="swatch target"></i><span>Target completion</span></li>
                     </ul>
                 </figcaption>
             </div>
     </figure>
-        <p class="foot">Scope: <a href="https://twoa.atlassian.net/issues/?jql={jql}" target="_blank" rel="noopener">{scope_description}</a>. Created {safe_test_type} Testlets add to remaining work; setting a Jira resolution burns one down, and clearing it on reopen adds one back. Ideal pace starts at the initial scope on {safe_bounds_issue_key}'s Start date and reaches zero on its Due date. Generated {generated}.</p>
+        <p class="foot">Scope: <a href="https://twoa.atlassian.net/issues/?jql={jql}" target="_blank" rel="noopener">{scope_description}</a>. Terminal outcomes are Passed, Rejected, or Deferred. Rejected and Deferred are out of active scope; Failed remains in Remaining. Execution attempts include Passed and Failed transitions; forecast completion and required pace use Passed transitions only. Ideal pace starts at the initial scope on {safe_bounds_issue_key}'s Start date and reaches zero on its Due date. Generated {generated}.</p>
   </main>
 </body>
 </html>

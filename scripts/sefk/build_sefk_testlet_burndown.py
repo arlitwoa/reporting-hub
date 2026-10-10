@@ -62,7 +62,7 @@ def main(argv: list[str] | None = None) -> int:
         _REPO_ROOT / "docs" / "sefk" / f"{test_type.lower().replace(' ', '-')}-testlet-burndown.html"
     )
     adapter = AtlassianAdapter.from_profile(args.profile, os.environ["ARTIFACT_PROFILES_DIR"])
-    fields = ["created", "resolution", "resolutiondate", "issuetype", "customfield_10145"]
+    fields = ["created", "resolution", "resolutiondate", "status", "issuetype", "customfield_10145"]
     if args.platform:
         fields.append("customfield_10079")
     issues = search_all(adapter, jql, fields)
