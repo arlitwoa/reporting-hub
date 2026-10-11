@@ -134,7 +134,7 @@ class QuarterlyDashboardTests(unittest.TestCase):
         self.assertIn("Parent Initiative", html_doc)
         self.assertIn("EPCE-3897", html_doc)
         self.assertNotIn("EPCE-6745", html_doc)
-        self.assertIn("05 Jun 2026 07:22 NZST", html_doc)
+        self.assertIn("Generated 05 Jun 2026 07:22 NZST", html_doc)
         self.assertNotIn("As of", html_doc)
         self.assertIn("48.0", html_doc)
         self.assertIn("Goal SP", html_doc)

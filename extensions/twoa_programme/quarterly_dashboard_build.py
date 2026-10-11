@@ -369,8 +369,8 @@ def build_dashboard_html(
       <p class="report-subtitle">
                 {parent_initiative_subtitle}
         | {html.escape(status.get("quarterStart", ""))} - {html.escape(status.get("quarterEnd", ""))}{goal_target_note}
-        | {html.escape(generated_on)}
       </p>
+        <p class="report-generated">Generated {html.escape(generated_on)}</p>
       <p>{_track_pill(status.get("onTrack"), goal_target=goal_target)}</p>
       <dl class="report-meta-grid">{meta_html}</dl>
     </header>

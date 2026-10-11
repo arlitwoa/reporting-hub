@@ -150,6 +150,11 @@ body::before {{
   font-size: 14px;
   line-height: 1.5;
 }}
+.report-generated {{
+  margin: -8px 0 16px;
+  color: var(--muted);
+  font-size: 12px;
+}}
 .report-subtitle a {{
   color: var(--blue);
   font-weight: 600;

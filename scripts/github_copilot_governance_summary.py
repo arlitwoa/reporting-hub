@@ -11,10 +11,13 @@ Outputs the four requested controls:
 from __future__ import annotations
 
 import csv
+import html
 import json
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -242,7 +245,7 @@ def _write_member_state(current_members: set[str], previous_members: set[str]) -
     STATE_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
-def _render_html(summary: dict[str, Any]) -> str:
+def _render_html(summary: dict[str, Any], *, generated_on: str) -> str:
     monthly = summary["monthly"]
     groups = summary["groups"]
     grouped_users = summary["grouped_users"]
@@ -373,6 +376,7 @@ def _render_html(summary: dict[str, Any]) -> str:
     h3 {{ margin:18px 0 10px; font-size:16px; color:#12395b; }}
     p.meta {{ margin:0; color:var(--muted); }}
     .hero p.meta {{ color:#e9f5ff; }}
+    .hero p.generated {{ font-size:12px; }}
     .kpi {{ font-size:36px; font-weight:700; margin:6px 0 0; color:var(--accent-2); }}
     table {{ width:100%; border-collapse:separate; border-spacing:0; font-size:14px; overflow:hidden; border-radius:10px; }}
     th,td {{ border:1px solid var(--border); border-left:0; border-top:0; padding:9px 11px; text-align:left; background:#fff; }}
@@ -422,6 +426,7 @@ def _render_html(summary: dict[str, Any]) -> str:
     <h1>GitHub Copilot Governance Summary</h1>
     <p class=\"meta\">Scope: monthly total, EPC/TWoA split, additions, removals.</p>
     <p class=\"meta\">Currency display: {currency}</p>
+    <p class=\"meta generated\">Generated {html.escape(generated_on)}</p>
   </div>
 
   <div class=\"card\">
@@ -554,7 +559,8 @@ def main() -> int:
     DOCS_DATA_DIR.mkdir(parents=True, exist_ok=True)
     DOCS_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     SUMMARY_JSON.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    DOCS_OUTPUT.write_text(_render_html(summary), encoding="utf-8")
+    generated_on = datetime.now(ZoneInfo("Pacific/Auckland")).strftime("%d %b %Y %H:%M %Z")
+    DOCS_OUTPUT.write_text(_render_html(summary, generated_on=generated_on), encoding="utf-8")
 
     _write_member_state(current_members, previous_members)
 
