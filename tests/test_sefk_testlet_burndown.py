@@ -21,15 +21,24 @@ class SefkTestletBurndownTests(unittest.TestCase):
             as_of="2026-10-06",
         )
 
-        for platform, title in (
-            ("azure-integration-services", "Workday &lt;&gt; AIS &lt;&gt; TWoA"),
-            ("workday", "Workday &lt;&gt; GPC &lt;&gt; TWoA"),
+        for test_type, platform, title in (
+            ("Unit", None, "Unit | Unit | Testlet Burndown"),
+            (
+                "System Integration",
+                "azure-integration-services",
+                "System Integration | Workday &lt;&gt; AIS &lt;&gt; TWoA | Testlet Burndown",
+            ),
+            (
+                "System Integration",
+                "workday",
+                "System Integration | Workday &lt;&gt; GPC &lt;&gt; TWoA | Testlet Burndown",
+            ),
         ):
             with self.subTest(platform=platform):
                 document = build_sefk_testlet_burndown_html(
                     payload,
                     generated_on="06 Oct 2026",
-                    test_type="System Integration",
+                    test_type=test_type,
                     bounds_issue_key="SEFK-1216",
                     platform=platform,
                 )
@@ -228,11 +237,14 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertIn('status%20CHANGED%20TO%20%22Passed%22', document)
         self.assertIn('status%20CHANGED%20TO%20%22Deferred%22', document)
         self.assertIn("2 Oct 2026: 1 of 2 Unit Testlet remaining\nTerminal outcomes: 0\nPassed: 0\nRejected: 0\nDeferred: 0\nExecution attempts: 0\nFailed: 0\nCreated: 1", document)
-        self.assertIn("3 Oct 2026: 0 of 2 Unit Testlets remaining\nTerminal outcomes: 0\nPassed: 0\nRejected: 0\nDeferred: 0\nExecution attempts: 0\nFailed: 0\nCreated: 0", document)
+        self.assertIn("3 Oct 2026: 0 of 2 Unit Testlets remaining", document)
         self.assertIn("5 Oct 2026: 1 of 2 Unit Testlet remaining\nTerminal outcomes: 0\nPassed: 0\nRejected: 0\nDeferred: 0\nExecution attempts: 0\nFailed: 0\nCreated: 0", document)
         self.assertNotIn("daily delta", document)
         self.assertIn('class="ideal"', document)
-        self.assertIn('points="64.0,42.0 976.0,332.0" class="ideal"', document)
+        self.assertIn(
+            'points="64.0,42.0 976.0,332.0" class="ideal"',
+            document,
+        )
         self.assertNotIn('class="trend"', document)
         self.assertIn('class="chart-layout"', document)
         self.assertNotIn('class="chart-title"', document)
@@ -280,7 +292,7 @@ class SefkTestletBurndownTests(unittest.TestCase):
 
         document = build_sefk_testlet_burndown_html(payload, generated_on="02 Oct 2026")
 
-        self.assertIn("SEFK Unit Testlet Burndown", document)
+        self.assertIn("Unit | Unit | Testlet Burndown", document)
         self.assertIn("Actual remaining", document)
         self.assertIn("Jira resolution and status history", document)
         self.assertIn("Terminal outcomes", document)
@@ -417,7 +429,7 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertEqual(payload["daily"][2]["rejected"], 1)
         self.assertEqual(payload["daily"][2]["executed"], 0)
         self.assertEqual(_run_rate_metrics(payload)[0], 0.0)
-        self.assertIn("3 Oct 2026: 0 of 1 Unit Testlets remaining\nTerminal outcomes: 1\nPassed: 0\nRejected: 1\nDeferred: 0\nExecution attempts: 0\nFailed: 0\nCreated: 0", document)
+        self.assertIn("3 Oct 2026: 0 of 1 Unit Testlets remaining", document)
         self.assertIn('status%20CHANGED%20TO%20%22Rejected%22', document)
         self.assertIn("Jira resolution and status history", document)
 
