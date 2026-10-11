@@ -572,6 +572,12 @@ def build_sefk_testlet_burndown_html(
     ideal_start = html.escape(str(payload.get("idealStartDate") or ""))
     ideal_end = html.escape(str(payload.get("idealEndDate") or ""))
     safe_test_type = html.escape(test_type)
+    report_title = f"SEFK {test_type} Testlet Burndown"
+    if test_type == "System Integration" and platform == "azure-integration-services":
+        report_title = "Workday <> AIS <> TWoA"
+    elif test_type == "System Integration" and platform == "workday":
+        report_title = "Workday <> GPC <> TWoA"
+    safe_report_title = html.escape(report_title)
     safe_bounds_issue_key = html.escape(bounds_issue_key)
     run_rate, successful_rate, required_run_rate = _run_rate_metrics(payload)
     run_rate_text = f"{run_rate:.1f}"
@@ -596,7 +602,7 @@ def build_sefk_testlet_burndown_html(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SEFK | {safe_test_type} Testlet Burndown</title>
+    <title>SEFK | {safe_report_title}</title>
   <style>
     :root {{ color-scheme: light; --ink: #172b4d; --muted: #5e6c84; --grid: #dfe1e6; --series-actual: #3bbf91; --series-ideal: #6041a8; --series-forecast: #f5ae0b; }}
     * {{ box-sizing: border-box; }}
@@ -649,8 +655,8 @@ def build_sefk_testlet_burndown_html(
 </head>
 <body>
   <main>
-        <nav aria-label="Breadcrumb"><a href="../index.html">TWoA reporting hub</a> / <a href="index.html">SEFK</a> / {safe_test_type} Testlet Burndown</nav>
-        <h1>SEFK {safe_test_type} Testlet Burndown</h1>
+        <nav aria-label="Breadcrumb"><a href="../index.html">TWoA reporting hub</a> / <a href="index.html">SEFK</a> / {safe_report_title}</nav>
+        <h1>{safe_report_title}</h1>
         <p class="subhead">Remaining {safe_test_type} Testlets over time, reconstructed from creation dates and Jira resolution and status history.</p>
         <section class="metrics" aria-label="Current {safe_test_type} Testlet counts">
             <div class="metric"><strong>{int(payload.get("remainingTestlets") or 0)}</strong><span>Remaining as of {as_of}</span></div>
