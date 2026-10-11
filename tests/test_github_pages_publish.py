@@ -97,6 +97,20 @@ class GitHubPagesPublishTests(unittest.TestCase):
         self.assertIn("Enterprise reporting", html_doc)
         self.assertIn('href="sefk/testlet-burndown.html"', html_doc)
         self.assertIn('href="sefk/system-integration-testlet-burndown.html"', html_doc)
+        self.assertIn("Workday &lt;&gt; AIS &lt;&gt; TWoA", html_doc)
+
+    def test_sefk_hub_lists_named_system_integration_reports(self):
+        root = Path(__file__).resolve().parents[1]
+        config = load_github_pages_site_config(root / "config" / "github-pages-site.json")
+        sefk = next(programme for programme in config.programmes if programme.id == "sefk")
+        html_doc = build_github_pages_programme_hub_html(
+            sefk,
+            site_title=config.site_title,
+            generated_on="27 Jun 2026 12:00 NZST",
+        )
+
+        self.assertIn("Workday &lt;&gt; AIS &lt;&gt; TWoA", html_doc)
+        self.assertIn("Workday &lt;&gt; GPC &lt;&gt; TWoA", html_doc)
 
     def test_programme_hub_uses_relative_links(self):
         root = Path(__file__).resolve().parents[1]

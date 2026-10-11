@@ -73,12 +73,12 @@
         },
         {
           "href": "sefk/system-integration-testlet-burndown.html",
-          "title": "System Integration Testlet burndown",
+          "title": "Workday <> AIS <> TWoA",
           "description": "azure-integration-services Testlets against the SEFK-1216 delivery window"
         },
         {
           "href": "sefk/system-integration-workday-testlet-burndown.html",
-          "title": "Workday System Integration Testlet burndown",
+          "title": "Workday <> GPC <> TWoA",
           "description": "workday Testlets against the SEFK-1216 delivery window"
         }
       ]

@@ -12,6 +12,32 @@ from extensions.twoa_programme.sefk_testlet_burndown import (
 
 
 class SefkTestletBurndownTests(unittest.TestCase):
+    def test_system_integration_report_titles_match_platform(self) -> None:
+        payload = build_sefk_testlet_burndown_payload(
+            [],
+            {},
+            ideal_start="2026-10-05",
+            ideal_end="2026-10-23",
+            as_of="2026-10-06",
+        )
+
+        for platform, title in (
+            ("azure-integration-services", "Workday &lt;&gt; AIS &lt;&gt; TWoA"),
+            ("workday", "Workday &lt;&gt; GPC &lt;&gt; TWoA"),
+        ):
+            with self.subTest(platform=platform):
+                document = build_sefk_testlet_burndown_html(
+                    payload,
+                    generated_on="06 Oct 2026",
+                    test_type="System Integration",
+                    bounds_issue_key="SEFK-1216",
+                    platform=platform,
+                )
+
+                self.assertIn(f"<title>SEFK | {title}</title>", document)
+                self.assertIn(f"/ {title}</nav>", document)
+                self.assertIn(f"<h1>{title}</h1>", document)
+
     def test_workday_scope_uses_workday_platform_filter(self) -> None:
         jql = _testlet_scope_jql(
             "System Integration",
@@ -513,7 +539,7 @@ class SefkTestletBurndownTests(unittest.TestCase):
             platform="azure-integration-services",
         )
 
-        self.assertIn("SEFK System Integration Testlet Burndown", document)
+        self.assertIn("Workday &lt;&gt; AIS &lt;&gt; TWoA", document)
         self.assertNotIn('class="chart-title"', document)
         self.assertNotIn("Best-fit completion estimate", document)
         self.assertIn(
