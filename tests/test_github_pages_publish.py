@@ -97,7 +97,11 @@ class GitHubPagesPublishTests(unittest.TestCase):
         self.assertIn("Enterprise reporting", html_doc)
         self.assertIn('href="sefk/testlet-burndown.html"', html_doc)
         self.assertIn('href="sefk/system-integration-testlet-burndown.html"', html_doc)
-        self.assertIn("Workday &lt;&gt; AIS &lt;&gt; TWoA", html_doc)
+        self.assertIn("Unit | Unit | Testlet Burndown", html_doc)
+        self.assertIn(
+            "System Integration | Workday &lt;&gt; AIS &lt;&gt; TWoA | Testlet Burndown",
+            html_doc,
+        )
 
     def test_sefk_hub_lists_named_system_integration_reports(self):
         root = Path(__file__).resolve().parents[1]
@@ -109,8 +113,15 @@ class GitHubPagesPublishTests(unittest.TestCase):
             generated_on="27 Jun 2026 12:00 NZST",
         )
 
-        self.assertIn("Workday &lt;&gt; AIS &lt;&gt; TWoA", html_doc)
-        self.assertIn("Workday &lt;&gt; GPC &lt;&gt; TWoA", html_doc)
+        self.assertIn("Unit | Unit | Testlet Burndown", html_doc)
+        self.assertIn(
+            "System Integration | Workday &lt;&gt; AIS &lt;&gt; TWoA | Testlet Burndown",
+            html_doc,
+        )
+        self.assertIn(
+            "System Integration | Workday &lt;&gt; GPC &lt;&gt; TWoA | Testlet Burndown",
+            html_doc,
+        )
 
     def test_programme_hub_uses_relative_links(self):
         root = Path(__file__).resolve().parents[1]

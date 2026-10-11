@@ -572,19 +572,20 @@ def build_sefk_testlet_burndown_html(
     ideal_start = html.escape(str(payload.get("idealStartDate") or ""))
     ideal_end = html.escape(str(payload.get("idealEndDate") or ""))
     safe_test_type = html.escape(test_type)
-    report_title = f"SEFK {test_type} Testlet Burndown"
-    if test_type == "System Integration" and platform == "azure-integration-services":
-        report_title = "Workday <> AIS <> TWoA"
-    elif test_type == "System Integration" and platform == "workday":
-        report_title = "Workday <> GPC <> TWoA"
+    platform_title = {
+        "azure-integration-services": "Workday <> AIS <> TWoA",
+        "workday": "Workday <> GPC <> TWoA",
+    }.get(platform, test_type)
+    report_title = f"{test_type} | {platform_title} | Testlet Burndown"
     safe_report_title = html.escape(report_title)
     safe_bounds_issue_key = html.escape(bounds_issue_key)
     run_rate, successful_rate, required_run_rate = _run_rate_metrics(payload)
     run_rate_text = f"{run_rate:.1f}"
     successful_rate_text = f"{successful_rate:.1f}"
-    required_run_rate_text = (
-        "Past due" if required_run_rate is None else f"{required_run_rate:.1f}"
-    )
+    if required_run_rate is None:
+        required_run_rate_text = "Past due"
+    else:
+        required_run_rate_text = f"{required_run_rate:.1f}"
     scope_jql = testlet_scope_jql(
         test_type,
         platform,
