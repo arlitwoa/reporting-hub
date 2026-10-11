@@ -14,6 +14,7 @@ import base64
 import json
 import os
 import re
+from urllib.parse import urlsplit
 import urllib.request
 from datetime import datetime
 from pathlib import Path
@@ -84,9 +85,26 @@ def _load_credentials() -> tuple[str, str]:
     return base, auth
 
 
+def _jira_api_url(base: str, path: str) -> str:
+    parsed_base = urlsplit(base)
+    parsed_path = urlsplit(path)
+    if (
+        parsed_base.scheme != "https"
+        or not parsed_base.hostname
+        or parsed_base.username
+        or parsed_base.password
+        or parsed_base.query
+        or parsed_base.fragment
+    ):
+        raise ValueError("Jira API base URL must use HTTPS without embedded credentials.")
+    if not path.startswith("/") or path.startswith("//") or parsed_path.scheme or parsed_path.netloc:
+        raise ValueError("Jira API path must stay on the configured host.")
+    return f"{base.rstrip('/')}{path}"
+
+
 def _post_json(base: str, auth: str, path: str, payload: dict[str, Any]) -> dict[str, Any]:
     req = urllib.request.Request(
-        f"{base}{path}",
+        _jira_api_url(base, path),
         data=json.dumps(payload).encode("utf-8"),
         headers={
             "Authorization": f"Basic {auth}",
@@ -95,16 +113,16 @@ def _post_json(base: str, auth: str, path: str, payload: dict[str, Any]) -> dict
         },
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=60) as response:
+    with urllib.request.urlopen(req, timeout=60) as response:  # nosec B310 - _jira_api_url enforces HTTPS.
         return json.loads(response.read().decode("utf-8"))
 
 
 def _get_json(base: str, auth: str, path: str) -> dict[str, Any]:
     req = urllib.request.Request(
-        f"{base}{path}",
+        _jira_api_url(base, path),
         headers={"Authorization": f"Basic {auth}", "Accept": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=60) as response:
+    with urllib.request.urlopen(req, timeout=60) as response:  # nosec B310 - _jira_api_url enforces HTTPS.
         return json.loads(response.read().decode("utf-8"))
 
 
