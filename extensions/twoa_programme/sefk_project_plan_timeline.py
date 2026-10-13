@@ -5,15 +5,18 @@ from __future__ import annotations
 import html
 import json
 import re
+import sys
+import time
 from datetime import date
 from itertools import count
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 from urllib.parse import quote
 
 if TYPE_CHECKING:
     from artifact.atlassian import AtlassianAdapter
 
+from extensions.twoa_programme.concurrency import map_concurrently
 from extensions.twoa_programme.epic_timeline import EPIC_CHART_PX_PER_DAY
 from extensions.twoa_programme.field_maps import field_aliases
 from extensions.twoa_programme.github_pages_nav import BREADCRUMB_CSS
@@ -2573,19 +2576,28 @@ def _attach_epic_scope_rollups(
     epic_issues: dict[str, dict[str, Any]],
     *,
     config: SefkProjectPlanReportingConfig,
+    prefetched_children: list[dict[str, Any]] | None = None,
 ) -> dict[str, dict[str, Any]]:
+    """Per-epic phase rollups.
+
+    ``prefetched_children`` must come from the same ``sefk_epic_scope_jql`` search over (at
+    least) these epics, with at least the fields below; it saves repeating that search.
+    """
     if not epic_issues:
         return {}
     epic_keys = sorted(epic_issues.keys())
-    child_jql = sefk_epic_scope_jql(
-        parent_keys_csv=", ".join(epic_keys),
-        scope_issue_types=config.scope_issue_types,
-    )
-    scope_fields = ["parent", "issuetype", "status"]
     kpmg_reference_field_id = get_kpmg_reference_field_id()
-    if kpmg_reference_field_id and kpmg_reference_field_id not in scope_fields:
-        scope_fields.append(kpmg_reference_field_id)
-    children = search_all(adapter, child_jql, scope_fields)
+    if prefetched_children is not None:
+        children = prefetched_children
+    else:
+        child_jql = sefk_epic_scope_jql(
+            parent_keys_csv=", ".join(epic_keys),
+            scope_issue_types=config.scope_issue_types,
+        )
+        scope_fields = ["parent", "issuetype", "status"]
+        if kpmg_reference_field_id and kpmg_reference_field_id not in scope_fields:
+            scope_fields.append(kpmg_reference_field_id)
+        children = search_all(adapter, child_jql, scope_fields)
     return rollup_sefk_epic_phases(
         children,
         epic_keys=epic_keys,
@@ -2596,15 +2608,8 @@ def _attach_epic_scope_rollups(
     )
 
 
-def _attach_level_zero_rows(
-    adapter: "AtlassianAdapter",
-    phases: list[dict[str, Any]],
-    *,
-    config: SefkProjectPlanReportingConfig,
-    fallback_start: date,
-    fallback_end: date,
-) -> None:
-    epics = [
+def _level_zero_epics(phases: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
         epic
         for phase in phases
         for sub_phase in phase.get("subPhases") or []
@@ -2612,8 +2617,17 @@ def _attach_level_zero_rows(
         for epic in work_stream.get("epics") or []
         if str(epic.get("key") or "").strip()
     ]
+
+
+def _fetch_level_zero_children(
+    adapter: "AtlassianAdapter",
+    epics: list[dict[str, Any]],
+    *,
+    config: SefkProjectPlanReportingConfig,
+) -> list[dict[str, Any]]:
+    """All in-scope children of ``epics`` (also the input to the per-epic phase rollups)."""
     if not epics:
-        return
+        return []
     child_fields = [
         "summary", "status", "issuetype", "created", "duedate", START_DATE_FIELD, "issuelinks", "parent",
         "assignee", "components", "labels", WORKSTREAM_FIELD_ID, TEST_TYPES_FIELD_ID,
@@ -2621,7 +2635,7 @@ def _attach_level_zero_rows(
     kpmg_reference_field_id = get_kpmg_reference_field_id()
     if kpmg_reference_field_id and kpmg_reference_field_id not in child_fields:
         child_fields.append(kpmg_reference_field_id)
-    children = search_all(
+    return search_all(
         adapter,
         sefk_epic_scope_jql(
             parent_keys_csv=", ".join(str(epic["key"]) for epic in epics),
@@ -2629,6 +2643,22 @@ def _attach_level_zero_rows(
         ),
         child_fields,
     )
+
+
+def _attach_level_zero_rows(
+    adapter: "AtlassianAdapter",
+    phases: list[dict[str, Any]],
+    *,
+    config: SefkProjectPlanReportingConfig,
+    fallback_start: date,
+    fallback_end: date,
+    children: list[dict[str, Any]] | None = None,
+) -> None:
+    epics = _level_zero_epics(phases)
+    if not epics:
+        return
+    if children is None:
+        children = _fetch_level_zero_children(adapter, epics, config=config)
     children_by_parent: dict[str, list[dict[str, Any]]] = {}
     for child in children:
         if issue_excluded_from_sefk_project_plan(child):
@@ -2878,6 +2908,18 @@ def _build_sefk_hierarchy_from_flat(
     return phases, hub_keys, warnings, block_issues, epic_issues
 
 
+def _build_block_scope_rollups(
+    adapter: "AtlassianAdapter",
+    block_issues: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    return build_block_scope_rollups(
+        adapter,
+        block_issues=block_issues,
+        story_points_field=field_aliases()["Story Points"],
+        skip_issue=issue_excluded_from_sefk_project_plan,
+    )
+
+
 def _attach_rollups_to_phases(
     adapter: "AtlassianAdapter",
     phases: list[dict[str, Any]],
@@ -2885,11 +2927,15 @@ def _attach_rollups_to_phases(
     config: SefkProjectPlanReportingConfig,
     block_issues: dict[str, dict[str, Any]],
     epic_issues: dict[str, dict[str, Any]],
+    epic_children: list[dict[str, Any]] | None = None,
+    block_scope_rollups: dict[str, dict[str, Any]] | None = None,
 ) -> None:
+    """Attach scope rollups; ``epic_children`` / ``block_scope_rollups`` skip refetching."""
     epic_rollups = _attach_epic_scope_rollups(
         adapter,
         epic_issues,
         config=config,
+        prefetched_children=epic_children,
     )
     for phase in phases:
         for sub_phase in phase.get("subPhases") or []:
@@ -2900,12 +2946,10 @@ def _attach_rollups_to_phases(
                     if rollup and float(rollup.get("totalWeight") or 0) > 0:
                         epic["scopeRollup"] = rollup
 
-    story_points_field = field_aliases()["Story Points"]
-    scope_rollups = build_block_scope_rollups(
-        adapter,
-        block_issues=block_issues,
-        story_points_field=story_points_field,
-        skip_issue=issue_excluded_from_sefk_project_plan,
+    scope_rollups = (
+        block_scope_rollups
+        if block_scope_rollups is not None
+        else _build_block_scope_rollups(adapter, block_issues)
     )
     for phase in phases:
         phase_key = str(phase.get("key") or "")
@@ -3060,12 +3104,41 @@ def fetch_sefk_project_plan_timeline(
         )
         warnings.extend(hub_warnings)
 
+    # The remaining Jira reads only depend on the hierarchy built above and not on each other:
+    #   * children of every epic (feeds both the level-zero rows and the per-epic phase
+    #     rollups, so it is fetched once rather than twice), and
+    #   * the Scope-linked rollups per block.
+    # Run them together.
+    level_zero_epics = _level_zero_epics(phases)
+    level_zero_keys = {str(epic["key"]) for epic in level_zero_epics}
+    jobs: dict[str, Callable[[], Any]] = {
+        "children": lambda: _fetch_level_zero_children(adapter, level_zero_epics, config=config),
+        "blocks": lambda: _build_block_scope_rollups(adapter, block_issues),
+    }
+    fetched: dict[str, Any] = {}
+    started = time.monotonic()
+    map_concurrently(
+        lambda name: jobs[name](),
+        list(jobs),
+        lambda name, value: fetched.__setitem__(name, value),
+    )
+    print(
+        f"sefk plan: epic children + block rollups in {time.monotonic() - started:.1f}s "
+        f"({len(fetched['children'])} children)",
+        file=sys.stderr,
+        flush=True,
+    )
+    epic_children = fetched["children"]
+    # Reuse the children search for the epic rollups only if it covered every rollup epic.
+    reuse_children = set(epic_issues) <= level_zero_keys
+
     _attach_level_zero_rows(
         adapter,
         phases,
         config=config,
         fallback_start=fallback_start,
         fallback_end=fallback_end,
+        children=epic_children,
     )
     _mark_sefk_special_rows(phases, config)
 
@@ -3075,6 +3148,8 @@ def fetch_sefk_project_plan_timeline(
         config=config,
         block_issues=block_issues,
         epic_issues=epic_issues,
+        epic_children=epic_children if reuse_children else None,
+        block_scope_rollups=fetched["blocks"],
     )
     window_start, window_end = resolve_chart_window_for_phases(phases)
     return {
