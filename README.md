@@ -2,7 +2,7 @@
 
 TWoA **reporting hub** for GitHub Pages: programme-scoped delivery snapshots (EPC, SEF, enterprise) refreshed from Jira.
 
-Runs on **`barlconz-artifact-core`** (Artifact core wheel from [barlconz/artifact](https://github.com/barlconz/artifact) GitHub Releases) with the TWoA programme extension from this repo. Published HTML lives under `docs/` on **TWoA GitHub** (`arlitwoa`).
+Runs on **`barlconz-artifact-core`** (Artifact core wheel from [barlconz/artifact-core](https://github.com/barlconz/artifact-core) GitHub Releases) with the TWoA programme extension from this repo. Published HTML lives under `docs/` on **TWoA GitHub** (`arlitwoa`).
 
 ## Live site
 
@@ -39,8 +39,8 @@ pip install -e C:\development\reporting-hub
 **Option B — pinned wheel (matches CI):**
 
 ```powershell
-$env:GH_TOKEN = "<PAT with repo read on barlconz/artifact>"
-gh release download v0.2.1 --repo barlconz/artifact --pattern "barlconz_artifact_core-0.2.1-py3-none-any.whl" --dir $env:TEMP
+$env:GH_TOKEN = "<PAT with repo read on barlconz/artifact-core>"
+gh release download v0.2.1 --repo barlconz/artifact-core --pattern "barlconz_artifact_core-0.2.1-py3-none-any.whl" --dir $env:TEMP
 pip install "$env:TEMP\barlconz_artifact_core-0.2.1-py3-none-any.whl"
 pip install -e C:\development\reporting-hub
 ```
@@ -168,10 +168,10 @@ Open PRs against **`main`** in the GitHub UI if `gh pr create` fails with the TW
 | Secret | Purpose |
 |--------|---------|
 | `ARTIFACT_CREDENTIALS_JSON` | Atlassian credentials for Jira refresh |
-| `ARTIFACT_CORE_PAT` | Read **repo** on `barlconz/artifact` (download release wheel) |
+| `ARTIFACT_CORE_PAT` | Read **repo** on `barlconz/artifact-core` (download release wheel) |
 | `ARTIFACT_USER_EMAIL` | Optional attribution |
 
-CI installs the **v0.2.1 release wheel** from `barlconz/artifact` — no git checkout.
+CI installs the **v0.2.1 release wheel** from `barlconz/artifact-core` — no git checkout.
 
 ## GitHub Actions
 
@@ -182,7 +182,7 @@ Workflow: `.github/workflows/github-pages-reports.yml` — hourly (UTC) or manua
 | Secret | Purpose |
 |--------|---------|
 | `ARTIFACT_CREDENTIALS_JSON` | Full contents of `credentials.local.json` (Atlassian) |
-| `ARTIFACT_CORE_PAT` | PAT with **repo read** on `barlconz/artifact` (download release wheel) |
+| `ARTIFACT_CORE_PAT` | PAT with **repo read** on `barlconz/artifact-core` (download release wheel) |
 | `ARTIFACT_USER_EMAIL` | Optional attribution for generated content |
 
 Push from the workflow uses the built-in **`GITHUB_TOKEN`** on `arlitwoa/reporting-hub`.
