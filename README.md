@@ -175,7 +175,7 @@ CI installs the **v0.2.1 release wheel** from `barlconz/artifact-core` — no gi
 
 ## GitHub Actions
 
-Workflow: `.github/workflows/github-pages-reports.yml` — hourly (UTC) or manual dispatch.
+Workflow: `.github/workflows/github-pages-reports.yml` — every 30 minutes (Mon–Fri 07:00–19:00 NZ) or manual dispatch.
 
 **Repository secrets**
 
