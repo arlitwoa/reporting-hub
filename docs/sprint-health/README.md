@@ -43,7 +43,7 @@ Config: `config/delivery-health.json` → `confluence`.
 
 ## Automation
 
-Workflow: `.github/workflows/github-pages-reports.yml` on **`main`** — hourly (UTC) with the quarterly dashboard, or **Actions → Refresh GitHub Pages reports → Run workflow**.
+Workflow: `.github/workflows/github-pages-reports.yml` on **`main`** — every 30 minutes (Mon–Fri 07:00–19:00 NZ) with the quarterly dashboard, or **Actions → Refresh GitHub Pages reports → Run workflow**.
 
 Local refresh (all GitHub Pages reports):
 

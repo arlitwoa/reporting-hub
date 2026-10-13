@@ -20,7 +20,7 @@ C:/development/artifact/.venv/Scripts/python.exe scripts/quarterly/publish_dashb
 
 Enable Pages: **Settings → Pages → branch `develop` → folder `/docs`**.
 
-See [quarterly-reporting.md](../how-to/quarterly-reporting.md#github-pages-static-report) for hourly automation via `.github/workflows/github-pages-reports.yml` (quarterly + Sprint Health + Dev Done together).
+See [quarterly-reporting.md](../how-to/quarterly-reporting.md#github-pages-static-report) for scheduled (every 30 minutes) automation via `.github/workflows/github-pages-reports.yml` (quarterly + Sprint Health + Dev Done together).
 
 ## Visibility audit (June 2026)
 
