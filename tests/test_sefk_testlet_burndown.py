@@ -633,6 +633,12 @@ class SefkTestletBurndownTests(unittest.TestCase):
             def now(cls, tz=None):
                 return instant.astimezone(tz) if tz else instant.replace(tzinfo=None)
 
+        class FrozenDate(date):
+            # A UTC runner's date.today(); the old implementation returned this.
+            @classmethod
+            def today(cls):
+                return cls(2026, 10, 13)
+
         issue = {
             "key": "SEFK-1",
             "fields": {
@@ -650,7 +656,10 @@ class SefkTestletBurndownTests(unittest.TestCase):
             ]
         }
 
-        with patch("extensions.twoa_programme.sefk_testlet_burndown.datetime", FrozenDatetime):
+        with (
+            patch("extensions.twoa_programme.sefk_testlet_burndown.datetime", FrozenDatetime),
+            patch("extensions.twoa_programme.sefk_testlet_burndown.date", FrozenDate),
+        ):
             payload = build_sefk_testlet_burndown_payload(
                 [issue], histories, ideal_start="2026-10-05", ideal_end="2026-10-23"
             )

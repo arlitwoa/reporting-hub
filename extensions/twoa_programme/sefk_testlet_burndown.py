@@ -7,11 +7,12 @@ from datetime import date, datetime, timedelta
 from math import ceil
 from typing import Any
 from urllib.parse import quote
-from zoneinfo import ZoneInfo
 
-# Jira changelog timestamps are NZ-local, so "today" must be too. CI runners use UTC,
-# where date.today() lags NZ by up to 13 hours and drops same-day transitions.
-NZ_TZ = ZoneInfo("Pacific/Auckland")
+from extensions.twoa_programme.quarterly_reporting import NZ_TZ
+
+# Jira changelog dates are read in the reporting account's timezone (NZ), so "today" must be
+# NZ too. CI runners use UTC, where date.today() lags NZ by up to 13 hours and drops
+# same-day transitions.
 
 
 def _day(value: Any) -> date | None:
