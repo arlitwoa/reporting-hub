@@ -78,7 +78,7 @@
         },
         {
           "href": "sefk/system-integration-workday-testlet-burndown.html",
-          "title": "System Integration | Workday <> GPC <> TWoA | Testlet Burndown",
+          "title": "System Integration | Workday <> GPC <> Datapay | Testlet Burndown",
           "description": "workday Testlets against the SEFK-1216 delivery window"
         }
       ]
