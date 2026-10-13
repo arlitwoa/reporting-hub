@@ -151,7 +151,7 @@ def resolved_testlets_for_day_jql(
         platform,
         include_all_engine_versions=include_all_engine_versions,
     ).rsplit(" ORDER BY ", 1)[0]
-    day_window = f'("{day.isoformat()}", "{day.isoformat()}")'
+    day_window = f'("{day.isoformat()} 00:00", "{day.isoformat()} 23:59")'
     return (
         f'{scope} AND (status CHANGED TO "Passed" DURING {day_window} '
         f'OR status CHANGED TO "Rejected" DURING {day_window} '
