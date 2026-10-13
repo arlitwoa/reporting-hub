@@ -574,7 +574,7 @@ def build_sefk_testlet_burndown_html(
     safe_test_type = html.escape(test_type)
     platform_title = {
         "azure-integration-services": "Workday <> AIS <> TWoA",
-        "workday": "Workday <> GPC <> TWoA",
+        "workday": "Workday <> GPC <> Datapay",
     }.get(platform, test_type)
     report_title = f"{test_type} | {platform_title} | Testlet Burndown"
     safe_report_title = html.escape(report_title)

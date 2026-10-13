@@ -119,7 +119,7 @@ class GitHubPagesPublishTests(unittest.TestCase):
             html_doc,
         )
         self.assertIn(
-            "System Integration | Workday &lt;&gt; GPC &lt;&gt; TWoA | Testlet Burndown",
+            "System Integration | Workday &lt;&gt; GPC &lt;&gt; Datapay | Testlet Burndown",
             html_doc,
         )
 
