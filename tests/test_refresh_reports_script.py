@@ -5,10 +5,23 @@ import sys
 import unittest
 from pathlib import Path
 
-_BASH = shutil.which("bash")
-if _BASH and sys.platform == "win32" and "system32" in _BASH.lower():
-    # The WSL launcher in System32 cannot run scripts addressed by Windows paths.
-    _BASH = None
+def _find_bash() -> str | None:
+    found = shutil.which("bash")
+    if sys.platform != "win32":
+        return found
+    # The WSL launchers (System32 / WindowsApps) cannot run scripts addressed by Windows paths,
+    # so on Windows prefer a real Git Bash even when a launcher is first on PATH.
+    launcher_dirs = ("\\system32\\", "\\sysnative\\", "\\windowsapps\\")
+    if found and not any(part in os.path.normcase(found) for part in launcher_dirs):
+        return found
+    for root in (os.environ.get("ProgramFiles"), os.environ.get("ProgramFiles(x86)")):
+        candidate = Path(root) / "Git" / "bin" / "bash.exe" if root else None
+        if candidate and candidate.is_file():
+            return str(candidate)
+    return None
+
+
+_BASH = _find_bash()
 
 
 @unittest.skipUnless(_BASH, "bash is not available on this host (e.g. native Windows without Git Bash)")

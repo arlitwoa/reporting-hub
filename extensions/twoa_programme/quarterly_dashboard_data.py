@@ -13,6 +13,7 @@ from extensions.twoa_programme.quarter_scope import (
     EC_SQUAD_SPECS,
     education_cloud_squad_jqls,
 )
+from extensions.twoa_programme.quarterly_reporting import NZ_TZ
 from extensions.twoa_programme.pde_engine_releases import (
     carriage_cycle_label,
     carriage_delivery_kind,
@@ -37,7 +38,6 @@ from extensions.twoa_programme.quarterly_dashboard_links import (
     _issues_in_link,
     _jql_link,
 )
-from extensions.twoa_programme.quarterly_reporting import NZ_TZ
 from extensions.twoa_programme.quarterly_dashboard_markup import (
     _metric_tip,
     _sanitize_atlassian_text,

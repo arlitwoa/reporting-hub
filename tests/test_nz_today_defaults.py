@@ -28,6 +28,8 @@ class _UtcRunnerDate(date):
 
 
 def _freeze(module):
+    # Patches the names the modules import via `from datetime import date, datetime`; if a
+    # module switches to `import datetime` these patches (and so the tests) need updating.
     return (
         patch.object(module, "datetime", _FrozenDatetime),
         patch.object(module, "date", _UtcRunnerDate),
@@ -50,8 +52,9 @@ class NzTodayDefaultsTests(unittest.TestCase):
         }
         datetime_patch, date_patch = _freeze(sef_test_plan_schedule)
         with datetime_patch, date_patch:
-            # On NZ's 14 Oct both anchor at 14 Oct, so plan order decides: B (listed first).
-            # With the UTC date (13 Oct) the undated block A would wrongly sort ahead.
+            # On NZ's 14 Oct both anchor at 14 Oct, so plan order decides: B (listed first;
+            # the sort is stable). With the UTC date (13 Oct) the undated block A would wrongly
+            # sort ahead. A tie is unavoidable: two different calendar days can't straddle B.
             self.assertEqual(sef_test_plan_schedule.next_open_block_label(issues, plan), "B")
 
 
