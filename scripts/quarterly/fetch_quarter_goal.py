@@ -9,6 +9,7 @@ import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, Callable
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
@@ -16,6 +17,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 from artifact.atlassian import AtlassianAdapter  # noqa: E402
 
+from extensions.twoa_programme.concurrency import map_concurrently  # noqa: E402
 from extensions.twoa_programme.quarter_scope import planned_scope_jqls  # noqa: E402
 from extensions.twoa_programme.quarterly_reporting import load_quarterly_reporting_config  # noqa: E402
 from scripts.quarterly.common import CONFIG_PATH, out_path  # noqa: E402
@@ -60,45 +62,60 @@ def fetch_scope_breakdown(adapter: AtlassianAdapter, config, sp_field: str) -> d
     delivery_squad_field = aliases.get("Delivery Squad") or "customfield_11102"
     change_types_field = aliases.get("Change Types") or "customfield_10079"
     platform_field = aliases.get("Platform") or "customfield_10120"
-    breakdown = sum_story_points_by_exclusive_lane(
-        adapter,
-        config.scope.global_scope_jql,
-        sp_field,
-        delivery_squad_field=delivery_squad_field,
-        change_types_field=change_types_field,
-        platform_field=platform_field,
-        lane_jqls=jqls,
-    )
-    breakdown["inGlobalQuarter"] = {
-        "jql": config.scope.global_scope_jql,
-        **sum_story_points_in_scope(adapter, config.scope.global_scope_jql, sp_field),
-    }
     sp_jql_name = "Story Points"
     for alias, field_id in aliases.items():
         if field_id == sp_field:
             sp_jql_name = alias
             break
-    breakdown["unpointedStoriesBugs"] = count_unpointed_stories_bugs_by_lane(
-        adapter,
-        config.scope.global_burn_jql,
-        sp_field,
-        delivery_squad_field=delivery_squad_field,
-        change_types_field=change_types_field,
-        platform_field=platform_field,
-        lane_jqls=jqls,
-        story_points_jql_name=sp_jql_name,
+
+    # The four sections are independent Jira reads; fetch them concurrently, then assemble
+    # in the original key order.
+    parts: dict[str, Callable[[], Any]] = {
+        "lanes": lambda: sum_story_points_by_exclusive_lane(
+            adapter,
+            config.scope.global_scope_jql,
+            sp_field,
+            delivery_squad_field=delivery_squad_field,
+            change_types_field=change_types_field,
+            platform_field=platform_field,
+            lane_jqls=jqls,
+        ),
+        "inGlobalQuarter": lambda: {
+            "jql": config.scope.global_scope_jql,
+            **sum_story_points_in_scope(adapter, config.scope.global_scope_jql, sp_field),
+        },
+        "unpointedStoriesBugs": lambda: count_unpointed_stories_bugs_by_lane(
+            adapter,
+            config.scope.global_burn_jql,
+            sp_field,
+            delivery_squad_field=delivery_squad_field,
+            change_types_field=change_types_field,
+            platform_field=platform_field,
+            lane_jqls=jqls,
+            story_points_jql_name=sp_jql_name,
+        ),
+        "educationCloudSquads": lambda: education_cloud_squad_scope_breakdown(
+            adapter,
+            sp_field,
+            quarter_filter=config.scope.quarter_filter,
+            global_scope_jql=config.scope.global_scope_jql,
+            global_burn_jql=config.scope.global_burn_jql,
+            delivery_squad_field=delivery_squad_field,
+            change_types_field=change_types_field,
+            platform_field=platform_field,
+            story_points_jql_name=sp_jql_name,
+        ),
+    }
+    results: dict[str, Any] = {}
+    map_concurrently(
+        lambda name: parts[name](),
+        list(parts),
+        lambda name, value: results.__setitem__(name, value),
     )
-    breakdown["educationCloudSquads"] = education_cloud_squad_scope_breakdown(
-        adapter,
-        sp_field,
-        quarter_filter=config.scope.quarter_filter,
-        global_scope_jql=config.scope.global_scope_jql,
-        global_burn_jql=config.scope.global_burn_jql,
-        delivery_squad_field=delivery_squad_field,
-        change_types_field=change_types_field,
-        platform_field=platform_field,
-        story_points_jql_name=sp_jql_name,
-    )
+    breakdown = results["lanes"]
+    breakdown["inGlobalQuarter"] = results["inGlobalQuarter"]
+    breakdown["unpointedStoriesBugs"] = results["unpointedStoriesBugs"]
+    breakdown["educationCloudSquads"] = results["educationCloudSquads"]
     return breakdown
 
 
@@ -123,19 +140,31 @@ def main(argv: list[str] | None = None) -> int:
     aliases = adapter._resolve_field_aliases()
     sp_field = aliases.get("Story Points") or "customfield_10026"
 
-    payload = fetch_initiative_goal(
-        adapter,
-        initiative,
-        limit=args.limit,
-        max_epics=args.max_epics,
+    # Initiative sizing and the scope breakdown are independent, so fetch them together.
+    fetched: dict[str, Any] = {}
+    jobs: dict[str, Callable[[], Any]] = {
+        "goal": lambda: fetch_initiative_goal(
+            adapter,
+            initiative,
+            limit=args.limit,
+            max_epics=args.max_epics,
+        ),
+    }
+    if not args.skip_scope_breakdown:
+        jobs["breakdown"] = lambda: fetch_scope_breakdown(adapter, config, sp_field)
+    map_concurrently(
+        lambda name: jobs[name](),
+        list(jobs),
+        lambda name, value: fetched.__setitem__(name, value),
     )
+    payload = fetched["goal"]
     output = {
         "quarter": config.quarter.slug,
         "plannedStoryPoints": payload["totalStoryPoints"],
         **{k: v for k, v in payload.items() if k != "sizing"},
     }
     if not args.skip_scope_breakdown:
-        scope_breakdown = fetch_scope_breakdown(adapter, config, sp_field)
+        scope_breakdown = fetched["breakdown"]
         output["plannedStoryPointsByScope"] = scope_breakdown
         unpointed = scope_breakdown.get("unpointedStoriesBugs") or {}
         if unpointed:
