@@ -15,18 +15,24 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from artifact.atlassian import AtlassianAdapter  # noqa: E402
+from artifact.delivery_health import sprint_engine  # noqa: E402
 from artifact.delivery_health.gateway import ArtifactJiraGateway  # noqa: E402
 from artifact.delivery_health.sprint_engine import (  # noqa: E402
-    baseline_velocity,
     bind_delivery_health_config,
-    deploy_credit_for_sprint,
+    closed_sprints_for_squad,
     list_closed_sprints,
     sprint_days,
     sprint_squad_prefix,
     sprint_window,
 )
 
+from extensions.twoa_programme.concurrency import map_concurrently  # noqa: E402
 from extensions.twoa_programme.delivery_health import load_delivery_health_config  # noqa: E402
+from extensions.twoa_programme.sprint_credit_cache import (  # noqa: E402
+    default_cache_path,
+    install_sprint_credit_cache,
+    prefetch_sprint_credits,
+)
 from extensions.twoa_programme.quarterly_reporting import (  # noqa: E402
     credit_date_nz,
     load_quarterly_reporting_config,
@@ -84,7 +90,8 @@ def rollup_squad(
     sprint_rows: list[dict] = []
     total = 0.0
     for sprint in sprints:
-        credit = deploy_credit_for_sprint(jira, sprint)
+        # Looked up on the engine module so the sprint-credit cache wrapper is used.
+        credit = sprint_engine.deploy_credit_for_sprint(jira, sprint)
         total += credit
         start, end = _sprint_dates(sprint)
         sprint_rows.append(
@@ -99,7 +106,7 @@ def rollup_squad(
                 "deployCredit": round(credit, 2),
             }
         )
-    baseline = baseline_velocity(
+    baseline = sprint_engine.baseline_velocity(
         jira, board_id, slug, closed_count=baseline_count
     )
     return {
@@ -144,19 +151,40 @@ def main(argv: list[str] | None = None) -> int:
     adapter = AtlassianAdapter.from_profile("atlassian", profiles_dir)
     jira = ArtifactJiraGateway(adapter.http)
 
+    # Every sprint a squad needs (the quarter's sprints plus its velocity-baseline window) is
+    # computed once, concurrently, and cached; the roll-up below then only reads results.
+    cache = install_sprint_credit_cache(default_cache_path())
+
+    def sprints_for(slug: str) -> list[dict]:
+        board_id = dh_config.squads[slug].board_id
+        return [
+            *closed_sprints_in_quarter(
+                jira, board_id, slug, qconfig.quarter, min_sprint_days=dh_config.min_sprint_days
+            ),
+            *closed_sprints_for_squad(
+                jira, board_id, slug, limit=dh_config.baseline_closed_sprint_count
+            ),
+        ]
+
+    needed: list[dict] = []
+    map_concurrently(sprints_for, selected, lambda _slug, sprints: needed.extend(sprints))
     squad_results: dict[str, dict] = {}
-    for slug in selected:
-        squad = dh_config.squads[slug]
-        print(f"Rolling up {slug} (board {squad.board_id})...", flush=True)
-        squad_results[slug] = rollup_squad(
-            jira,
-            slug=slug,
-            label=squad.label,
-            board_id=squad.board_id,
-            quarter=qconfig.quarter,
-            min_sprint_days=dh_config.min_sprint_days,
-            baseline_count=dh_config.baseline_closed_sprint_count,
-        )
+    try:
+        prefetch_sprint_credits(jira, needed)
+        for slug in selected:
+            squad = dh_config.squads[slug]
+            print(f"Rolling up {slug} (board {squad.board_id})...", flush=True)
+            squad_results[slug] = rollup_squad(
+                jira,
+                slug=slug,
+                label=squad.label,
+                board_id=squad.board_id,
+                quarter=qconfig.quarter,
+                min_sprint_days=dh_config.min_sprint_days,
+                baseline_count=dh_config.baseline_closed_sprint_count,
+            )
+    finally:
+        cache.save()
 
     total_credit = sum(row["totalDeployCredit"] for row in squad_results.values())
     result = {
