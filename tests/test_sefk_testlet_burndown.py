@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import unittest
+from datetime import date
 
 from extensions.twoa_programme.sefk_testlet_burndown import (
     _y_axis_ticks,
     _run_rate_metrics,
     build_sefk_testlet_burndown_html,
     build_sefk_testlet_burndown_payload,
+    resolved_testlets_for_day_jql as _resolved_testlets_for_day_jql,
     testlet_scope_jql as _testlet_scope_jql,
 )
 
@@ -60,6 +62,15 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertNotIn("azure-integration-services", jql)
         self.assertNotIn("smart-sefk-current-engine", jql)
         self.assertIn("smart-sefk-current-engine", _testlet_scope_jql("System Integration", "azure-integration-services"))
+
+    def test_day_jql_uses_full_timestamp_window(self) -> None:
+        jql = _resolved_testlets_for_day_jql("Unit", date(2026, 10, 12))
+
+        self.assertIn(
+            'status CHANGED TO "Passed" DURING ("2026-10-12 00:00", "2026-10-12 23:59")',
+            jql,
+        )
+        self.assertEqual(jql.count("DURING"), 3)
 
     def test_workday_wide_scope_applies_to_report_and_chart_links(self) -> None:
         payload = build_sefk_testlet_burndown_payload(
