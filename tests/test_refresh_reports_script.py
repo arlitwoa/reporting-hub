@@ -1,9 +1,17 @@
 import os
+import shutil
 import subprocess
+import sys
 import unittest
 from pathlib import Path
 
+_BASH = shutil.which("bash")
+if _BASH and sys.platform == "win32" and "system32" in _BASH.lower():
+    # The WSL launcher in System32 cannot run scripts addressed by Windows paths.
+    _BASH = None
 
+
+@unittest.skipUnless(_BASH, "bash is not available on this host (e.g. native Windows without Git Bash)")
 class RefreshReportsScriptSmokeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -13,7 +21,7 @@ class RefreshReportsScriptSmokeTests(unittest.TestCase):
     def _run(self, *args: str) -> subprocess.CompletedProcess[str]:
         env = os.environ.copy()
         return subprocess.run(
-            ["bash", str(self.script_path), *args],
+            [_BASH, str(self.script_path), *args],
             cwd=self.repo_root,
             env=env,
             text=True,

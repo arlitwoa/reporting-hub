@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from artifact.confluence_blocks import h2, h3, jira_issue_link, p, p_html, page_link, table_wide_html, url_link
 
 from extensions.twoa_programme.field_maps import field_aliases
 from extensions.twoa_programme.jira_search import search_all
+from extensions.twoa_programme.quarterly_reporting import NZ_TZ
 from extensions.twoa_programme.sef_block_scope import build_block_scope_rollups
 from extensions.twoa_programme.sef_test_plan_manifest import (
     INTEGRATED_PROJECT_PLAN_TITLE,
@@ -119,7 +120,8 @@ def next_open_block_label(
     issues_by_key: dict[str, dict[str, Any]],
     plan: TestPlanConfig,
 ) -> str:
-    today = date.today()
+    # NZ date, not the host's: CI runners are UTC and lag NZ by up to 13 hours.
+    today = datetime.now(NZ_TZ).date()
     candidates: list[tuple[date, str]] = []
     done_names = {"done", "closed", "passed", "resolved", "not required"}
     for key in plan.all_block_keys():
