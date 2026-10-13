@@ -446,6 +446,12 @@ def build_sefk_testlet_burndown_payload(
     }
 
 
+# Days past the target/last data point the x-axis may extend to show the forecast.
+_FORECAST_AXIS_MARGIN_DAYS = 14
+# Upper bound on x-axis date labels before the tick spacing is widened.
+_MAX_X_TICKS = 10
+
+
 def _render_svg(
     payload: dict[str, Any],
     *,
@@ -473,9 +479,15 @@ def _render_svg(
     assert actual_start_day is not None and actual_end_day is not None
     forecast_day = _day(payload.get("forecastDate"))
     chart_start = ideal_start_day
-    chart_end = max(ideal_end_day, actual_end_day, forecast_day or actual_end_day)
-    if forecast_day is not None:
-        chart_end += timedelta(days=5)
+    horizon = max(ideal_end_day, actual_end_day)
+    # A forecast far beyond the target date (e.g. very low pass rate) must not stretch the
+    # axis and squash the real data, so the axis is capped and the forecast runs off the edge.
+    axis_cap = horizon + timedelta(days=_FORECAST_AXIS_MARGIN_DAYS)
+    forecast_off_chart = forecast_day is not None and forecast_day > axis_cap
+    if forecast_day is None:
+        chart_end = horizon
+    else:
+        chart_end = min(max(horizon, forecast_day) + timedelta(days=5), axis_cap)
     chart_span = max(1, (chart_end - chart_start).days)
     ideal_start_remaining = int(payload.get("idealStartRemaining", values[0]))
     total_count = int(payload.get("totalTestlets") or max(values, default=0))
@@ -509,10 +521,17 @@ def _render_svg(
     forecast_start_day = _day(visible_daily[-1].get("date")) if visible_daily else None
     if forecast_day is not None and forecast_start_day is not None and forecast_day > forecast_start_day:
         forecast_start_value = int(visible_daily[-1]["remaining"])
+        forecast_end_day, forecast_end_value = forecast_day, 0.0
+        if forecast_off_chart:
+            # Clip the straight forecast line where it leaves the capped axis.
+            fraction = (chart_end - forecast_start_day).days / (forecast_day - forecast_start_day).days
+            forecast_end_day = chart_end
+            forecast_end_value = forecast_start_value * (1 - fraction)
         forecast_points = (
             f'{point(forecast_start_day, forecast_start_value)[0]:.1f},'
             f'{point(forecast_start_day, forecast_start_value)[1]:.1f} '
-            f'{point(forecast_day, 0)[0]:.1f},{point(forecast_day, 0)[1]:.1f}'
+            f'{point(forecast_end_day, forecast_end_value)[0]:.1f},'
+            f'{point(forecast_end_day, forecast_end_value)[1]:.1f}'
         )
     forecast_line = f'<polyline points="{forecast_points}" class="forecast-trend" />' if forecast_points else ""
 
@@ -562,10 +581,12 @@ def _render_svg(
         for tick in ticks
     )
     x_ticks = [chart_start]
-    next_tick = chart_start + timedelta(days=7)
+    # Weekly ticks, widened to a multiple of weeks so long spans keep readable labels.
+    tick_step = timedelta(days=7 * max(1, ceil(chart_span / 7 / _MAX_X_TICKS)))
+    next_tick = chart_start + tick_step
     while next_tick < chart_end - timedelta(days=3):
         x_ticks.append(next_tick)
-        next_tick += timedelta(days=7)
+        next_tick += tick_step
     if chart_end != chart_start:
         x_ticks.append(chart_end)
     x_axis = "".join(
@@ -585,12 +606,19 @@ def _render_svg(
     forecast_label = html.escape(forecast_day.isoformat()) if forecast_day else ""
     forecast_marker = ""
     if forecast_day is not None:
-        forecast_x = point(forecast_day, 0)[0]
+        if forecast_off_chart:
+            forecast_x = point(chart_end, 0)[0]
+            forecast_text = f"Forecast {forecast_label} (off chart)"
+            forecast_anchor = "end"
+        else:
+            forecast_x = point(forecast_day, 0)[0]
+            forecast_text = f"Forecast {forecast_label}"
+            forecast_anchor = "middle"
         forecast_marker = (
             f'<line x1="{forecast_x:.1f}" y1="{top}" x2="{forecast_x:.1f}" '
             f'y2="{height-bottom}" class="forecast-marker" />'
-            f'<text x="{forecast_x:.1f}" y="{top-7}" text-anchor="middle" '
-            f'class="forecast-label">Forecast {forecast_label}</text>'
+            f'<text x="{forecast_x:.1f}" y="{top-7}" text-anchor="{forecast_anchor}" '
+            f'class="forecast-label">{forecast_text}</text>'
         )
     target_x = point(ideal_end_day, 0)[0]
     target_label = html.escape(f"Target {ideal_end_day.day} {ideal_end_day.strftime('%b')}")
