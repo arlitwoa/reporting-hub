@@ -30,6 +30,39 @@ def _is_execution_status(value: Any) -> bool:
     return str(value or "").strip().casefold() in {"passed", "failed"}
 
 
+FLAGGED_FIELD = "customfield_10021"
+
+
+def _is_flagged(value: Any) -> bool:
+    if isinstance(value, list):
+        return any(_is_flagged(item) for item in value)
+    if isinstance(value, dict):
+        value = value.get("value") or value.get("name")
+    return "impediment" in str(value or "").casefold()
+
+
+def _flagged_events(
+    histories: list[dict[str, Any]],
+    *,
+    current_flagged: bool,
+) -> tuple[bool, list[tuple[date, bool]]]:
+    """Return the initial Flagged=Impediment state and dated state changes."""
+    changes: list[tuple[date, bool, bool]] = []
+    for history in sorted(histories, key=lambda history: str(history.get("created") or "")):
+        changed = _day(history.get("created"))
+        for item in history.get("items") or []:
+            field = str(item.get("field") or "").casefold()
+            field_id = str(item.get("fieldId") or "")
+            if field != "flagged" and field_id != FLAGGED_FIELD:
+                continue
+            from_flagged = _is_flagged(item.get("fromString") or item.get("from"))
+            to_flagged = _is_flagged(item.get("toString") or item.get("to"))
+            if changed is not None:
+                changes.append((changed, from_flagged, to_flagged))
+    initially_flagged = changes[0][1] if changes else current_flagged
+    return initially_flagged, [(changed, to_flagged) for changed, _from, to_flagged in changes]
+
+
 def _resolved_state_events(
     histories: list[dict[str, Any]],
     *,
@@ -214,6 +247,7 @@ def _actual_point_label(
         f"Deferred: {int(row.get('deferred') or 0)}\n"
         f"Execution attempts: {int(row.get('executed') or 0)}\n"
         f"Failed: {int(row.get('failed') or 0)}\n"
+        f"Blocked: {int(row.get('blocked') or 0)}\n"
         f"Created: {int(row.get('created') or 0)}"
     )
 
@@ -245,6 +279,7 @@ def build_sefk_testlet_burndown_payload(
     executed_by_day: dict[date, int] = {}
     passed_by_day: dict[date, int] = {}
     failed_by_day: dict[date, int] = {}
+    blocked_delta_by_day: dict[date, int] = {}
     issue_count = 0
     earliest: date | None = None
     completed_now = 0
@@ -252,6 +287,7 @@ def build_sefk_testlet_burndown_payload(
     deferred_now = 0
     passed_now = 0
     failed_now = 0
+    blocked_now = 0
     for issue in issues:
         fields = issue.get("fields") or {}
         created = _day(fields.get("created"))
@@ -276,6 +312,18 @@ def build_sefk_testlet_burndown_payload(
             completed_now += 1
         elif status_key == "failed":
             failed_now += 1
+        current_flagged = _is_flagged(fields.get(FLAGGED_FIELD))
+        if current_flagged:
+            blocked_now += 1
+        flagged, flagged_changes = _flagged_events(histories, current_flagged=current_flagged)
+        if flagged:
+            blocked_delta_by_day[created] = blocked_delta_by_day.get(created, 0) + 1
+        for changed, to_flagged in flagged_changes:
+            if changed > end or to_flagged == flagged:
+                continue
+            changed = max(changed, created)
+            blocked_delta_by_day[changed] = blocked_delta_by_day.get(changed, 0) + (1 if to_flagged else -1)
+            flagged = to_flagged
         resolution_day = _day(fields.get("resolutiondate"))
         if resolution_day is not None and resolution_day <= end:
             resolutiondate_by_day[resolution_day] = resolutiondate_by_day.get(resolution_day, 0) + 1
@@ -327,6 +375,7 @@ def build_sefk_testlet_burndown_payload(
             "deferredTestlets": 0,
             "passedTestlets": 0,
             "failedTestlets": 0,
+            "blockedTestlets": 0,
             "remainingTestlets": 0,
             "idealStartDate": ideal_start_day.isoformat(),
             "idealEndDate": ideal_end_day.isoformat(),
@@ -337,9 +386,11 @@ def build_sefk_testlet_burndown_payload(
 
     daily: list[dict[str, Any]] = []
     remaining_count = 0
+    blocked_count = 0
     current_day = earliest
     while current_day <= end:
         remaining_count += events.get(current_day, 0)
+        blocked_count += blocked_delta_by_day.get(current_day, 0)
         daily.append(
             {
                 "date": current_day.isoformat(),
@@ -353,6 +404,7 @@ def build_sefk_testlet_burndown_payload(
                 "executed": executed_by_day.get(current_day, 0),
                 "passed": passed_by_day.get(current_day, 0),
                 "failed": failed_by_day.get(current_day, 0),
+                "blocked": blocked_count,
             }
         )
         current_day = date.fromordinal(current_day.toordinal() + 1)
@@ -378,6 +430,7 @@ def build_sefk_testlet_burndown_payload(
         "deferredTestlets": deferred_now,
         "passedTestlets": passed_now,
         "failedTestlets": failed_now,
+        "blockedTestlets": blocked_now,
         "remainingTestlets": remaining_count,
         "idealStartDate": ideal_start_day.isoformat(),
         "idealEndDate": ideal_end_day.isoformat(),
@@ -614,15 +667,16 @@ def build_sefk_testlet_burndown_html(
     nav a:hover, a:hover {{ text-decoration: underline; }}
     h1 {{ margin: 20px 0 4px; font-size: 26px; }}
     .subhead {{ margin: 0 0 24px; color: var(--muted); }}
-    .metrics {{ display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }}
+    .metrics {{ display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }}
     .metric {{ --metric-accent: var(--series-ideal); min-width: 0; min-height: 104px; padding: 15px 16px; border: 1px solid var(--grid); border-top: 3px solid var(--metric-accent); border-radius: 4px; background: #fff; box-shadow: 0 1px 2px rgba(23, 43, 77, .06); }}
     .metric:nth-child(1) {{ --metric-accent: var(--series-forecast); }}
-    .metric:nth-child(2), .metric:nth-child(3), .metric:nth-child(9) {{ --metric-accent: var(--series-actual); }}
+    .metric:nth-child(2), .metric:nth-child(3), .metric:nth-child(10) {{ --metric-accent: var(--series-actual); }}
     .metric:nth-child(4), .metric:nth-child(5) {{ --metric-accent: #718096; }}
     .metric:nth-child(6) {{ --metric-accent: #bd5148; }}
-    .metric:nth-child(7) {{ --metric-accent: #53729a; }}
-    .metric:nth-child(8) {{ --metric-accent: #37828a; }}
-    .metric:nth-child(10) {{ --metric-accent: var(--series-ideal); }}
+    .metric:nth-child(7) {{ --metric-accent: #d97008; }}
+    .metric:nth-child(8) {{ --metric-accent: #53729a; }}
+    .metric:nth-child(9) {{ --metric-accent: #37828a; }}
+    .metric:nth-child(11) {{ --metric-accent: var(--series-ideal); }}
     .metric strong {{ display: block; font-size: 27px; line-height: 1.05; font-variant-numeric: tabular-nums; }}
     .metric span {{ display: block; margin-top: 7px; color: var(--muted); font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }}
     .weekend-band {{ fill: #e8ebef; }}
@@ -666,6 +720,7 @@ def build_sefk_testlet_burndown_html(
             <div class="metric"><strong>{int(payload.get("rejectedTestlets") or 0)}</strong><span>Rejected / removed</span></div>
             <div class="metric"><strong>{int(payload.get("deferredTestlets") or 0)}</strong><span>Deferred / removed</span></div>
             <div class="metric"><strong>{int(payload.get("failedTestlets") or 0)}</strong><span>Failed (within Remaining)</span></div>
+            <div class="metric"><strong>{int(payload.get("blockedTestlets") or 0)}</strong><span>Blocked (flagged Impediment)</span></div>
             <div class="metric"><strong>{int(payload.get("totalTestlets") or 0)}</strong><span>{safe_test_type} Testlets in scope</span></div>
             <div class="metric"><strong>{run_rate_text}</strong><span>Execution attempts/day</span></div>
             <div class="metric"><strong>{successful_rate_text}</strong><span>Successful completions/day</span></div>
@@ -689,7 +744,7 @@ def build_sefk_testlet_burndown_html(
                 </figcaption>
             </div>
     </figure>
-        <p class="foot">Scope: <a href="https://twoa.atlassian.net/issues/?jql={jql}" target="_blank" rel="noopener">{scope_description}</a>. Terminal outcomes are Passed, Rejected, or Deferred. Rejected and Deferred are out of active scope; Failed remains in Remaining. Execution attempts include Passed and Failed transitions; forecast completion and required pace use Passed transitions only. Ideal pace starts at the initial scope on {safe_bounds_issue_key}'s Start date and reaches zero on its Due date. Generated {generated}.</p>
+        <p class="foot">Scope: <a href="https://twoa.atlassian.net/issues/?jql={jql}" target="_blank" rel="noopener">{scope_description}</a>. Terminal outcomes are Passed, Rejected, or Deferred. Rejected and Deferred are out of active scope; Failed remains in Remaining. Blocked counts Testlets flagged as an Impediment. Execution attempts include Passed and Failed transitions; forecast completion and required pace use Passed transitions only. Ideal pace starts at the initial scope on {safe_bounds_issue_key}'s Start date and reaches zero on its Due date. Generated {generated}.</p>
   </main>
 </body>
 </html>

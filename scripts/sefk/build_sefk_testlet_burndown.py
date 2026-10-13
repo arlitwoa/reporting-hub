@@ -23,6 +23,7 @@ from extensions.twoa_programme.milestone_timeline import (  # noqa: E402
     save_scope_changelog_cache,
 )
 from extensions.twoa_programme.sefk_testlet_burndown import (  # noqa: E402
+    FLAGGED_FIELD,
     build_sefk_testlet_burndown_html,
     build_sefk_testlet_burndown_payload,
     testlet_scope_jql,
@@ -62,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
         _REPO_ROOT / "docs" / "sefk" / f"{test_type.lower().replace(' ', '-')}-testlet-burndown.html"
     )
     adapter = AtlassianAdapter.from_profile(args.profile, os.environ["ARTIFACT_PROFILES_DIR"])
-    fields = ["created", "resolution", "resolutiondate", "status", "issuetype", "customfield_10145"]
+    fields = ["created", "resolution", "resolutiondate", "status", "issuetype", "customfield_10145", FLAGGED_FIELD]
     if args.platform:
         fields.append("customfield_10079")
     issues = search_all(adapter, jql, fields)
