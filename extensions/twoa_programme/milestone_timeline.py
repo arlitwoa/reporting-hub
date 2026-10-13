@@ -11,6 +11,7 @@ from typing import Any
 
 from artifact.atlassian import AtlassianAdapter
 
+from extensions.twoa_programme.concurrency import map_concurrently
 from extensions.twoa_programme.delivery_milestones import (
     MILESTONE_LINK_TYPE,
     find_milestone_hub_key,
@@ -150,15 +151,56 @@ def fetch_issue_changelog_histories(adapter: AtlassianAdapter, issue_key: str) -
     return histories
 
 
-def load_scope_changelog_cache(path: Path) -> dict[str, list[dict[str, Any]]]:
+def load_scope_changelog_cache(path: Path) -> dict[str, Any]:
+    """Load the changelog cache: ``{issue_key: {"updated": <jira updated>, "histories": [...]}}``."""
     if not path.is_file():
         return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
-def save_scope_changelog_cache(path: Path, cache: dict[str, list[dict[str, Any]]]) -> None:
+def save_scope_changelog_cache(path: Path, cache: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(cache, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(cache, separators=(",", ":")) + "\n", encoding="utf-8")
+
+
+def cached_changelog_histories(
+    cache: dict[str, Any],
+    issue_key: str,
+    updated: str | None,
+) -> list[dict[str, Any]] | None:
+    """Return cached histories only if the issue has not changed since they were cached.
+
+    Any change to a Jira issue (including every changelog entry) bumps its ``updated``
+    timestamp, so a matching ``updated`` means the cached histories are still complete.
+    Entries without a usable ``updated`` (legacy list format, or issue fetched without the
+    field) are treated as a miss.
+    """
+    if not updated:
+        return None
+    entry = cache.get(issue_key)
+    if not isinstance(entry, dict) or entry.get("updated") != updated:
+        return None
+    histories = entry.get("histories")
+    return histories if isinstance(histories, list) else None
+
+
+def store_changelog_histories(
+    cache: dict[str, Any],
+    issue_key: str,
+    updated: str | None,
+    histories: list[dict[str, Any]],
+) -> None:
+    if updated:
+        cache[issue_key] = {"updated": updated, "histories": histories}
+
+
+def issue_updated(issue: dict[str, Any]) -> str | None:
+    value = (issue.get("fields") or {}).get("updated")
+    return str(value) if value else None
 
 
 def fetch_scope_changelogs(
@@ -166,15 +208,45 @@ def fetch_scope_changelogs(
     issue_keys: list[str],
     *,
     cache_path: Path | None = None,
+    updated_by_key: dict[str, str | None] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
+    """Fetch changelog histories, reusing cached entries whose issue ``updated`` is unchanged.
+
+    ``updated_by_key`` maps issue key to the issue's current Jira ``updated`` value. Without
+    it nothing can be validated, so every issue is fetched (the cache is only written).
+    """
     cache = load_scope_changelog_cache(cache_path) if cache_path else {}
-    result = dict(cache)
-    missing = [key for key in issue_keys if key not in result]
-    for index, key in enumerate(missing, start=1):
-        print(f"scope changelog {index}/{len(missing)} {key}...", flush=True)
-        result[key] = fetch_issue_changelog_histories(adapter, key)
+    updated_by_key = updated_by_key or {}
+    result: dict[str, list[dict[str, Any]]] = {}
+    missing: list[str] = []
+    for key in issue_keys:
+        histories = cached_changelog_histories(cache, key, updated_by_key.get(key))
+        if histories is None:
+            missing.append(key)
+        else:
+            result[key] = histories
+    print(
+        f"scope changelogs: {len(result)} cached, {len(missing)} to fetch",
+        flush=True,
+    )
+    done = 0
+
+    def record(key: str, histories: list[dict[str, Any]]) -> None:
+        nonlocal done
+        done += 1
+        result[key] = histories
+        if done % 25 == 0 or done == len(missing):
+            print(f"scope changelog {done}/{len(missing)} (latest {key})", flush=True)
         if cache_path:
-            cache[key] = result[key]
+            store_changelog_histories(cache, key, updated_by_key.get(key), histories)
+            if done % 50 == 0:
+                save_scope_changelog_cache(cache_path, cache)
+
+    try:
+        map_concurrently(lambda key: fetch_issue_changelog_histories(adapter, key), missing, record)
+    finally:
+        # Keep whatever was fetched even if a later request failed.
+        if cache_path and missing:
             save_scope_changelog_cache(cache_path, cache)
     return {key: result[key] for key in issue_keys if key in result}
 
@@ -434,6 +506,7 @@ def fetch_milestone_timeline(
                     "issuetype",
                     "status",
                     "created",
+                    "updated",
                     story_points_field,
                     change_types_field,
                     delivery_squad_field,
@@ -493,18 +566,21 @@ def fetch_milestone_timeline(
     notes_keys = [str(row.get("key") or "") for row in milestones if row.get("notes")]
     if notes_keys:
         milestones_by_key = {str(row.get("key") or ""): row for row in milestones}
-        for index, key in enumerate(notes_keys, start=1):
-            print(f"notes changelog {index}/{len(notes_keys)} {key}...", flush=True)
-            histories = fetch_issue_changelog_histories(adapter, key)
+        print(f"notes changelogs: {len(notes_keys)} to fetch", flush=True)
+
+        def record_notes(key: str, histories: list[dict[str, Any]]) -> None:
             updated = notes_field_last_updated(histories, notes_field_id=notes_field)
             if updated is not None:
                 milestones_by_key[key]["notesUpdatedAt"] = updated.astimezone(timezone.utc).isoformat()
+
+        map_concurrently(lambda key: fetch_issue_changelog_histories(adapter, key), notes_keys, record_notes)
 
     if scope_issues_by_key and quarter_filter:
         changelogs = fetch_scope_changelogs(
             adapter,
             sorted(scope_issues_by_key.keys()),
             cache_path=changelog_cache_path,
+            updated_by_key={key: issue_updated(issue) for key, issue in scope_issues_by_key.items()},
         )
         for milestone in milestones:
             scope_keys = milestone.get("scopeIssueKeys") or []

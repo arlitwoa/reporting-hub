@@ -265,3 +265,4 @@ python -m unittest discover -s tests -v
   - `docs/adr/ADR-0003-generated-artifact-commit-contract.md`
 2. Publish incident runbook:
   - `docs/operations/publish-incident-runbook.md`
+
