@@ -673,7 +673,11 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertIsNotNone(match)
         end_x, end_y = (float(v) for v in match.group(1).split()[-1].split(","))
         self.assertEqual(end_x, 976.0)
-        self.assertLess(end_y, 332.0)  # plot bottom (y for 0 remaining) is 380 - 48 = 332
+        # Straight line from (14 Oct, 69) to (3 Sep 2028, 0) has 69 * (1 - 23/690) remaining on
+        # 6 Nov (axis end). Plot top is 42, plot height is 290 and the y-axis maxes at 70.
+        expected_remaining = 69 * (1 - 23 / 690)
+        expected_y = 42 + 290 * (1 - expected_remaining / 70)
+        self.assertAlmostEqual(end_y, expected_y, delta=0.2)
 
     def test_near_forecast_still_extends_axis_without_off_chart_label(self) -> None:
         payload = self._slow_pace_payload(passed=30)
@@ -687,8 +691,29 @@ class SefkTestletBurndownTests(unittest.TestCase):
             platform="workday",
         )
 
+        # Forecast 28 Oct is after the 23 Oct target, so the axis extends 5 days past it.
+        self.assertEqual(payload["forecastDate"], "2026-10-28")
+        self.assertIn("from 2026-10-05 to 2026-11-02;", document)
         self.assertNotIn("(off chart)", document)
-        self.assertIn(f"Forecast {payload['forecastDate']}", document)
+        self.assertIn("Forecast 2026-10-28", document)
+
+    def test_forecast_axis_cap_boundary_is_monotonic(self) -> None:
+        base = self._slow_pace_payload(passed=1)
+        axis_ends = {}
+        for forecast, off_chart in (("2026-11-05", False), ("2026-11-06", False), ("2026-11-07", True)):
+            document = build_sefk_testlet_burndown_html(
+                dict(base, forecastDate=forecast),
+                generated_on="14 Oct 2026",
+                test_type="System Integration",
+                bounds_issue_key="SEFK-1216",
+                platform="workday",
+            )
+            with self.subTest(forecast=forecast):
+                self.assertEqual("(off chart)" in document, off_chart)
+                axis_ends[forecast] = re.search(r"from 2026-10-05 to (\d{4}-\d{2}-\d{2});", document).group(1)
+
+        # Axis never shrinks as the forecast gets worse and stops at target + 14 days.
+        self.assertEqual(axis_ends, {"2026-11-05": "2026-11-06", "2026-11-06": "2026-11-06", "2026-11-07": "2026-11-06"})
 
     def test_default_as_of_is_nz_today_not_utc_today(self) -> None:
         # 14 Oct 07:06 NZDT is still 13 Oct 18:06 UTC (as on a CI runner).

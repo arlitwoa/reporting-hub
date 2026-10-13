@@ -482,16 +482,12 @@ def _render_svg(
     horizon = max(ideal_end_day, actual_end_day)
     # A forecast far beyond the target date (e.g. very low pass rate) must not stretch the
     # axis and squash the real data, so the axis is capped and the forecast runs off the edge.
-    forecast_off_chart = (
-        forecast_day is not None
-        and forecast_day > horizon + timedelta(days=_FORECAST_AXIS_MARGIN_DAYS)
-    )
-    if forecast_off_chart:
-        chart_end = horizon + timedelta(days=_FORECAST_AXIS_MARGIN_DAYS)
-    elif forecast_day is not None:
-        chart_end = max(horizon, forecast_day) + timedelta(days=5)
-    else:
+    axis_cap = horizon + timedelta(days=_FORECAST_AXIS_MARGIN_DAYS)
+    forecast_off_chart = forecast_day is not None and forecast_day > axis_cap
+    if forecast_day is None:
         chart_end = horizon
+    else:
+        chart_end = min(max(horizon, forecast_day) + timedelta(days=5), axis_cap)
     chart_span = max(1, (chart_end - chart_start).days)
     ideal_start_remaining = int(payload.get("idealStartRemaining", values[0]))
     total_count = int(payload.get("totalTestlets") or max(values, default=0))
