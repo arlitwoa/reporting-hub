@@ -16,6 +16,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 from artifact.atlassian import AtlassianAdapter  # noqa: E402
 
+from extensions.twoa_programme.concurrency import map_concurrently  # noqa: E402
 from extensions.twoa_programme.jira_search import search_all  # noqa: E402
 from extensions.twoa_programme.milestone_timeline import (  # noqa: E402
     cached_changelog_histories,
@@ -95,23 +96,37 @@ def main(argv: list[str] | None = None) -> int:
     # persisted cache can never serve stale histories.
     cache = load_scope_changelog_cache(CACHE_PATH)
     changelogs: dict[str, list] = {}
-    fetched = 0
-    for index, issue in enumerate(issues, start=1):
+    updated_by_key: dict[str, str | None] = {}
+    to_fetch: list[str] = []
+    for issue in issues:
         key = str(issue.get("key") or "")
         if not key:
             continue
         updated = issue_updated(issue)
+        updated_by_key[key] = updated
         histories = cached_changelog_histories(cache, key, updated)
         if histories is None:
-            print(f"Testlet changelog {index}/{len(issues)} {key}...", file=sys.stderr, flush=True)
-            histories = fetch_issue_changelog_histories(adapter, key)
-            store_changelog_histories(cache, key, updated, histories)
-            fetched += 1
-            if fetched % 50 == 0:
-                save_scope_changelog_cache(CACHE_PATH, cache)
+            to_fetch.append(key)
+        else:
+            changelogs[key] = histories
+
+    fetched = 0
+
+    def record(key: str, histories: list) -> None:
+        nonlocal fetched
+        fetched += 1
         changelogs[key] = histories
-    if fetched:
-        save_scope_changelog_cache(CACHE_PATH, cache)
+        store_changelog_histories(cache, key, updated_by_key[key], histories)
+        if fetched % 25 == 0 or fetched == len(to_fetch):
+            print(f"Testlet changelog {fetched}/{len(to_fetch)}", file=sys.stderr, flush=True)
+        if fetched % 50 == 0:
+            save_scope_changelog_cache(CACHE_PATH, cache)
+
+    try:
+        map_concurrently(lambda key: fetch_issue_changelog_histories(adapter, key), to_fetch, record)
+    finally:
+        if fetched:
+            save_scope_changelog_cache(CACHE_PATH, cache)
     print(
         f"Testlet changelogs: {len(changelogs) - fetched} cached, {fetched} fetched",
         file=sys.stderr,

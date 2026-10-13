@@ -13,9 +13,11 @@ from extensions.twoa_programme.milestone_timeline import (
     fetch_scope_changelogs,
     store_changelog_histories,
 )
+from extensions.twoa_programme.concurrency import map_concurrently
 from scripts.quarterly.jira_burn import (
     _credit_cache_key,
     _load_cache,
+    _prefetch_credit_ledgers,
     _resolve_credit_ledger,
 )
 
@@ -148,6 +150,23 @@ class CreditLedgerCacheTests(unittest.TestCase):
         self.assertEqual(fetch.call_count, 2)
         self.assertEqual(cache, {})
 
+    def test_prefetch_fetches_only_uncached_cacheable_issues_concurrently(self):
+        deploy, done = self.deploy, self.done
+        issues = {k: {"fields": {"updated": UPDATED_1}} for k in ("A-1", "A-2", "A-3")}
+        keys = {k: self._key(v) for k, v in issues.items()}
+        keys["A-1"] = _credit_cache_key("global", "A-1", issues["A-1"], deploy_statuses=deploy, done_statuses=done)
+        cache = {keys["A-1"]: "[]"}
+        flusher = MagicMock()
+        items = [("A-1", keys["A-1"]), ("A-2", _credit_cache_key("global", "A-2", issues["A-2"], deploy_statuses=deploy, done_statuses=done)), ("A-3", None)]
+
+        with patch("scripts.quarterly.jira_burn.fetch_deploy_or_done_credit_ledger", return_value=[]) as fetch:
+            _prefetch_credit_ledgers(MagicMock(), items, deploy, done, cache=cache, flusher=flusher)
+
+        self.assertEqual([c.args[1] for c in fetch.call_args_list], ["A-2"])
+        self.assertEqual(len(cache), 2)
+        flusher.note_fetch.assert_called_once()
+        flusher.flush.assert_called_once()
+
     def test_load_cache_drops_legacy_and_corrupt_files(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "cache.json"
@@ -155,6 +174,51 @@ class CreditLedgerCacheTests(unittest.TestCase):
             self.assertEqual(list(_load_cache(path)), ["credit:v4:global:EPCE-1:s:u"])
             path.write_text("{not json")
             self.assertEqual(_load_cache(path), {})
+
+
+class MapConcurrentlyTests(unittest.TestCase):
+    def test_delivers_every_result_on_calling_thread(self):
+        import threading
+
+        main = threading.get_ident()
+        seen: dict[int, int] = {}
+        threads: set[int] = set()
+
+        def record(item, result):
+            threads.add(threading.get_ident())
+            seen[item] = result
+
+        map_concurrently(lambda n: n * n, range(20), record, workers=4)
+        self.assertEqual(seen, {n: n * n for n in range(20)})
+        self.assertEqual(threads, {main})
+
+    def test_single_worker_runs_inline_in_order(self):
+        order: list[int] = []
+        map_concurrently(lambda n: n, [3, 1, 2], lambda item, _r: order.append(item), workers=1)
+        self.assertEqual(order, [3, 1, 2])
+
+    def test_exception_propagates_and_keeps_delivered_results(self):
+        seen: list[int] = []
+
+        def fn(n):
+            if n == 0:
+                raise RuntimeError("boom")
+            return n
+
+        with self.assertRaises(RuntimeError):
+            map_concurrently(fn, [0], lambda item, _r: seen.append(item), workers=1)
+        with self.assertRaises(RuntimeError):
+            map_concurrently(fn, [0, 1, 2], lambda item, _r: seen.append(item), workers=3)
+
+    def test_workers_env_override(self):
+        from extensions.twoa_programme.concurrency import DEFAULT_JIRA_WORKERS, jira_workers
+
+        with patch.dict("os.environ", {"ARTIFACT_JIRA_WORKERS": "2"}):
+            self.assertEqual(jira_workers(), 2)
+        with patch.dict("os.environ", {"ARTIFACT_JIRA_WORKERS": "nope"}):
+            self.assertEqual(jira_workers(), DEFAULT_JIRA_WORKERS)
+        with patch.dict("os.environ", {"ARTIFACT_JIRA_WORKERS": "0"}):
+            self.assertEqual(jira_workers(), 1)
 
 
 if __name__ == "__main__":

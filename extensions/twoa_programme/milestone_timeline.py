@@ -11,6 +11,7 @@ from typing import Any
 
 from artifact.atlassian import AtlassianAdapter
 
+from extensions.twoa_programme.concurrency import map_concurrently
 from extensions.twoa_programme.delivery_milestones import (
     MILESTONE_LINK_TYPE,
     find_milestone_hub_key,
@@ -228,15 +229,25 @@ def fetch_scope_changelogs(
         f"scope changelogs: {len(result)} cached, {len(missing)} to fetch",
         flush=True,
     )
-    for index, key in enumerate(missing, start=1):
-        print(f"scope changelog {index}/{len(missing)} {key}...", flush=True)
-        result[key] = fetch_issue_changelog_histories(adapter, key)
+    done = 0
+
+    def record(key: str, histories: list[dict[str, Any]]) -> None:
+        nonlocal done
+        done += 1
+        result[key] = histories
+        if done % 25 == 0 or done == len(missing):
+            print(f"scope changelog {done}/{len(missing)} (latest {key})", flush=True)
         if cache_path:
-            store_changelog_histories(cache, key, updated_by_key.get(key), result[key])
-            if index % 50 == 0:
+            store_changelog_histories(cache, key, updated_by_key.get(key), histories)
+            if done % 50 == 0:
                 save_scope_changelog_cache(cache_path, cache)
-    if cache_path and missing:
-        save_scope_changelog_cache(cache_path, cache)
+
+    try:
+        map_concurrently(lambda key: fetch_issue_changelog_histories(adapter, key), missing, record)
+    finally:
+        # Keep whatever was fetched even if a later request failed.
+        if cache_path and missing:
+            save_scope_changelog_cache(cache_path, cache)
     return {key: result[key] for key in issue_keys if key in result}
 
 
@@ -555,12 +566,14 @@ def fetch_milestone_timeline(
     notes_keys = [str(row.get("key") or "") for row in milestones if row.get("notes")]
     if notes_keys:
         milestones_by_key = {str(row.get("key") or ""): row for row in milestones}
-        for index, key in enumerate(notes_keys, start=1):
-            print(f"notes changelog {index}/{len(notes_keys)} {key}...", flush=True)
-            histories = fetch_issue_changelog_histories(adapter, key)
+        print(f"notes changelogs: {len(notes_keys)} to fetch", flush=True)
+
+        def record_notes(key: str, histories: list[dict[str, Any]]) -> None:
             updated = notes_field_last_updated(histories, notes_field_id=notes_field)
             if updated is not None:
                 milestones_by_key[key]["notesUpdatedAt"] = updated.astimezone(timezone.utc).isoformat()
+
+        map_concurrently(lambda key: fetch_issue_changelog_histories(adapter, key), notes_keys, record_notes)
 
     if scope_issues_by_key and quarter_filter:
         changelogs = fetch_scope_changelogs(

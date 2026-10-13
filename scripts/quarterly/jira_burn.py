@@ -11,6 +11,7 @@ from typing import Any
 
 from artifact.atlassian import AtlassianAdapter
 
+from extensions.twoa_programme.concurrency import map_concurrently
 from extensions.twoa_programme.jira_search import search_all
 from extensions.twoa_programme.quarter_scope import (
     EC_SQUAD_NAME_TO_SLUG,
@@ -233,13 +234,59 @@ def _resolve_credit_ledger(
         done_statuses,
     )
     if cache_key is not None:
-        # Drop superseded entries for this issue/scope so the cache does not grow unbounded.
-        scope = cache_key[len(_CREDIT_CACHE_PREFIX):].split(":", 1)[0]
-        stale_prefix = f"{_CREDIT_CACHE_PREFIX}{scope}:{issue_key}:"
-        for old_key in [k for k in cache if k.startswith(stale_prefix)]:
-            del cache[old_key]
-        cache[cache_key] = _pack_ledger_cache(ledger)
+        _store_credit_ledger(cache, issue_key, cache_key, ledger)
     return ledger
+
+
+def _store_credit_ledger(
+    cache: dict[str, str],
+    issue_key: str,
+    cache_key: str,
+    ledger: list[dict[str, Any]],
+) -> None:
+    # Drop superseded entries for this issue/scope so the cache does not grow unbounded.
+    scope = cache_key[len(_CREDIT_CACHE_PREFIX):].split(":", 1)[0]
+    stale_prefix = f"{_CREDIT_CACHE_PREFIX}{scope}:{issue_key}:"
+    for old_key in [k for k in cache if k.startswith(stale_prefix)]:
+        del cache[old_key]
+    cache[cache_key] = _pack_ledger_cache(ledger)
+
+
+def _prefetch_credit_ledgers(
+    adapter: AtlassianAdapter,
+    items: list[tuple[str, str | None]],
+    deploy_statuses: set[str],
+    done_statuses: set[str],
+    *,
+    cache: dict[str, str],
+    flusher: Any,
+) -> None:
+    """Fetch every uncached credit ledger concurrently and store it in ``cache``.
+
+    ``items`` are ``(issue_key, cache_key)`` pairs. Pairs with no cache key (issue not
+    validated against ``updated``) are skipped; the sequential pass fetches those itself.
+    """
+    todo: dict[str, str] = {}
+    for issue_key, cache_key in items:
+        if cache_key is not None and cache_key not in cache:
+            todo[cache_key] = issue_key
+    if not todo:
+        return
+    print(f"credit ledgers: {len(items) - len(todo)} cached, {len(todo)} to fetch", flush=True)
+
+    def fetch(entry: tuple[str, str]) -> list[dict[str, Any]]:
+        cache_key, issue_key = entry
+        return fetch_deploy_or_done_credit_ledger(adapter, issue_key, deploy_statuses, done_statuses)
+
+    def record(entry: tuple[str, str], ledger: list[dict[str, Any]]) -> None:
+        cache_key, issue_key = entry
+        _store_credit_ledger(cache, issue_key, cache_key, ledger)
+        flusher.note_fetch()
+
+    try:
+        map_concurrently(fetch, list(todo.items()), record)
+    finally:
+        flusher.flush()
 
 
 def _burn_events_from_ledger(
@@ -425,6 +472,35 @@ def earned_events_for_scope_keys(
             issue_key = str(issue.get("key") or "")
             if issue_key:
                 issues_by_key[issue_key] = issue
+
+    prefetch_items: list[tuple[str, str | None]] = []
+    for key in ordered_keys:
+        issue = issues_by_key.get(key)
+        if not issue or _skip_analysis_issue(issue):
+            continue
+        sp_raw = (issue.get("fields") or {}).get(sp_field)
+        if sp_raw is None or float(sp_raw) <= 0:
+            continue
+        prefetch_items.append(
+            (
+                key,
+                _credit_cache_key(
+                    "milestone",
+                    key,
+                    issue,
+                    deploy_statuses=deploy_statuses,
+                    done_statuses=done_statuses,
+                ),
+            )
+        )
+    _prefetch_credit_ledgers(
+        adapter,
+        prefetch_items,
+        deploy_statuses,
+        done_statuses,
+        cache=cache,
+        flusher=_CacheFlusher(cache_path, cache),
+    )
 
     events: list[dict[str, Any]] = []
     for key in ordered_keys:
@@ -888,12 +964,31 @@ def burn_lane(
         if limit is not None and len(candidates) >= limit:
             break
 
+    _prefetch_credit_ledgers(
+        adapter,
+        [
+            (
+                iss["key"],
+                _credit_cache_key(
+                    lane_key,
+                    iss["key"],
+                    iss,
+                    deploy_statuses=deploy_statuses,
+                    done_statuses=done_statuses,
+                ),
+            )
+            for iss, _sp, _f in candidates
+        ],
+        deploy_statuses,
+        done_statuses,
+        cache=cache,
+        flusher=flusher,
+    )
+
     earned_events: list[dict] = []
     not_credited: list[dict] = []
 
     for idx, (iss, sp_val, f) in enumerate(candidates, 1):
-        if idx % 25 == 0:
-            print(f"{lane_key}: changelog {idx}/{len(candidates)}...", flush=True)
         status = (f.get("status") or {}).get("name") or ""
         key = iss["key"]
         cache_key = _credit_cache_key(
@@ -1014,6 +1109,39 @@ def burn_global_with_lane_split(
     global_not_credited: list[dict] = []
     global_candidates = 0
     global_scanned = 0
+
+    # Same candidate selection as the loop below, so every ledger it needs is fetched
+    # concurrently up front instead of one request at a time.
+    prefetch_items: list[tuple[str, str | None]] = []
+    for iss in issues:
+        f = iss.get("fields") or {}
+        if _skip_analysis_issue(iss, itype=(f.get("issuetype") or {}).get("name") or ""):
+            continue
+        sp = f.get(sp_field)
+        if sp is None or float(sp) <= 0:
+            continue
+        if limit is not None and len(prefetch_items) >= limit:
+            break
+        prefetch_items.append(
+            (
+                iss["key"],
+                _credit_cache_key(
+                    "global",
+                    iss["key"],
+                    iss,
+                    deploy_statuses=deploy_statuses,
+                    done_statuses=done_statuses,
+                ),
+            )
+        )
+    _prefetch_credit_ledgers(
+        adapter,
+        prefetch_items,
+        deploy_statuses,
+        done_statuses,
+        cache=cache,
+        flusher=flusher,
+    )
 
     for iss in issues:
         f = iss.get("fields") or {}
