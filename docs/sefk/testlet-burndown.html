@@ -14,15 +14,16 @@
     nav a:hover, a:hover { text-decoration: underline; }
     h1 { margin: 20px 0 4px; font-size: 26px; }
     .subhead { margin: 0 0 24px; color: var(--muted); }
-    .metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+    .metrics { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
     .metric { --metric-accent: var(--series-ideal); min-width: 0; min-height: 104px; padding: 15px 16px; border: 1px solid var(--grid); border-top: 3px solid var(--metric-accent); border-radius: 4px; background: #fff; box-shadow: 0 1px 2px rgba(23, 43, 77, .06); }
     .metric:nth-child(1) { --metric-accent: var(--series-forecast); }
-    .metric:nth-child(2), .metric:nth-child(3), .metric:nth-child(9) { --metric-accent: var(--series-actual); }
+    .metric:nth-child(2), .metric:nth-child(3), .metric:nth-child(10) { --metric-accent: var(--series-actual); }
     .metric:nth-child(4), .metric:nth-child(5) { --metric-accent: #718096; }
     .metric:nth-child(6) { --metric-accent: #bd5148; }
-    .metric:nth-child(7) { --metric-accent: #53729a; }
-    .metric:nth-child(8) { --metric-accent: #37828a; }
-    .metric:nth-child(10) { --metric-accent: var(--series-ideal); }
+    .metric:nth-child(7) { --metric-accent: #d97008; }
+    .metric:nth-child(8) { --metric-accent: #53729a; }
+    .metric:nth-child(9) { --metric-accent: #37828a; }
+    .metric:nth-child(11) { --metric-accent: var(--series-ideal); }
     .metric strong { display: block; font-size: 27px; line-height: 1.05; font-variant-numeric: tabular-nums; }
     .metric span { display: block; margin-top: 7px; color: var(--muted); font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
     .weekend-band { fill: #e8ebef; }
@@ -66,6 +67,7 @@
             <div class="metric"><strong>0</strong><span>Rejected / removed</span></div>
             <div class="metric"><strong>0</strong><span>Deferred / removed</span></div>
             <div class="metric"><strong>37</strong><span>Failed (within Remaining)</span></div>
+            <div class="metric"><strong>41</strong><span>Blocked (flagged Impediment)</span></div>
             <div class="metric"><strong>401</strong><span>Unit Testlets in scope</span></div>
             <div class="metric"><strong>15.7</strong><span>Execution attempts/day</span></div>
             <div class="metric"><strong>13.3</strong><span>Successful completions/day</span></div>
@@ -80,6 +82,7 @@ Rejected: 18
 Deferred: 0
 Execution attempts: 20
 Failed: 2
+Blocked: 0
 Created: 368
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-09-23%2000%3A00%22%2C%20%222026-09-23%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-09-23%2000%3A00%22%2C%20%222026-09-23%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-09-23%2000%3A00%22%2C%20%222026-09-23%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-09-23 in Jira"><circle cx="116.1" cy="101.3" r="4" class="actual-point" aria-hidden="true"><title>23 Sep 2026: 319 of 401 Unit Testlets remaining
 Terminal outcomes: 13
@@ -88,6 +91,7 @@ Rejected: 1
 Deferred: 0
 Execution attempts: 15
 Failed: 3
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-09-24%2000%3A00%22%2C%20%222026-09-24%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-09-24%2000%3A00%22%2C%20%222026-09-24%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-09-24%2000%3A00%22%2C%20%222026-09-24%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-09-24 in Jira"><circle cx="142.2" cy="126.6" r="4" class="actual-point" aria-hidden="true"><title>24 Sep 2026: 284 of 401 Unit Testlets remaining
 Terminal outcomes: 36
@@ -96,6 +100,7 @@ Rejected: 7
 Deferred: 0
 Execution attempts: 49
 Failed: 2
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-09-25%2000%3A00%22%2C%20%222026-09-25%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-09-25%2000%3A00%22%2C%20%222026-09-25%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-09-25%2000%3A00%22%2C%20%222026-09-25%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-09-25 in Jira"><circle cx="168.2" cy="142.5" r="4" class="actual-point" aria-hidden="true"><title>25 Sep 2026: 262 of 401 Unit Testlets remaining
 Terminal outcomes: 22
@@ -104,6 +109,7 @@ Rejected: 3
 Deferred: 0
 Execution attempts: 22
 Failed: 2
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-09-26%2000%3A00%22%2C%20%222026-09-26%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-09-26%2000%3A00%22%2C%20%222026-09-26%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-09-26%2000%3A00%22%2C%20%222026-09-26%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-09-26 in Jira"><circle cx="194.3" cy="142.5" r="4" class="actual-point" aria-hidden="true"><title>26 Sep 2026: 262 of 401 Unit Testlets remaining
 Terminal outcomes: 0
@@ -112,6 +118,7 @@ Rejected: 0
 Deferred: 0
 Execution attempts: 0
 Failed: 0
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-09-27%2000%3A00%22%2C%20%222026-09-27%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-09-27%2000%3A00%22%2C%20%222026-09-27%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-09-27%2000%3A00%22%2C%20%222026-09-27%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-09-27 in Jira"><circle cx="220.3" cy="142.5" r="4" class="actual-point" aria-hidden="true"><title>27 Sep 2026: 262 of 401 Unit Testlets remaining
 Terminal outcomes: 0
@@ -120,6 +127,7 @@ Rejected: 0
 Deferred: 0
 Execution attempts: 0
 Failed: 0
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-09-28%2000%3A00%22%2C%20%222026-09-28%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-09-28%2000%3A00%22%2C%20%222026-09-28%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-09-28%2000%3A00%22%2C%20%222026-09-28%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-09-28 in Jira"><circle cx="246.4" cy="146.1" r="4" class="actual-point" aria-hidden="true"><title>28 Sep 2026: 257 of 401 Unit Testlets remaining
 Terminal outcomes: 5
@@ -128,6 +136,7 @@ Rejected: 3
 Deferred: 0
 Execution attempts: 8
 Failed: 0
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-09-29%2000%3A00%22%2C%20%222026-09-29%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-09-29%2000%3A00%22%2C%20%222026-09-29%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-09-29%2000%3A00%22%2C%20%222026-09-29%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-09-29 in Jira"><circle cx="272.5" cy="159.9" r="4" class="actual-point" aria-hidden="true"><title>29 Sep 2026: 238 of 401 Unit Testlets remaining
 Terminal outcomes: 20
@@ -136,6 +145,7 @@ Rejected: 7
 Deferred: 0
 Execution attempts: 15
 Failed: 2
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-09-30%2000%3A00%22%2C%20%222026-09-30%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-09-30%2000%3A00%22%2C%20%222026-09-30%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-09-30%2000%3A00%22%2C%20%222026-09-30%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-09-30 in Jira"><circle cx="298.5" cy="163.5" r="4" class="actual-point" aria-hidden="true"><title>30 Sep 2026: 233 of 401 Unit Testlets remaining
 Terminal outcomes: 5
@@ -144,6 +154,7 @@ Rejected: 1
 Deferred: 0
 Execution attempts: 7
 Failed: 3
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-10-01%2000%3A00%22%2C%20%222026-10-01%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-10-01%2000%3A00%22%2C%20%222026-10-01%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-10-01%2000%3A00%22%2C%20%222026-10-01%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-10-01 in Jira"><circle cx="324.6" cy="169.3" r="4" class="actual-point" aria-hidden="true"><title>1 Oct 2026: 225 of 401 Unit Testlets remaining
 Terminal outcomes: 9
@@ -152,6 +163,7 @@ Rejected: 0
 Deferred: 0
 Execution attempts: 12
 Failed: 3
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-10-02%2000%3A00%22%2C%20%222026-10-02%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-10-02%2000%3A00%22%2C%20%222026-10-02%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-10-02%2000%3A00%22%2C%20%222026-10-02%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-10-02 in Jira"><circle cx="350.6" cy="178.7" r="4" class="actual-point" aria-hidden="true"><title>2 Oct 2026: 212 of 401 Unit Testlets remaining
 Terminal outcomes: 14
@@ -160,6 +172,7 @@ Rejected: 1
 Deferred: 0
 Execution attempts: 14
 Failed: 0
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-10-03%2000%3A00%22%2C%20%222026-10-03%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-10-03%2000%3A00%22%2C%20%222026-10-03%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-10-03%2000%3A00%22%2C%20%222026-10-03%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-10-03 in Jira"><circle cx="376.7" cy="178.7" r="4" class="actual-point" aria-hidden="true"><title>3 Oct 2026: 212 of 401 Unit Testlets remaining
 Terminal outcomes: 0
@@ -168,6 +181,7 @@ Rejected: 0
 Deferred: 0
 Execution attempts: 0
 Failed: 0
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-10-04%2000%3A00%22%2C%20%222026-10-04%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-10-04%2000%3A00%22%2C%20%222026-10-04%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-10-04%2000%3A00%22%2C%20%222026-10-04%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-10-04 in Jira"><circle cx="402.7" cy="178.7" r="4" class="actual-point" aria-hidden="true"><title>4 Oct 2026: 212 of 401 Unit Testlets remaining
 Terminal outcomes: 0
@@ -176,6 +190,7 @@ Rejected: 0
 Deferred: 0
 Execution attempts: 0
 Failed: 0
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-10-05%2000%3A00%22%2C%20%222026-10-05%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-10-05%2000%3A00%22%2C%20%222026-10-05%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-10-05%2000%3A00%22%2C%20%222026-10-05%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-10-05 in Jira"><circle cx="428.8" cy="178.7" r="4" class="actual-point" aria-hidden="true"><title>5 Oct 2026: 212 of 401 Unit Testlets remaining
 Terminal outcomes: 0
@@ -184,6 +199,7 @@ Rejected: 0
 Deferred: 0
 Execution attempts: 0
 Failed: 0
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-10-06%2000%3A00%22%2C%20%222026-10-06%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-10-06%2000%3A00%22%2C%20%222026-10-06%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-10-06%2000%3A00%22%2C%20%222026-10-06%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-10-06 in Jira"><circle cx="454.9" cy="196.8" r="4" class="actual-point" aria-hidden="true"><title>6 Oct 2026: 187 of 401 Unit Testlets remaining
 Terminal outcomes: 25
@@ -192,6 +208,7 @@ Rejected: 5
 Deferred: 0
 Execution attempts: 25
 Failed: 5
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-10-07%2000%3A00%22%2C%20%222026-10-07%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-10-07%2000%3A00%22%2C%20%222026-10-07%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-10-07%2000%3A00%22%2C%20%222026-10-07%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-10-07 in Jira"><circle cx="480.9" cy="205.4" r="4" class="actual-point" aria-hidden="true"><title>7 Oct 2026: 175 of 401 Unit Testlets remaining
 Terminal outcomes: 47
@@ -200,6 +217,7 @@ Rejected: 10
 Deferred: 0
 Execution attempts: 52
 Failed: 9
+Blocked: 0
 Created: 33
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-10-08%2000%3A00%22%2C%20%222026-10-08%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-10-08%2000%3A00%22%2C%20%222026-10-08%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-10-08%2000%3A00%22%2C%20%222026-10-08%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-10-08 in Jira"><circle cx="507.0" cy="228.6" r="4" class="actual-point" aria-hidden="true"><title>8 Oct 2026: 143 of 401 Unit Testlets remaining
 Terminal outcomes: 32
@@ -208,6 +226,7 @@ Rejected: 2
 Deferred: 0
 Execution attempts: 36
 Failed: 3
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-10-09%2000%3A00%22%2C%20%222026-10-09%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-10-09%2000%3A00%22%2C%20%222026-10-09%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-10-09%2000%3A00%22%2C%20%222026-10-09%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-10-09 in Jira"><circle cx="533.0" cy="247.4" r="4" class="actual-point" aria-hidden="true"><title>9 Oct 2026: 117 of 401 Unit Testlets remaining
 Terminal outcomes: 26
@@ -216,6 +235,7 @@ Rejected: 13
 Deferred: 0
 Execution attempts: 24
 Failed: 11
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-10-10%2000%3A00%22%2C%20%222026-10-10%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-10-10%2000%3A00%22%2C%20%222026-10-10%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-10-10%2000%3A00%22%2C%20%222026-10-10%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-10-10 in Jira"><circle cx="559.1" cy="252.4" r="4" class="actual-point" aria-hidden="true"><title>10 Oct 2026: 110 of 401 Unit Testlets remaining
 Terminal outcomes: 7
@@ -224,6 +244,7 @@ Rejected: 7
 Deferred: 0
 Execution attempts: 4
 Failed: 4
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-10-11%2000%3A00%22%2C%20%222026-10-11%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-10-11%2000%3A00%22%2C%20%222026-10-11%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-10-11%2000%3A00%22%2C%20%222026-10-11%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-10-11 in Jira"><circle cx="585.1" cy="252.4" r="4" class="actual-point" aria-hidden="true"><title>11 Oct 2026: 110 of 401 Unit Testlets remaining
 Terminal outcomes: 0
@@ -232,6 +253,7 @@ Rejected: 0
 Deferred: 0
 Execution attempts: 0
 Failed: 0
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-10-12%2000%3A00%22%2C%20%222026-10-12%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-10-12%2000%3A00%22%2C%20%222026-10-12%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-10-12%2000%3A00%22%2C%20%222026-10-12%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-10-12 in Jira"><circle cx="611.2" cy="278.5" r="4" class="actual-point" aria-hidden="true"><title>12 Oct 2026: 74 of 401 Unit Testlets remaining
 Terminal outcomes: 36
@@ -240,6 +262,7 @@ Rejected: 0
 Deferred: 0
 Execution attempts: 42
 Failed: 5
+Blocked: 0
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20AND%20%28status%20CHANGED%20TO%20%22Passed%22%20DURING%20%28%222026-10-13%2000%3A00%22%2C%20%222026-10-13%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Rejected%22%20DURING%20%28%222026-10-13%2000%3A00%22%2C%20%222026-10-13%2023%3A59%22%29%20OR%20status%20CHANGED%20TO%20%22Deferred%22%20DURING%20%28%222026-10-13%2000%3A00%22%2C%20%222026-10-13%2023%3A59%22%29%29%20ORDER%20BY%20key%20ASC" target="_blank" rel="noopener" tabindex="0" class="actual-point-link" aria-label="Open terminal Unit Testlets for 2026-10-13 in Jira"><circle cx="637.3" cy="260.4" r="4" class="actual-point" aria-hidden="true"><title>13 Oct 2026: 99 of 401 Unit Testlets remaining
 Terminal outcomes: 16
@@ -248,6 +271,7 @@ Rejected: 0
 Deferred: 0
 Execution attempts: 16
 Failed: 0
+Blocked: 41
 Created: 0
 Click to view terminal Testlets in Jira</title></circle></a><line x1="845.7" y1="42" x2="845.7" y2="332" class="forecast-marker" /><text x="845.7" y="35" text-anchor="middle" class="forecast-label">Forecast 2026-10-21</text><line x1="533.0" y1="42" x2="533.0" y2="332" class="target-marker" /><text x="533.0" y="22" text-anchor="middle" class="target-label">Target 9 Oct</text><text x="18" y="187.0" transform="rotate(-90 18 187.0)" text-anchor="middle">Unit Testlets remaining</text></svg>
                 <figcaption class="legend" aria-label="Chart legend">
@@ -260,7 +284,7 @@ Click to view terminal Testlets in Jira</title></circle></a><line x1="845.7" y1=
                 </figcaption>
             </div>
     </figure>
-        <p class="foot">Scope: <a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20ORDER%20BY%20created%20ASC%2C%20key%20ASC" target="_blank" rel="noopener">SEFK Testlets where Test Types = Unit</a>. Terminal outcomes are Passed, Rejected, or Deferred. Rejected and Deferred are out of active scope; Failed remains in Remaining. Execution attempts include Passed and Failed transitions; forecast completion and required pace use Passed transitions only. Ideal pace starts at the initial scope on SEFK-1274's Start date and reaches zero on its Due date. Generated 13 Oct 2026 20:38 NZDT.</p>
+        <p class="foot">Scope: <a href="https://twoa.atlassian.net/issues/?jql=filter%20%3D%20smart-project-sefk%20AND%20filter%20%3D%20smart-sefk-current-engine%20AND%20filter%20%3D%20smart-types-tests%20AND%20%22Test%20Types%22%20%3D%20%22Unit%22%20ORDER%20BY%20created%20ASC%2C%20key%20ASC" target="_blank" rel="noopener">SEFK Testlets where Test Types = Unit</a>. Terminal outcomes are Passed, Rejected, or Deferred. Rejected and Deferred are out of active scope; Failed remains in Remaining. Blocked counts Testlets flagged as an Impediment. Execution attempts include Passed and Failed transitions; forecast completion and required pace use Passed transitions only. Ideal pace starts at the initial scope on SEFK-1274's Start date and reaches zero on its Due date. Generated 13 Oct 2026 21:54 NZDT.</p>
   </main>
 </body>
 </html>

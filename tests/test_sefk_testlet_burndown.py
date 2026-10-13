@@ -242,14 +242,14 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertNotIn("Resolution set", document)
         self.assertNotIn('class="forecast-trend"', document)
         self.assertIn('class="actual-point"', document)
-        self.assertIn("1 Oct 2026: 1 of 2 Unit Testlet remaining\nTerminal outcomes: 0\nPassed: 0\nRejected: 0\nDeferred: 0\nExecution attempts: 0\nFailed: 0\nCreated: 1", document)
+        self.assertIn("1 Oct 2026: 1 of 2 Unit Testlet remaining\nTerminal outcomes: 0\nPassed: 0\nRejected: 0\nDeferred: 0\nExecution attempts: 0\nFailed: 0\nBlocked: 0\nCreated: 1", document)
         self.assertIn('class="actual-point-link"', document)
         self.assertIn('target="_blank" rel="noopener" tabindex="0"', document)
         self.assertIn('status%20CHANGED%20TO%20%22Passed%22', document)
         self.assertIn('status%20CHANGED%20TO%20%22Deferred%22', document)
-        self.assertIn("2 Oct 2026: 1 of 2 Unit Testlet remaining\nTerminal outcomes: 0\nPassed: 0\nRejected: 0\nDeferred: 0\nExecution attempts: 0\nFailed: 0\nCreated: 1", document)
+        self.assertIn("2 Oct 2026: 1 of 2 Unit Testlet remaining\nTerminal outcomes: 0\nPassed: 0\nRejected: 0\nDeferred: 0\nExecution attempts: 0\nFailed: 0\nBlocked: 0\nCreated: 1", document)
         self.assertIn("3 Oct 2026: 0 of 2 Unit Testlets remaining", document)
-        self.assertIn("5 Oct 2026: 1 of 2 Unit Testlet remaining\nTerminal outcomes: 0\nPassed: 0\nRejected: 0\nDeferred: 0\nExecution attempts: 0\nFailed: 0\nCreated: 0", document)
+        self.assertIn("5 Oct 2026: 1 of 2 Unit Testlet remaining\nTerminal outcomes: 0\nPassed: 0\nRejected: 0\nDeferred: 0\nExecution attempts: 0\nFailed: 0\nBlocked: 0\nCreated: 0", document)
         self.assertNotIn("daily delta", document)
         self.assertIn('class="ideal"', document)
         self.assertIn(
@@ -260,7 +260,7 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertIn('class="chart-layout"', document)
         self.assertNotIn('class="chart-title"', document)
         self.assertNotIn("Best-fit completion estimate", document)
-        self.assertIn('grid-template-columns: repeat(5, minmax(0, 1fr))', document)
+        self.assertIn('grid-template-columns: repeat(6, minmax(0, 1fr))', document)
         self.assertIn('border-radius: 4px', document)
         self.assertIn('grid-template-columns: repeat(3, minmax(0, 1fr))', document)
         self.assertIn('grid-template-columns: repeat(2, minmax(0, 1fr))', document)
@@ -381,6 +381,46 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertEqual(payload["remainingTestlets"], 1)
         self.assertEqual(payload["totalTestlets"], 1)
         self.assertIn("Failed (within Remaining)", document)
+
+    def test_flagged_impediment_counts_as_blocked_card_and_daily_tooltip(self) -> None:
+        payload = build_sefk_testlet_burndown_payload(
+            [
+                {"key": "SEFK-B1", "fields": {
+                    "created": "2026-10-01",
+                    "resolution": None,
+                    "status": {"name": "In Testing"},
+                    "customfield_10021": [{"value": "Impediment"}],
+                }},
+                {"key": "SEFK-B2", "fields": {
+                    "created": "2026-10-01",
+                    "resolution": None,
+                    "status": {"name": "In Testing"},
+                    "customfield_10021": None,
+                }},
+            ],
+            {
+                "SEFK-B1": [{"created": "2026-10-02T09:00:00.000+0000", "items": [
+                    {"field": "Flagged", "fromString": "", "toString": "Impediment"},
+                ]}],
+                "SEFK-B2": [
+                    {"created": "2026-10-02T09:00:00.000+0000", "items": [
+                        {"field": "Flagged", "fromString": "", "toString": "Impediment"},
+                    ]},
+                    {"created": "2026-10-03T09:00:00.000+0000", "items": [
+                        {"field": "Flagged", "fromString": "Impediment", "toString": ""},
+                    ]},
+                ],
+            },
+            ideal_start="2026-10-01",
+            ideal_end="2026-10-09",
+            as_of="2026-10-03",
+        )
+        document = build_sefk_testlet_burndown_html(payload, generated_on="03 Oct 2026")
+
+        self.assertEqual(payload["blockedTestlets"], 1)
+        self.assertEqual([row["blocked"] for row in payload["daily"]], [0, 2, 1])
+        self.assertIn("Blocked (flagged Impediment)", document)
+        self.assertIn("Failed: 0\nBlocked: 2\nCreated: 0", document)
 
     def test_status_category_controls_scope_even_if_resolution_is_set(self) -> None:
         payload = build_sefk_testlet_burndown_payload(
@@ -532,7 +572,7 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertEqual(oct_7["created"], 33)
         self.assertEqual(oct_7["remaining"], 33)
         self.assertIn(
-            "7 Oct 2026: 33 of 75 Unit Testlets remaining\nTerminal outcomes: 0\nPassed: 0\nRejected: 0\nDeferred: 0\nExecution attempts: 0\nFailed: 0\nCreated: 33",
+            "7 Oct 2026: 33 of 75 Unit Testlets remaining\nTerminal outcomes: 0\nPassed: 0\nRejected: 0\nDeferred: 0\nExecution attempts: 0\nFailed: 0\nBlocked: 0\nCreated: 33",
             document,
         )
         self.assertNotIn("daily delta", document)
@@ -566,7 +606,7 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertNotIn('class="chart-title"', document)
         self.assertNotIn("Best-fit completion estimate", document)
         self.assertIn(
-            "5 Oct 2026: 1 of 1 System Integration Testlet remaining\nTerminal outcomes: 0\nPassed: 0\nRejected: 0\nDeferred: 0\nExecution attempts: 0\nFailed: 0\nCreated: 0",
+            "5 Oct 2026: 1 of 1 System Integration Testlet remaining\nTerminal outcomes: 0\nPassed: 0\nRejected: 0\nDeferred: 0\nExecution attempts: 0\nFailed: 0\nBlocked: 0\nCreated: 0",
             document,
         )
         self.assertIn("System Integration Testlets in scope", document)
