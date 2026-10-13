@@ -64,6 +64,17 @@ jobs:
           cp config/profiles/twoa-programme.template.json config/profiles/twoa-programme.json
           printf '%s' "$ARTIFACT_CREDENTIALS_JSON" > /tmp/credentials.local.json
 
+      # Jira changelog / credit-ledger caches. Entries are keyed on each issue's Jira
+      # `updated` timestamp (see jira_burn.py and milestone_timeline.py), so a restored cache
+      # can only skip refetching issues that have not changed. Bump `v1` to reset.
+      - name: Restore Jira caches
+        uses: actions/cache/restore@v4
+        with:
+          path: output/**/*cache*.json
+          key: jira-cache-v1-${{ github.run_id }}
+          restore-keys: |
+            jira-cache-v1-
+
       - name: Refresh quarterly snapshots
         env:
           ARTIFACT_PROGRAMME_REGISTRY: ${{ github.workspace }}/config/programme-registry.json
@@ -108,6 +119,15 @@ jobs:
           ARTIFACT_LOCAL_CREDENTIALS: /tmp/credentials.local.json
           ARTIFACT_USER_EMAIL: ${{ secrets.ARTIFACT_USER_EMAIL }}
         run: bash scripts/refresh_github_pages_reports.sh --stage site-index
+
+      # Save even when a refresh step failed or the run was cancelled by a newer one, so
+      # the Jira fetches already completed are not repeated.
+      - name: Save Jira caches
+        if: ${{ always() }}
+        uses: actions/cache/save@v4
+        with:
+          path: output/**/*cache*.json
+          key: jira-cache-v1-${{ github.run_id }}
 
       - name: Commit and publish if changed
         run: |

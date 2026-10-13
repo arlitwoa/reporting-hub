@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from datetime import date, datetime, timezone
@@ -184,6 +185,32 @@ def _unpack_ledger_cache(raw: str | None) -> list[dict[str, Any]]:
     return parsed if isinstance(parsed, list) else []
 
 
+_CREDIT_CACHE_PREFIX = "credit:v4:"
+
+
+def _credit_cache_key(
+    scope: str,
+    issue_key: str,
+    issue: dict[str, Any],
+    *,
+    deploy_statuses: set[str],
+    done_statuses: set[str],
+) -> str | None:
+    """Cache key for an issue's credit ledger, or None when it cannot be validated.
+
+    The ledger is derived from the issue's status transitions and the configured
+    deploy/done statuses. Any Jira change bumps ``updated``, and a change to the status
+    config changes the signature, so either one produces a new key (a cache miss).
+    """
+    updated = (issue.get("fields") or {}).get("updated")
+    if not updated:
+        return None
+    signature = hashlib.sha1(
+        json.dumps([sorted(deploy_statuses), sorted(done_statuses)]).encode("utf-8")
+    ).hexdigest()[:8]
+    return f"{_CREDIT_CACHE_PREFIX}{scope}:{issue_key}:{signature}:{updated}"
+
+
 def _resolve_credit_ledger(
     adapter: AtlassianAdapter,
     issue_key: str,
@@ -191,10 +218,11 @@ def _resolve_credit_ledger(
     done_statuses: set[str],
     *,
     cache: dict[str, str],
-    cache_key: str,
+    cache_key: str | None,
     throttle_seconds: float = 0.0,
 ) -> list[dict[str, Any]]:
-    if cache_key in cache:
+    """Return the credit ledger, using ``cache`` when ``cache_key`` is set and present."""
+    if cache_key is not None and cache_key in cache:
         return _unpack_ledger_cache(cache[cache_key])
     if throttle_seconds:
         time.sleep(throttle_seconds)
@@ -204,7 +232,13 @@ def _resolve_credit_ledger(
         deploy_statuses,
         done_statuses,
     )
-    cache[cache_key] = _pack_ledger_cache(ledger)
+    if cache_key is not None:
+        # Drop superseded entries for this issue/scope so the cache does not grow unbounded.
+        scope = cache_key[len(_CREDIT_CACHE_PREFIX):].split(":", 1)[0]
+        stale_prefix = f"{_CREDIT_CACHE_PREFIX}{scope}:{issue_key}:"
+        for old_key in [k for k in cache if k.startswith(stale_prefix)]:
+            del cache[old_key]
+        cache[cache_key] = _pack_ledger_cache(ledger)
     return ledger
 
 
@@ -384,7 +418,7 @@ def earned_events_for_scope_keys(
     for key in ordered_keys:
         keys_to_fetch.append(key)
 
-    fields = ["summary", "issuetype", "status", "fixVersions", sp_field]
+    fields = ["summary", "issuetype", "status", "fixVersions", "updated", sp_field]
     for chunk in _chunked_keys(keys_to_fetch):
         jql = f"key in ({', '.join(chunk)})"
         for issue in search_all(adapter, jql, fields):
@@ -420,7 +454,13 @@ def earned_events_for_scope_keys(
         if sp_val <= 0:
             continue
 
-        cache_key = f"credit:v3:milestone:{key}"
+        cache_key = _credit_cache_key(
+            "milestone",
+            key,
+            issue,
+            deploy_statuses=deploy_statuses,
+            done_statuses=done_statuses,
+        )
         ledger = _resolve_credit_ledger(
             adapter,
             key,
@@ -751,11 +791,39 @@ def education_cloud_squad_scope_breakdown(
 def _load_cache(cache_path: Path) -> dict[str, str | None]:
     if not cache_path.exists():
         return {}
-    return json.loads(cache_path.read_text(encoding="utf-8"))
+    try:
+        raw = json.loads(cache_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    # Drop entries from older key schemes (not validated against issue ``updated``).
+    return {k: v for k, v in raw.items() if str(k).startswith(_CREDIT_CACHE_PREFIX)}
 
 
 def _save_cache(cache_path: Path, cache: dict[str, str | None]) -> None:
-    cache_path.write_text(json.dumps(cache, indent=2), encoding="utf-8")
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    cache_path.write_text(json.dumps(cache, separators=(",", ":")), encoding="utf-8")
+
+
+class _CacheFlusher:
+    """Write the credit cache every ``every`` new entries (not once per issue)."""
+
+    def __init__(self, cache_path: Path, cache: dict[str, str | None], *, every: int = 50) -> None:
+        self._cache_path = cache_path
+        self._cache = cache
+        self._every = every
+        self._pending = 0
+
+    def note_fetch(self) -> None:
+        self._pending += 1
+        if self._pending >= self._every:
+            self.flush()
+
+    def flush(self) -> None:
+        if self._pending:
+            _save_cache(self._cache_path, self._cache)
+            self._pending = 0
 
 
 def _pack_credit_cache(
@@ -802,9 +870,10 @@ def burn_lane(
     extra_fields: list[str] | None = None,
 ) -> dict:
     """Scan lane scope and return deploy- or Done-earned SP within the quarter."""
-    fields = ["summary", "issuetype", "status", "fixVersions", sp_field, *(extra_fields or [])]
+    fields = ["summary", "issuetype", "status", "fixVersions", "updated", sp_field, *(extra_fields or [])]
     issues = search_all(adapter, scope_jql, fields)
     cache = _load_cache(cache_path)
+    flusher = _CacheFlusher(cache_path, cache)
 
     candidates: list[tuple[dict, float, dict]] = []
     for iss in issues:
@@ -827,7 +896,14 @@ def burn_lane(
             print(f"{lane_key}: changelog {idx}/{len(candidates)}...", flush=True)
         status = (f.get("status") or {}).get("name") or ""
         key = iss["key"]
-        cache_key = f"credit:v3:{lane_key}:{key}"
+        cache_key = _credit_cache_key(
+            lane_key,
+            key,
+            iss,
+            deploy_statuses=deploy_statuses,
+            done_statuses=done_statuses,
+        )
+        was_cached = cache_key is not None and cache_key in cache
         ledger = _resolve_credit_ledger(
             adapter,
             key,
@@ -837,7 +913,8 @@ def burn_lane(
             cache_key=cache_key,
             throttle_seconds=throttle_seconds,
         )
-        _save_cache(cache_path, cache)
+        if cache_key is not None and not was_cached:
+            flusher.note_fetch()
 
         itype = (f.get("issuetype") or {}).get("name") or ""
         issue_events = _burn_events_from_ledger(ledger, issue=iss, sp_val=sp_val)
@@ -856,6 +933,7 @@ def burn_lane(
 
         earned_events.extend(issue_events)
 
+    flusher.flush()
     earned_events.sort(key=lambda e: e["credit_at"])
     in_quarter = filter_events_in_quarter(earned_events, quarter)
     daily, total = aggregate_daily_burn(in_quarter)
@@ -900,6 +978,7 @@ def burn_global_with_lane_split(
         "issuetype",
         "status",
         "fixVersions",
+        "updated",
         sp_field,
         delivery_squad_field,
         change_types_field,
@@ -908,6 +987,7 @@ def burn_global_with_lane_split(
     ]
     issues = search_all(adapter, global_scope_jql, fields)
     cache = _load_cache(cache_path)
+    flusher = _CacheFlusher(cache_path, cache)
     lanes = selected_lanes or tuple(lane_specs.keys())
 
     lane_state: dict[str, dict] = {
@@ -960,7 +1040,14 @@ def burn_global_with_lane_split(
 
         status = (f.get("status") or {}).get("name") or ""
         key = iss["key"]
-        cache_key = f"credit:v3:global:{key}"
+        cache_key = _credit_cache_key(
+            "global",
+            key,
+            iss,
+            deploy_statuses=deploy_statuses,
+            done_statuses=done_statuses,
+        )
+        was_cached = cache_key is not None and cache_key in cache
         ledger = _resolve_credit_ledger(
             adapter,
             key,
@@ -970,7 +1057,8 @@ def burn_global_with_lane_split(
             cache_key=cache_key,
             throttle_seconds=throttle_seconds,
         )
-        _save_cache(cache_path, cache)
+        if cache_key is not None and not was_cached:
+            flusher.note_fetch()
 
         issue_events = _burn_events_from_ledger(ledger, issue=iss, sp_val=float(sp))
         net_sp = sum(float(event.get("story_points") or 0) for event in issue_events)
@@ -998,6 +1086,7 @@ def burn_global_with_lane_split(
         if lane_key in lane_state:
             lane_state[lane_key]["events"].extend(issue_events)
 
+    flusher.flush()
     global_events.sort(key=lambda e: e["credit_at"])
     in_quarter = filter_events_in_quarter(global_events, quarter)
     global_daily, global_total = aggregate_daily_burn(in_quarter)
