@@ -42,7 +42,7 @@ jobs:
           GH_TOKEN: ${{ secrets.ARTIFACT_CORE_PAT }}
         run: |
           gh release download v0.2.1 \
-            --repo barlconz/artifact \
+            --repo barlconz/artifact-core \
             --pattern "barlconz_artifact_core-0.2.1-py3-none-any.whl" \
             --dir /tmp
           pip install /tmp/barlconz_artifact_core-0.2.1-py3-none-any.whl
