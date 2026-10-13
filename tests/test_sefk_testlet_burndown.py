@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import unittest
-from datetime import date
+from datetime import date, datetime, timezone
+from unittest.mock import patch
 
 from extensions.twoa_programme.sefk_testlet_burndown import (
     _y_axis_ticks,
@@ -622,6 +623,42 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertIn('status%20CHANGED%20TO%20%22Passed%22', document)
         self.assertIn('status%20CHANGED%20TO%20%22Deferred%22', document)
         self.assertNotIn("project%20%3D%20SEFK", document)
+
+    def test_default_as_of_is_nz_today_not_utc_today(self) -> None:
+        # 14 Oct 07:06 NZDT is still 13 Oct 18:06 UTC (as on a CI runner).
+        instant = datetime(2026, 10, 13, 18, 6, tzinfo=timezone.utc)
+
+        class FrozenDatetime(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return instant.astimezone(tz) if tz else instant.replace(tzinfo=None)
+
+        issue = {
+            "key": "SEFK-1",
+            "fields": {
+                "created": "2026-10-12T09:00:00.000+1300",
+                "status": {"name": "Passed"},
+                "resolution": {"name": "Done"},
+            },
+        }
+        histories = {
+            "SEFK-1": [
+                {
+                    "created": "2026-10-14T05:33:00.000+1300",
+                    "items": [{"field": "status", "fromString": "In Testing", "toString": "Passed"}],
+                }
+            ]
+        }
+
+        with patch("extensions.twoa_programme.sefk_testlet_burndown.datetime", FrozenDatetime):
+            payload = build_sefk_testlet_burndown_payload(
+                [issue], histories, ideal_start="2026-10-05", ideal_end="2026-10-23"
+            )
+
+        self.assertEqual(payload["asOf"], "2026-10-14")
+        self.assertEqual(payload["daily"][-1]["date"], "2026-10-14")
+        self.assertEqual(payload["daily"][-1]["remaining"], 0)
+        self.assertEqual(payload["daily"][-1]["passed"], 1)
 
 
 if __name__ == "__main__":

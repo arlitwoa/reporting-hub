@@ -7,6 +7,11 @@ from datetime import date, datetime, timedelta
 from math import ceil
 from typing import Any
 from urllib.parse import quote
+from zoneinfo import ZoneInfo
+
+# Jira changelog timestamps are NZ-local, so "today" must be too. CI runners use UTC,
+# where date.today() lags NZ by up to 13 hours and drops same-day transitions.
+NZ_TZ = ZoneInfo("Pacific/Auckland")
 
 
 def _day(value: Any) -> date | None:
@@ -261,7 +266,7 @@ def build_sefk_testlet_burndown_payload(
     as_of: date | str | None = None,
 ) -> dict[str, Any]:
     """Replay Jira resolution and Rejected-status changes with the ideal-pace window."""
-    end = _day(as_of) if as_of is not None else date.today()
+    end = _day(as_of) if as_of is not None else datetime.now(NZ_TZ).date()
     if end is None:
         raise ValueError("as_of must be a valid ISO date")
     ideal_start_day = _day(ideal_start)
