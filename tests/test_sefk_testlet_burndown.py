@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import unittest
 from datetime import date, datetime, timezone
 from unittest.mock import patch
@@ -623,6 +624,71 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertIn('status%20CHANGED%20TO%20%22Passed%22', document)
         self.assertIn('status%20CHANGED%20TO%20%22Deferred%22', document)
         self.assertNotIn("project%20%3D%20SEFK", document)
+
+    @staticmethod
+    def _slow_pace_payload(passed: int) -> dict:
+        issues = [
+            {
+                "key": f"SEFK-{n}",
+                "fields": {
+                    "created": "2026-10-05T09:00:00.000+1300",
+                    "status": {"name": "Passed" if n < passed else "In Testing"},
+                    "resolution": {"name": "Done"} if n < passed else None,
+                },
+            }
+            for n in range(70)
+        ]
+        histories = {
+            f"SEFK-{n}": [
+                {
+                    "created": "2026-10-14T05:33:00.000+1300",
+                    "items": [{"field": "status", "fromString": "In Testing", "toString": "Passed"}],
+                }
+            ]
+            for n in range(passed)
+        }
+        return build_sefk_testlet_burndown_payload(
+            issues, histories, ideal_start="2026-10-05", ideal_end="2026-10-23", as_of="2026-10-14"
+        )
+
+    def test_far_future_forecast_does_not_stretch_chart_axis(self) -> None:
+        payload = self._slow_pace_payload(passed=1)
+        # 69 remaining at 1 pass over 10 days is ~690 days away.
+        self.assertGreater(date.fromisoformat(payload["forecastDate"]), date(2028, 1, 1))
+
+        document = build_sefk_testlet_burndown_html(
+            payload,
+            generated_on="14 Oct 2026",
+            test_type="System Integration",
+            bounds_issue_key="SEFK-1216",
+            platform="workday",
+        )
+
+        # Axis stops two weeks past the target, not at the forecast date.
+        self.assertIn("from 2026-10-05 to 2026-11-06;", document)
+        self.assertIn("Forecast 2028-09-03 (off chart)", document)
+        self.assertLessEqual(document.count('class="week-tick"'), 11)
+        # The forecast line is clipped at the right edge of the plot (x = 976), above zero.
+        match = re.search(r'<polyline points="([^"]+)" class="forecast-trend"', document)
+        self.assertIsNotNone(match)
+        end_x, end_y = (float(v) for v in match.group(1).split()[-1].split(","))
+        self.assertEqual(end_x, 976.0)
+        self.assertLess(end_y, 332.0)  # plot bottom (y for 0 remaining) is 380 - 48 = 332
+
+    def test_near_forecast_still_extends_axis_without_off_chart_label(self) -> None:
+        payload = self._slow_pace_payload(passed=30)
+        self.assertLessEqual(date.fromisoformat(payload["forecastDate"]), date(2026, 11, 6))
+
+        document = build_sefk_testlet_burndown_html(
+            payload,
+            generated_on="14 Oct 2026",
+            test_type="System Integration",
+            bounds_issue_key="SEFK-1216",
+            platform="workday",
+        )
+
+        self.assertNotIn("(off chart)", document)
+        self.assertIn(f"Forecast {payload['forecastDate']}", document)
 
     def test_default_as_of_is_nz_today_not_utc_today(self) -> None:
         # 14 Oct 07:06 NZDT is still 13 Oct 18:06 UTC (as on a CI runner).
