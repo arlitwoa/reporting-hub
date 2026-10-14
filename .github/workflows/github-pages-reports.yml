@@ -11,11 +11,8 @@ on:
       - pyproject.toml
       - .github/workflows/github-pages-reports.yml
   schedule:
-    # Every 30 minutes, Mon–Fri 07:00–19:00 NZ (Pacific/Auckland)
-    - cron: "0,30 7-18 * * 1-5"
-      timezone: Pacific/Auckland
-    - cron: "0 19 * * 1-5"
-      timezone: Pacific/Auckland
+    # Every 30 minutes, 24/7
+    - cron: "0,30 * * * *"
   workflow_dispatch:
 
 permissions:
