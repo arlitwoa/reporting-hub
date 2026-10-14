@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import html
 import json
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +13,7 @@ from extensions.twoa_programme.quarter_scope import (
     EC_SQUAD_SPECS,
     education_cloud_squad_jqls,
 )
+from extensions.twoa_programme.quarterly_reporting import NZ_TZ
 from extensions.twoa_programme.pde_engine_releases import (
     carriage_cycle_label,
     carriage_delivery_kind,
@@ -114,7 +115,8 @@ def load_artifacts(output_dir: Path) -> dict:
 
 def _parse_report_date(value: str | None) -> date:
     if not value:
-        return date.today()
+        # NZ date, not the host's: CI runners are UTC and lag NZ by up to 13 hours.
+        return datetime.now(NZ_TZ).date()
     return date.fromisoformat(str(value)[:10])
 
 
