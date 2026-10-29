@@ -24,12 +24,29 @@ def _day(value: Any) -> date | None:
         return None
 
 
+_TERMINAL_STATUS_NAMES = frozenset({"passed", "rejected", "deferred"})
+
+
+def _status_name_and_category(value: Any) -> tuple[str, str]:
+    if isinstance(value, dict):
+        name = str(value.get("name") or "").strip()
+        category = str((value.get("statusCategory") or {}).get("key") or "").strip()
+        return name, category
+    return str(value or "").strip(), ""
+
+
 def _is_rejected_status(value: Any) -> bool:
-    return str(value or "").strip().casefold() == "rejected"
+    name, _category = _status_name_and_category(value)
+    return name.casefold() == "rejected"
 
 
 def _is_terminal_status(value: Any) -> bool:
-    return str(value or "").strip().casefold() in {"passed", "rejected", "deferred"}
+    """Passed, Rejected, Deferred, or any other Jira Done-category status except Failed."""
+    name, category = _status_name_and_category(value)
+    folded = name.casefold()
+    if folded in _TERMINAL_STATUS_NAMES:
+        return True
+    return category.casefold() == "done" and folded != "failed"
 
 
 def _is_execution_status(value: Any) -> bool:
@@ -303,15 +320,17 @@ def build_sefk_testlet_burndown_payload(
         created_by_day[created] = created_by_day.get(created, 0) + 1
         histories = changelogs_by_key.get(str(issue.get("key") or ""), [])
         current_resolution = bool(fields.get("resolution"))
-        current_status = str((fields.get("status") or {}).get("name") or "")
-        status_key = current_status.strip().casefold()
+        current_status_field = fields.get("status")
+        current_status, _current_category = _status_name_and_category(current_status_field)
+        status_key = current_status.casefold()
+        currently_terminal = _is_terminal_status(current_status_field or current_status)
         if status_key == "passed":
             passed_now += 1
             completed_now += 1
         elif status_key == "rejected":
             rejected_now += 1
             completed_now += 1
-        elif status_key == "deferred":
+        elif currently_terminal:
             deferred_now += 1
             completed_now += 1
         elif not current_status and current_resolution:
@@ -336,7 +355,7 @@ def build_sefk_testlet_burndown_payload(
         initially_resolved, resolved_events, has_resolution_history = _resolved_state_events(
             histories,
             current_resolution=current_resolution,
-            current_status=current_status,
+            current_status=current_status_field or current_status,
         )
         if resolution_day is not None and resolution_day <= end:
             if current_resolution and not has_resolution_history:
@@ -370,6 +389,16 @@ def build_sefk_testlet_burndown_payload(
             elif not remaining and not to_resolved:
                 events[changed] = events.get(changed, 0) + 1
                 remaining = True
+        if remaining and currently_terminal:
+            events[end] = events.get(end, 0) - 1
+            remaining = False
+            terminal_by_day[end] = terminal_by_day.get(end, 0) + 1
+            if status_key == "passed":
+                passed_by_day[end] = passed_by_day.get(end, 0) + 1
+            elif status_key == "rejected":
+                rejected_by_day[end] = rejected_by_day.get(end, 0) + 1
+            else:
+                deferred_by_day[end] = deferred_by_day.get(end, 0) + 1
 
     if earliest is None:
         return {
