@@ -360,6 +360,55 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertEqual(payload["remainingTestlets"], 0)
         self.assertEqual(payload["daily"][-1]["executed"], 0)
 
+    def test_done_category_status_is_removed_from_remaining(self) -> None:
+        payload = build_sefk_testlet_burndown_payload(
+            [{"key": "SEFK-DONE-CAT", "fields": {
+                "created": "2026-10-01",
+                "resolution": None,
+                "status": {"name": "Deferred", "statusCategory": {"key": "done"}},
+            }}],
+            {},
+            ideal_start="2026-10-01",
+            ideal_end="2026-10-09",
+            as_of="2026-10-02",
+        )
+
+        self.assertEqual(payload["deferredTestlets"], 1)
+        self.assertEqual(payload["completedTestlets"], 1)
+        self.assertEqual(payload["remainingTestlets"], 0)
+
+    def test_changelog_without_deferred_name_still_burns_down_from_current_done_status(self) -> None:
+        payload = build_sefk_testlet_burndown_payload(
+            [{"key": "SEFK-DEFERRED-ID", "fields": {
+                "created": "2026-10-01",
+                "resolution": None,
+                "status": {"name": "Deferred", "statusCategory": {"key": "done"}},
+            }}],
+            {
+                "SEFK-DEFERRED-ID": [
+                    {
+                        "created": "2026-10-02T09:00:00.000+0000",
+                        "items": [
+                            {
+                                "field": "status",
+                                "fromString": "In Testing",
+                                "to": "12146",
+                                "toString": "",
+                            }
+                        ],
+                    }
+                ]
+            },
+            ideal_start="2026-10-01",
+            ideal_end="2026-10-09",
+            as_of="2026-10-02",
+        )
+
+        self.assertEqual(payload["deferredTestlets"], 1)
+        self.assertEqual(payload["remainingTestlets"], 0)
+        self.assertEqual([row["remaining"] for row in payload["daily"]], [1, 0])
+        self.assertEqual(payload["daily"][-1]["deferred"], 1)
+
     def test_current_failed_count_is_a_subset_of_remaining(self) -> None:
         payload = build_sefk_testlet_burndown_payload(
             [
