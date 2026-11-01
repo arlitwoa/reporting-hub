@@ -61,12 +61,21 @@ def _education_cloud_squad_table_rows(
         squad_meta = (health_payload.get("squads") or {}).get(slug) or {}
         label = row.get("label") or (squad_cfg.label if squad_cfg else slug)
         board_id = row.get("boardId") or (squad_cfg.board_id if squad_cfg else "")
-        board_name = row.get("boardName") or squad_meta.get("boardName") or label
+        sprint_filter_id = squad_meta.get("sprintFilterId")
+        board_name = (
+            f"Jira filter {sprint_filter_id}"
+            if sprint_filter_id
+            else row.get("boardName") or squad_meta.get("boardName") or label
+        )
         sprint_count = row.get("sprintCount", 0)
         total_credit = row.get("totalDeployCredit", 0.0)
         baseline = row.get("baselineVelocity", 0.0)
         if include_board:
-            board_url = f"{JIRA_SERVER}/jira/software/c/projects/EPCE/boards/{board_id}"
+            board_url = (
+                f"{JIRA_SERVER}/issues/?filter={sprint_filter_id}"
+                if sprint_filter_id
+                else f"{JIRA_SERVER}/jira/software/c/projects/EPCE/boards/{board_id}"
+            )
             board_cell = (
                 f'<td><a href="{board_url}" target="_blank" rel="noopener">{html.escape(board_name)}</a></td>'
                 if board_id

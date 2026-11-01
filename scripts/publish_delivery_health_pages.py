@@ -26,7 +26,10 @@ from artifact.delivery_health.sprint_engine import (  # noqa: E402
 )
 
 from extensions.twoa_programme.concurrency import map_concurrently  # noqa: E402
-from extensions.twoa_programme.delivery_health import load_delivery_health_config  # noqa: E402
+from extensions.twoa_programme.delivery_health import (  # noqa: E402
+    FilterSprintGateway,
+    load_delivery_health_config,
+)
 from extensions.twoa_programme.delivery_health_pages import (  # noqa: E402
     DeliveryHealthPagesConfig,
     build_no_active_sprint_html,
@@ -61,9 +64,10 @@ def _profile_name(argv: list[str] | None) -> str:
     return _DEFAULT_PROFILE
 
 
-def _gateway(profile_name: str) -> ArtifactJiraGateway:
+def _gateway(profile_name: str) -> FilterSprintGateway:
     adapter = AtlassianAdapter.from_profile(profile_name, profiles_dir=str(_profiles_dir()))
-    return ArtifactJiraGateway(adapter.http)
+    health_config = load_delivery_health_config()
+    return FilterSprintGateway(adapter.http, health_config.sprint_filter_ids)
 
 
 def publish_snapshots(

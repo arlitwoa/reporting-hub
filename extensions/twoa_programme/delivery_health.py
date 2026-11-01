@@ -6,11 +6,16 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import threading
 from pathlib import Path
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
 
+from artifact.delivery_health import sprint_engine
 from artifact.delivery_health.config import DeliveryHealthConfig, DevDoneRiskConfig, SquadConfig
+from artifact.delivery_health.gateway import ArtifactJiraGateway
 from artifact.delivery_health.phases import deploy_status_names, terminal_status_names
 from artifact.jira_binding import JiraBinding
 
@@ -58,6 +63,8 @@ def _load_dev_done_risk(payload: dict, aliases: dict[str, str]) -> DevDoneRiskCo
 class TwoaDeliveryHealthConfig(DeliveryHealthConfig):
     """TWoA EPCE delivery health — sprint/release scope includes all in-sprint issues."""
 
+    sprint_filter_ids: dict[int, int] = field(default_factory=dict)
+
     def sprint_scope_jql(self, sprint_id: int | str) -> str:
         return (
             f"project = {self.project_key} "
@@ -72,6 +79,68 @@ class TwoaDeliveryHealthConfig(DeliveryHealthConfig):
             f"AND issuetype in ({self.scope_issue_types_jql()}) "
             f'AND fixVersion = "{quoted}"'
         )
+
+
+class FilterSprintGateway(ArtifactJiraGateway):
+    """Use configured saved filters to serve sprint-list requests for removed boards."""
+
+    _SPRINT_FIELD = "customfield_10020"
+    _BOARD_SPRINT_PATH = re.compile(r"/?rest/agile/1\.0/board/(\d+)/sprint$")
+
+    def __init__(self, http, sprint_filter_ids: dict[int, int]) -> None:
+        super().__init__(http)
+        self._sprint_filter_ids = sprint_filter_ids
+        self._filter_sprints_cache: dict[int, list[dict[str, Any]]] = {}
+        self._filter_sprints_lock = threading.Lock()
+
+    def _sprints_for_filter(self, filter_id: int) -> list[dict[str, Any]]:
+        with self._filter_sprints_lock:
+            if filter_id not in self._filter_sprints_cache:
+                issues = sprint_engine.search_issues(
+                    self,
+                    f"filter = {filter_id}",
+                    fields=[self._SPRINT_FIELD],
+                    page_size=100,
+                )
+                sprints: dict[str, dict[str, Any]] = {}
+                for issue in issues:
+                    values = (issue.get("fields") or {}).get(self._SPRINT_FIELD) or []
+                    if not isinstance(values, list):
+                        continue
+                    for sprint in values:
+                        if not isinstance(sprint, dict) or sprint.get("id") is None:
+                            continue
+                        sprint_id = str(sprint["id"])
+                        previous = sprints.get(sprint_id)
+                        if previous is None or len(sprint) > len(previous):
+                            sprints[sprint_id] = sprint
+                self._filter_sprints_cache[filter_id] = sorted(
+                    sprints.values(),
+                    key=lambda sprint: (sprint.get("startDate") or "", str(sprint["id"])),
+                )
+            return self._filter_sprints_cache[filter_id]
+
+    def get_json(self, path: str, *, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        match = self._BOARD_SPRINT_PATH.fullmatch(path)
+        filter_id = self._sprint_filter_ids.get(int(match.group(1))) if match else None
+        if filter_id is None:
+            return super().get_json(path, params=params)
+
+        options = params or {}
+        state = str(options.get("state") or "").casefold()
+        sprints = self._sprints_for_filter(filter_id)
+        if state:
+            sprints = [sprint for sprint in sprints if str(sprint.get("state", "")).casefold() == state]
+        start_at = max(0, int(options.get("startAt", 0)))
+        max_results = max(1, int(options.get("maxResults", 50)))
+        values = sprints[start_at : start_at + max_results]
+        return {
+            "values": values,
+            "startAt": start_at,
+            "maxResults": max_results,
+            "total": len(sprints),
+            "isLast": start_at + len(values) >= len(sprints),
+        }
 
 
 def load_delivery_health_config(
@@ -95,6 +164,11 @@ def load_delivery_health_config(
             board_id=int(squad["boardId"]),
         )
         prefixes[slug] = tuple(str(p) for p in squad.get("namePrefixes", [slug]))
+    sprint_filter_ids = {
+        squads[slug].board_id: int(squad["sprintFilterId"])
+        for slug, squad in payload.get("squads", {}).items()
+        if squad.get("sprintFilterId") is not None
+    }
 
     extra_deploy = frozenset(str(s) for s in payload.get("extraDeployStatuses", []))
     terminal_defaults = frozenset(str(s) for s in payload.get("terminalStatusDefaults", []))
@@ -127,6 +201,7 @@ def load_delivery_health_config(
         deliver_milestone_filter_label=str(payload.get("deliverMilestoneFilterLabel", "deliver-milestone")),
         blocked_flagged_jql=str(payload.get("blockedFlaggedJql", '"Flagged[Checkboxes]" = Impediment')),
         squads=squads,
+        sprint_filter_ids=sprint_filter_ids,
         squad_name_prefixes=prefixes,
         deploy_statuses=deploy_status_names(binding, extra=extra_deploy),
         terminal_statuses=terminal_status_names(binding, defaults=terminal_defaults),

@@ -27,7 +27,10 @@ from artifact.delivery_health.sprint_engine import (  # noqa: E402
 )
 
 from extensions.twoa_programme.concurrency import map_concurrently  # noqa: E402
-from extensions.twoa_programme.delivery_health import load_delivery_health_config  # noqa: E402
+from extensions.twoa_programme.delivery_health import (  # noqa: E402
+    FilterSprintGateway,
+    load_delivery_health_config,
+)
 from extensions.twoa_programme.sprint_credit_cache import (  # noqa: E402
     default_cache_path,
     install_sprint_credit_cache,
@@ -149,7 +152,7 @@ def main(argv: list[str] | None = None) -> int:
 
     profiles_dir = os.environ["ARTIFACT_PROFILES_DIR"]
     adapter = AtlassianAdapter.from_profile("atlassian", profiles_dir)
-    jira = ArtifactJiraGateway(adapter.http)
+    jira = FilterSprintGateway(adapter.http, dh_config.sprint_filter_ids)
 
     # Every sprint a squad needs (the quarter's sprints plus its velocity-baseline window) is
     # computed once, concurrently, and cached; the roll-up below then only reads results.
