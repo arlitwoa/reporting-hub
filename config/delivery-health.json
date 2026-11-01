@@ -85,6 +85,7 @@
     "kakariki": {
       "label": "Kākāriki",
       "boardId": 893,
+      "sprintFilterId": 10728,
       "boardName": "Kākāriki Krew Scrum | Delivery",
       "namePrefixes": ["kākāriki", "kakariki"]
     },
