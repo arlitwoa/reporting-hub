@@ -99,6 +99,7 @@
     "waiporoporo": {
       "label": "Waiporoporo",
       "boardId": 1725,
+      "sprintFilterId": 13205,
       "boardName": "Waiporoporo Scrum",
       "namePrefixes": ["waiporoporo"]
     }

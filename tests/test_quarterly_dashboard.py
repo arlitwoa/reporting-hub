@@ -243,11 +243,13 @@ class QuarterlyDashboardTests(unittest.TestCase):
         self.assertIn("Waiporoporo", html_doc)
         self.assertIn("Jira filter 10728", html_doc)
         self.assertIn("Jira filter 10729", html_doc)
-        self.assertIn("Waiporoporo Scrum", html_doc)
+        self.assertIn("Jira filter 13205", html_doc)
         self.assertIn("/issues/?filter=10728", html_doc)
         self.assertIn("/issues/?filter=10729", html_doc)
+        self.assertIn("/issues/?filter=13205", html_doc)
         self.assertNotIn("/boards/893", html_doc)
         self.assertNotIn("/boards/992", html_doc)
+        self.assertNotIn("/boards/1725", html_doc)
 
     def test_y_tick_granularity(self):
         self.assertEqual(_y_tick_step(48.0), 5.0)
