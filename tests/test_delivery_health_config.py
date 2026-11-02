@@ -18,7 +18,7 @@ class TwoaDeliveryHealthConfigTests(unittest.TestCase):
         self.assertEqual(config.project_key, "EPCE")
         self.assertIn("kakariki", config.squads)
         self.assertEqual(config.squads["kakariki"].board_id, 893)
-        self.assertEqual(config.sprint_filter_ids, {893: 10728})
+        self.assertEqual(config.sprint_filter_ids, {893: 10728, 992: 10729})
         jql = config.sprint_scope_jql(1837)
         self.assertEqual(
             jql,

@@ -92,6 +92,7 @@
     "kikorangi": {
       "label": "Kikorangi",
       "boardId": 992,
+      "sprintFilterId": 10729,
       "boardName": "Kikorangi Tima Scrum | Delivery",
       "namePrefixes": ["kikorangi"]
     },
