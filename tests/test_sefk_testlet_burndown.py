@@ -37,6 +37,7 @@ class SefkTestletBurndownTests(unittest.TestCase):
                 "workday",
                 "System Integration | Workday &lt;&gt; GPC &lt;&gt; Datapay | Testlet Burndown",
             ),
+            ("End to End", None, "End to End | End to End | Testlet Burndown"),
         ):
             with self.subTest(platform=platform):
                 document = build_sefk_testlet_burndown_html(
@@ -64,6 +65,15 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertNotIn("azure-integration-services", jql)
         self.assertNotIn("smart-sefk-current-engine", jql)
         self.assertIn("smart-sefk-current-engine", _testlet_scope_jql("System Integration", "azure-integration-services"))
+
+    def test_end_to_end_scope_is_all_end_to_end_testlets(self) -> None:
+        jql = _testlet_scope_jql("End to End")
+
+        self.assertEqual(
+            jql,
+            'project = SEFK AND issuetype = Testlet AND cf[10145] = "End to End" '
+            "ORDER BY created ASC, key ASC",
+        )
 
     def test_day_jql_uses_full_timestamp_window(self) -> None:
         jql = _resolved_testlets_for_day_jql("Unit", date(2026, 10, 12))
@@ -95,6 +105,26 @@ class SefkTestletBurndownTests(unittest.TestCase):
         self.assertIn("(all SEFK engine versions)", document)
         self.assertNotIn("smart-sefk-current-engine", document)
         self.assertIn("cf%5B10079%5D%20%3D%20%22workday%22", document)
+
+    def test_report_renders_before_the_ideal_window_starts(self) -> None:
+        payload = build_sefk_testlet_burndown_payload(
+            [{"fields": {"created": "2026-11-10", "resolution": None}}],
+            {},
+            ideal_start="2026-11-30",
+            ideal_end="2027-03-05",
+            as_of="2026-11-17",
+        )
+
+        document = build_sefk_testlet_burndown_html(
+            payload,
+            generated_on="17 Nov 2026",
+            test_type="End to End",
+            bounds_issue_key="SEFK-1231",
+        )
+
+        self.assertIn("<h1>End to End | End to End | Testlet Burndown</h1>", document)
+        self.assertIn('<polyline points="" class="actual" />', document)
+        self.assertIn("Target 5 Mar", document)
 
     def test_y_axis_top_tick_equals_scoped_total(self) -> None:
         self.assertEqual(_y_axis_ticks(82), (0, 41, 82))

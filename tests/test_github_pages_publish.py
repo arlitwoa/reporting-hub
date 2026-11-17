@@ -122,6 +122,8 @@ class GitHubPagesPublishTests(unittest.TestCase):
             "System Integration | Workday &lt;&gt; GPC &lt;&gt; Datapay | Testlet Burndown",
             html_doc,
         )
+        self.assertIn('href="end-to-end-testlet-burndown.html"', html_doc)
+        self.assertIn("End to End | End to End | Testlet Burndown", html_doc)
 
     def test_programme_hub_uses_relative_links(self):
         root = Path(__file__).resolve().parents[1]

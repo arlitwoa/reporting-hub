@@ -518,7 +518,7 @@ def _render_svg(
     else:
         chart_end = min(max(horizon, forecast_day) + timedelta(days=5), axis_cap)
     chart_span = max(1, (chart_end - chart_start).days)
-    ideal_start_remaining = int(payload.get("idealStartRemaining", values[0]))
+    ideal_start_remaining = int(payload.get("idealStartRemaining", values[0] if values else 0))
     total_count = int(payload.get("totalTestlets") or max(values, default=0))
     y_max = max(1, total_count)
 
